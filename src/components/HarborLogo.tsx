@@ -104,11 +104,11 @@ export function HarborLogo({ className = "h-16 w-16", withGlow = true }: { class
   );
 }
 
-export function Wordmark({ className = "" }: { className?: string }) {
+export function Wordmark({ className = "", subtitle = "EXECUTIVE SERVICES" }: { className?: string; subtitle?: string }) {
   return (
     <div className={"flex flex-col items-center " + className}>
       <div className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-gradient-gold">HarborLine</div>
-      <div className="mt-1 text-[10px] md:text-xs tracking-[0.4em] text-muted-foreground">EXECUTIVE SERVICES</div>
+      <div className="mt-1 text-[10px] md:text-xs tracking-[0.4em] text-muted-foreground uppercase">{subtitle}</div>
     </div>
   );
 }
