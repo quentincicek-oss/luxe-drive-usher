@@ -194,7 +194,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border/40 py-10 px-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} HarborLine Executive Services. {t("footer.rights")}
+        © {new Date().getFullYear()} HarborLine {t("brand.services")}. {t("footer.rights")}
       </footer>
     </main>
   );
