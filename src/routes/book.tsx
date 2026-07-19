@@ -81,7 +81,7 @@ function Book() {
           title={t("book.title")}
           description={t("book.subtitle")}
         >
-          <form onSubmit={reserve} className="space-y-5">
+          <form id="book-form" onSubmit={reserve} className="space-y-5">
             <Field
               label={t("book.pickup")}
               required
