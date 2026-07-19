@@ -166,7 +166,11 @@ function History() {
       {receiptFor && (
         <ReceiptModal bookingId={receiptFor} onClose={() => setReceiptFor(null)} />
       )}
+      {payFor && (
+        <BookingCheckoutModal bookingId={payFor} onClose={() => setPayFor(null)} />
+      )}
     </main>
+
   );
 }
 
