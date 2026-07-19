@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
+import { ConciergeWidget } from "@/components/ConciergeWidget";
 
 function NotFoundComponent() {
   return (
