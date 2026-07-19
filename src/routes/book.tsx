@@ -148,9 +148,9 @@ function Book() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-10 grid lg:grid-cols-5 gap-6">
+      <div className="mx-auto max-w-3xl px-6 py-10">
         {/* Booking form */}
-        <section className="lg:col-span-3 rounded-xl border border-border/60 bg-surface-elevated shadow-luxe p-8">
+        <section className="rounded-xl border border-border/60 bg-surface-elevated shadow-luxe p-8">
           <div className="text-xs tracking-[0.35em] text-gold uppercase">{t("book.kicker")}</div>
           <h1 className="mt-2 font-display text-3xl">{t("book.title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("book.subtitle")}</p>
@@ -182,52 +182,10 @@ function Book() {
               />
             </div>
             <button disabled={saving} className="w-full rounded-md bg-gold-gradient py-3.5 text-sm font-semibold text-primary-foreground shadow-gold disabled:opacity-60">
-
               {saving ? t("book.saving") : t("book.submit")}
             </button>
           </form>
         </section>
-
-        {/* AI concierge team */}
-        <aside className="lg:col-span-2 flex flex-col rounded-xl border border-border/60 bg-surface-elevated shadow-luxe overflow-hidden">
-          <div className="border-b border-border/60 px-6 py-4 flex items-center gap-3 bg-background/50">
-            <SiriOrb speaking size={36} />
-            <div className="flex-1">
-              <div className="font-display text-base">{agent} <span className="text-xs text-muted-foreground font-sans">· {AGENT_ROLES[agent] ?? "Concierge"}</span></div>
-              <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{t("book.blake.status")}</div>
-            </div>
-          </div>
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[380px] max-h-[560px]">
-            {chat.map((m, i) => (
-              <div key={i} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
-                <div className={"max-w-[85%] rounded-2xl px-4 py-2.5 text-sm " + (m.role === "user" ? "bg-gold-gradient text-primary-foreground" : "bg-accent border border-border/40")}>
-                  {m.content || (
-                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                      <span className="italic">{agent} {t("book.blake.typing")}</span>
-                      <span className="flex gap-0.5">
-                        <span className="h-1 w-1 rounded-full bg-gold animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="h-1 w-1 rounded-full bg-gold animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="h-1 w-1 rounded-full bg-gold animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-border/60 p-3 flex gap-2">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder={t("book.blake.placeholder")}
-              className="flex-1 rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none"
-            />
-            <button onClick={send} disabled={sending || !draft.trim()} className="rounded-md bg-gold-gradient px-4 disabled:opacity-50">
-              <Send className="h-4 w-4 text-primary-foreground" />
-            </button>
-          </div>
-        </aside>
       </div>
     </main>
   );
