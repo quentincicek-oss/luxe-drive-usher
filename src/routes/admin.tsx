@@ -143,8 +143,8 @@ function Admin() {
               {discounts.map((d) => (
                 <div key={d.id} className="rounded-lg border border-border/60 bg-surface p-5 flex items-center justify-between">
                   <div>
-                    <div className="font-display text-lg text-gradient-gold">{d.min_miles}–{d.max_miles} mi</div>
-                    <div className="text-xs text-muted-foreground mt-1">-${d.flat_off} flat · -{d.percent_off}%</div>
+                    <div className="font-display text-lg text-gradient-gold">{d.min_miles}–{d.max_miles} {t("admin.discounts.miles")}</div>
+                    <div className="text-xs text-muted-foreground mt-1">-${d.flat_off} {t("admin.discounts.flat")} · -{d.percent_off}% {t("admin.discounts.percent")}</div>
                   </div>
                   <button onClick={() => deleteDiscount(d.id)} className="text-xs text-destructive hover:underline">{t("admin.discounts.delete")}</button>
                 </div>
