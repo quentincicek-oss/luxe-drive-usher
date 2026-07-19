@@ -47,7 +47,7 @@ function Book() {
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
-  useEffect(() => { setChat([{ role: "assistant", content: t("book.blake.welcome") }]); }, [t]);
+  useEffect(() => { setChat([{ role: "assistant", content: `${t("book.blake.greet")} ${agent}. ${t("book.blake.welcome")}` }]); }, [t, agent]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [chat]);
 
   async function reserve(e: React.FormEvent) {
