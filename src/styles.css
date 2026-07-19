@@ -168,3 +168,63 @@
     radial-gradient(ellipse at center, transparent 40%, oklch(0 0 0 / 0.55) 100%),
     linear-gradient(to bottom, oklch(0 0 0 / 0.4), transparent 20%, transparent 75%, oklch(0 0 0 / 0.7));
 }
+
+/* ── Siri-style orb ─────────────────────────────────────────── */
+.siri-orb {
+  background: radial-gradient(circle at 30% 30%, #f7e08a 0%, #d4af37 45%, #6b4e0f 100%);
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,0.35),
+    0 0 18px rgba(212,175,55,0.55),
+    inset 0 0 10px rgba(255,236,170,0.35);
+  isolation: isolate;
+  animation: siri-breathe 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--phase, 0s) * -1);
+}
+.siri-orb .siri-core {
+  position: absolute; inset: 18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 40% 35%, #fff5c8, #e6c453 55%, transparent 70%);
+  filter: blur(1px);
+  animation: siri-core 2.2s ease-in-out infinite;
+}
+.siri-orb .siri-wave {
+  position: absolute; inset: -20%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg,
+    rgba(255,230,150,0) 0%,
+    rgba(255,230,150,0.9) 20%,
+    rgba(212,175,55,0.2) 45%,
+    rgba(255,244,200,0.85) 70%,
+    rgba(255,230,150,0) 100%);
+  mix-blend-mode: screen;
+  filter: blur(4px);
+  opacity: 0.85;
+}
+.siri-orb .siri-wave-1 { animation: siri-spin 4.2s linear infinite; }
+.siri-orb .siri-wave-2 { animation: siri-spin 6.8s linear infinite reverse; opacity: 0.55; }
+.siri-orb .siri-wave-3 { animation: siri-spin 9.4s linear infinite; opacity: 0.4; }
+.siri-orb .siri-highlight {
+  position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 22%, rgba(255,255,255,0.85), transparent 35%);
+  pointer-events: none;
+}
+.siri-orb[data-speaking="true"] { animation-duration: 1.6s; }
+.siri-orb[data-speaking="true"] .siri-wave-1 { animation-duration: 2.1s; }
+.siri-orb[data-speaking="true"] .siri-wave-2 { animation-duration: 3.2s; }
+.siri-orb[data-speaking="true"] .siri-wave-3 { animation-duration: 4.6s; }
+
+@keyframes siri-breathe {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.08); filter: brightness(1.18); }
+}
+@keyframes siri-core {
+  0%, 100% { transform: scale(1);    opacity: 0.9; }
+  50%      { transform: scale(1.18); opacity: 1; }
+}
+@keyframes siri-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .siri-orb, .siri-orb * { animation: none !important; }
+}

@@ -180,9 +180,7 @@ function Book() {
         {/* AI concierge team */}
         <aside className="lg:col-span-2 flex flex-col rounded-xl border border-border/60 bg-surface-elevated shadow-luxe overflow-hidden">
           <div className="border-b border-border/60 px-6 py-4 flex items-center gap-3 bg-background/50">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-gradient shadow-gold">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <SiriOrb speaking size={36} />
             <div className="flex-1">
               <div className="font-display text-base">{agent} <span className="text-xs text-muted-foreground font-sans">· {AGENTS.find(a => a.id === agent)?.role}</span></div>
               <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{t("book.blake.status")}</div>
