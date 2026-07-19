@@ -6,8 +6,9 @@ import { useI18n } from "@/lib/i18n";
 import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { toast } from "sonner";
-import { Send, Sparkles, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
+import { Send, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
 import { VehicleShowroom } from "@/components/VehicleShowroom";
+import { SiriOrb } from "@/components/SiriOrb";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -180,9 +181,7 @@ function Book() {
         {/* AI concierge team */}
         <aside className="lg:col-span-2 flex flex-col rounded-xl border border-border/60 bg-surface-elevated shadow-luxe overflow-hidden">
           <div className="border-b border-border/60 px-6 py-4 flex items-center gap-3 bg-background/50">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-gradient shadow-gold">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <SiriOrb speaking size={36} />
             <div className="flex-1">
               <div className="font-display text-base">{agent} <span className="text-xs text-muted-foreground font-sans">· {AGENTS.find(a => a.id === agent)?.role}</span></div>
               <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{t("book.blake.status")}</div>
