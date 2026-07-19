@@ -19,21 +19,10 @@ export const Route = createFileRoute("/book")({
   component: Book,
 });
 
-type ChatMsg = { role: "user" | "assistant"; content: string };
-
-const AGENT_ROLES: Record<string, string> = {
-  Blake: "Head Concierge",
-  Ava: "Reservations Lead",
-  Marcus: "Airport Specialist",
-  Sophia: "Events & VIP Liaison",
-  Julian: "Route Advisor",
-};
-
 function Book() {
   const { user, role, loading, signOut } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
-  const [agent, setAgent] = useState<string>("Blake");
   const [form, setForm] = useState({
     pickup: "", dropoff: "",
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
