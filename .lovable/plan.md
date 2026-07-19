@@ -1,143 +1,118 @@
+# HarborLine Phase E — Enterprise Driver & Dispatch Operations
 
-# HarborLine — Senior Design & Engineering Audit
+## Scope
 
-Scope: presentation layer only. No new features, no schema/API/auth/business-logic changes. All existing routes, server functions, RLS, Stripe, i18n, concierge sessions and Supabase types remain intact.
+Build a professional Driver + Dispatch operations layer inside the existing Admin console. No changes to booking logic, payments, Stripe, auth, AI concierge, existing APIs, translations, or existing tables. Only additive schema and additive UI.
 
----
+## Data Model (additive only — nothing existing modified)
 
-## 1. Findings by surface
+New tables in `public`:
 
-### Global / shell (`__root.tsx`, `styles.css`)
-- Root already sets solid metadata + fonts. Good.
-- `ConciergeWidget` mounts globally but has no route-level suppression (shows on `/auth`, `/`) — visually competes with the hero CTA.
-- Toaster uses `theme="dark"` hardcoded; ignores `ThemeProvider` light mode.
-- Design tokens exist but `shadow-luxe` / `shadow-gold` are used inconsistently (some cards use raw `border` + `bg-surface-elevated`, some use `shadow-luxe`, some neither).
-- No standardized motion tokens (durations, easings). Ad-hoc `duration-200/300`, `ease-out`, custom keyframes scattered.
-- Focus rings missing on many custom buttons/inputs (a11y).
+1. `driver_profiles` — one row per hired driver (extends existing `drivers` table, does not replace it)
+   - user_id (FK auth.users, unique), employee_id, full_name, phone, email, photo_url, license_number, license_expires_at, employment_status (`active|inactive|vacation`), availability_status (`available|assigned|on_trip|offline|vacation`), assigned_vehicle_id (FK vehicles), notes
+2. `vehicles`
+   - name, category (`escalade|suburban|denali|other`), license_plate, vin, model_year, seats, status (`active|maintenance`), insurance_expires_at
+3. `driver_unavailability` — vacation / maintenance blocks
+   - driver_id, starts_at, ends_at, reason (`vacation|maintenance|personal`), note
+4. `booking_assignments` — dispatch history (append-only log)
+   - booking_id, driver_id, vehicle_id, dispatch_status (`pending|assigned|accepted|en_route|arrived|in_progress|completed|cancelled`), assigned_by, assigned_at, note
 
-### Landing (`index.tsx`)
-- Hero video + logo look strong; the page is dense with decorative layers.
-- CTA hierarchy: "Reserve your ride" and "Sign Up" compete — Apple/Uber would pick one primary and one text link.
-- Language menu + theme toggle placement inconsistent between landing and app shell.
+RLS: admin full access; driver reads own rows; service_role all. GRANT to authenticated + service_role. No changes to `bookings`, `drivers`, `profiles`, `user_roles`.
 
-### Auth (`auth.tsx`)
-- Likely uses same input style as `book.tsx` (`rounded-md bg-input border border-border/60 px-3 py-2.5`). Need to standardize on shared `<Field>` + `<Button>` primitives.
-- Google button probably not aligned to Apple-like sign-in visual weight.
+Note: existing `bookings.status` enum stays. Dispatch sub-states live in `booking_assignments.dispatch_status` so booking flow is untouched.
 
-### Book (`book.tsx`)
-- Form container `rounded-xl border bg-surface-elevated shadow-luxe p-8` — OK, but sits alone in a wide viewport; Uber-style booking has stronger visual grouping between "Where / When / Who / Which car".
-- Field labels use `text-xs uppercase tracking-widest` — heavy, Mercedes-like but not consistent with body copy. Standardize label typography.
-- Number stepper for passengers is a raw `<input type=number>` — replace with a tasteful stepper (still just presentation).
-- `VehicleShowroom` is a strong element but its LED/rotation animation may be heavy on mobile — audit for `prefers-reduced-motion` and pause when off-screen.
-- Submit button full-width gold gradient is fine; needs pressed/loading micro-states.
-- No skeleton while `useAuth` is loading — currently just a blank `bg-obsidian`. Add a proper skeleton.
+## Route Architecture
 
-### History (`history.tsx`)
-- Not yet reviewed in this audit pass. Expected issues: list items likely lack rhythm, empty state probably missing, receipt/pay buttons inconsistent with global button system.
+Extend `src/routes/admin.tsx` tabs → keep `bookings|discounts|concierge`, add `dispatch|drivers|vehicles`. Also split into files:
 
-### Admin (`admin.tsx`)
-- Likely a functional but visually flat table. Needs tabular density rules, sticky header, empty & error states.
+```
+src/routes/admin.tsx                (tabs shell — existing)
+src/routes/admin.dispatch.tsx       (new)
+src/routes/admin.drivers.tsx        (new)
+src/routes/admin.drivers.$id.tsx    (driver profile detail + calendar)
+src/routes/admin.vehicles.tsx       (new)
+```
 
-### Concierge widget (`ConciergeWidget.tsx`)
-- Launcher slogan on the pill is a nice touch; but panel likely has different radii/shadows than the rest of the app.
-- Typing indicator + Siri orb are premium; ensure they respect reduced motion.
-- Should hide on `/auth` and shrink to icon-only on mobile.
+All under existing admin gate (role check already there). No new public routes.
 
-### Modals (`RatingModal`, `ReceiptModal`, `BookingCheckoutModal`)
-- Three different modal chromes (borders, radii, close-button positions). Consolidate into one `Modal` primitive.
+## Component Architecture
 
-### Language menu / theme
-- `LanguageMenu` has both native `<select>` (mobile) and custom button — good. Verify visual parity with header controls.
+Reusable enterprise primitives under `src/components/ops/`:
 
-### Vehicle showroom
-- Seats/Rate already removed. Turntable animations premium; but 3 large PNGs load eagerly. Add `loading="lazy"` + `decoding="async"` and preload only the active one.
+- `DataTable.tsx` — virtualized, sortable, filterable, paginated (uses existing tokens)
+- `StatusPill.tsx` — subtle premium status colors (single source of truth)
+- `SearchBar.tsx`, `FilterChips.tsx`, `Pagination.tsx`
+- `DriverCard.tsx`, `VehicleCard.tsx`
+- `AssignmentPanel.tsx` — assign/change/remove driver inside a booking row
+- `DriverCalendar.tsx` — week/day list view (not month grid — clean)
+- `DispatchKpi.tsx` — metric tile
+- `AssignmentTimeline.tsx` — dispatch state ladder (Pending → Assigned → Accepted → En Route → Arrived → In Progress → Completed)
 
----
+Driver-app-ready primitives under `src/components/driver/` (unused now, wired later):
+- `JobCard.tsx`, `JobActionBar.tsx` (Accept/Navigate/Arrived/Start/Complete), `useDispatchState.ts` hook
 
-## 2. Cross-cutting issues
+Notification architecture: `src/lib/notifications.ts` — typed event bus + toast adapter. Events: `driver.assigned|accepted|arrived|trip.started|trip.completed`. No push transport yet.
 
-1. **No shared primitives.** Buttons, inputs, labels, cards, modals are re-implemented per screen. Drift is guaranteed.
-2. **Spacing scale drift.** `p-6`, `p-8`, `py-10`, `py-14` all appear as section padding with no rule.
-3. **Shadow drift.** Some elevated surfaces use `shadow-luxe`, some none, some `shadow-gold` inappropriately (gold glow should be reserved for primary CTA / active states).
-4. **Motion drift.** Multiple keyframes, no shared tokens; no global `prefers-reduced-motion` gate for decorative motion.
-5. **Focus & a11y.** Custom buttons lack `:focus-visible` rings. Some icon-only buttons lack `aria-label`. Language `<select>` label needed.
-6. **Loading & empty states.** Blank `bg-obsidian` divs stand in for skeletons. Empty history / empty admin likely missing.
-7. **Performance.** Hero video autoplays always; showroom PNGs eager; fonts loaded with all weights 300–800 (heavy). Trim to 400/500/600/700.
-8. **Responsiveness.** Header nav in `book.tsx` uses `hidden sm:block` for brand text — fine — but the row of pills (`LanguageMenu` + history + admin + signout) will crowd on 360px widths.
+## Dispatch Workflow
 
----
+1. Booking exists (unchanged flow).
+2. Dispatch tab lists bookings without a live assignment → dispatcher clicks Assign → picks driver + vehicle → row inserted into `booking_assignments` with `dispatch_status='assigned'`.
+3. Dispatcher can advance status via `AssignmentTimeline`. Each advance appends a new row (audit log) or updates latest — we update the latest row per booking.
+4. Driver availability derived: `driver_profiles.availability_status` synced by trigger when a `booking_assignments` row is created/advanced (`assigned`→assigned, `en_route|arrived|in_progress`→on_trip, `completed|cancelled`→available).
 
-## 3. Implementation plan (incremental, presentation-only)
+## Dispatch KPIs (Dispatch Center)
 
-Each phase is independently shippable; no functionality changes.
+Computed via a single SQL view `admin_dispatch_kpis` (SECURITY DEFINER function returning JSON) called from admin loader:
+- todays_bookings, upcoming_bookings, completed_trips_7d
+- drivers_available, drivers_busy, drivers_offline
+- upcoming_airport_pickups (heuristic: pickup ILIKE '%airport%' OR '%JFK%|LGA%|EWR%')
 
-### Phase A — Design tokens & primitives (foundation)
-1. Extend `styles.css` with motion + spacing + elevation tokens:
-   - `--ease-standard`, `--ease-emphasized`, `--dur-fast/med/slow`.
-   - `--elev-1/2/3` shadows; retire ad-hoc uses.
-   - Add global `:focus-visible` gold ring utility `.focus-luxe`.
-   - Reduced-motion global guard for decorative animations (`.motion-safe-only`).
-   - Trim Google Fonts weights.
-2. Create `src/components/ui/` primitives (thin, reuse existing shadcn where present):
-   - `Field` (label + input + helper + error).
-   - `Stepper` (for passengers count).
-   - `SectionCard` (standard elevated surface).
-   - `Modal` (single chrome for Rating/Receipt/Checkout).
-   - `IconButton` with built-in `aria-label` requirement.
-   - `PrimaryButton` / `SecondaryButton` / `GhostButton` matching Mercedes CTA weight.
-3. Add `Skeleton` primitives for auth-loading and list-loading states.
+## Performance
 
-### Phase B — Global shell polish
-1. Route-aware `ConciergeWidget`: hide on `/` and `/auth`; icon-only on `<sm`.
-2. Toaster reads current theme from `useTheme()`.
-3. Standardize header (used by `book`, `history`, `admin`) into one `<AppHeader>` component; keep exact links/handlers.
-4. Add global `<main>` landmark per route, single `h1` per page audit.
+- Virtualized tables via `@tanstack/react-virtual` (already in dep tree via router? add if missing).
+- Server-side pagination (`range()`) on bookings/drivers.
+- `useDeferredValue` for search input.
+- `React.memo` on row components.
+- Query keys per tab; no cross-tab refetch storms.
 
-### Phase C — Route-by-route refit (presentation only)
-1. **Landing**: one primary CTA (Reserve), one text link (Sign In). Tighten vertical rhythm, ensure hero is `h-dvh` not `h-screen`. Verify video pauses on reduced motion.
-2. **Auth**: replace inputs with `Field`, buttons with `PrimaryButton`; align Google button to Apple weight.
-3. **Book**: group form into two `SectionCard`s ("Trip" and "Vehicle"); replace passenger input with `Stepper`; use shared header; add loading skeleton; ensure showroom lazy-loads and honors reduced motion.
-4. **History**: apply `SectionCard`, empty state ("No journeys yet — reserve your first ride"), consistent action buttons; standardize receipt/pay entrypoints.
-5. **Admin**: sticky table header, zebra rows via tokens, empty/error states, consistent action buttons.
+## UX Direction
 
-### Phase D — Modals & concierge
-1. Migrate `BookingCheckoutModal`, `RatingModal`, `ReceiptModal` to shared `Modal` primitive (same radius, backdrop blur, close affordance, focus trap via shadcn Dialog).
-2. Concierge panel: adopt `Modal`/sheet chrome, match input to `Field`, ensure `prefers-reduced-motion` disables Siri orb spin/wave.
+Enterprise, not luxury:
+- Compact 32px row height, 13px table type, monospaced IDs, subtle borders.
+- Status pills: available=emerald/8%, assigned=gold/10%, on_trip=blue/10%, offline=muted, vacation=violet/10%.
+- Keep gold accents only for primary CTAs; drop decorative gradients in ops screens.
+- One focal action per screen, sticky action bar on detail pages.
 
-### Phase E — Perf & a11y sweep
-1. `loading="lazy"` + `decoding="async"` on showroom images; preload only active vehicle.
-2. Trim font weights to 400/500/600/700.
-3. Add `focus-visible` rings to every interactive element (`.focus-luxe`).
-4. Add `aria-label` to every icon-only button; give `LanguageMenu` a visible or `sr-only` label.
-5. Replace `h-screen` with `h-dvh` where used.
-6. Verify color contrast (`text-muted-foreground` on `bg-surface-elevated` — likely OK, re-check in light theme).
+## Implementation Order (incremental, each step ships working)
 
-### Phase F — QA
-1. Build + typecheck.
-2. Playwright visual pass on `/`, `/auth`, `/book`, `/history`, `/admin` at 375px, 768px, 1440px.
-3. Reduced-motion smoke: `prefers-reduced-motion: reduce` → hero video paused, orb still, showroom rotation stopped.
-4. Confirm no functional regressions: booking insert, chat streaming, Stripe checkout, receipt OTP, admin queries all still call the same handlers.
+1. **Migration** — new tables + RLS + trigger + KPI function.
+2. **Ops primitives** — `DataTable`, `StatusPill`, `SearchBar`, `Pagination`, `DispatchKpi`.
+3. **Drivers** — `admin.drivers.tsx` list + create/edit modal + `admin.drivers.$id.tsx` detail with calendar.
+4. **Vehicles** — `admin.vehicles.tsx` list + create/edit modal.
+5. **Dispatch** — `admin.dispatch.tsx` with KPI row + today/upcoming tables + `AssignmentPanel` + `AssignmentTimeline`.
+6. **Driver-app primitives** — build UI shell only, wire to `useDispatchState` mock, hidden route `/driver/preview` for internal QA.
+7. **Notifications module** — event bus + toast adapters, fired from assignment actions.
+8. **Admin nav** — extend tab bar in `admin.tsx` shell with new tabs, preserve existing three.
 
----
+## What stays untouched (guardrails)
 
-## 4. Guardrails
+- `src/routes/book.tsx`, `src/routes/history.tsx`, `src/routes/index.tsx`, `src/routes/auth.tsx`
+- `src/routes/api/blake.ts`, `src/routes/api/public/payments/webhook.ts`
+- `src/lib/payments.functions.ts`, `src/lib/receipts.functions.ts`, `src/lib/stripe*`
+- `src/lib/i18n.tsx` translations (only additive keys under `admin.dispatch.*`, `admin.drivers.*`, `admin.vehicles.*`)
+- All existing tables and enums
 
-- No changes to: `src/integrations/supabase/*`, `src/routes/api/*`, `src/lib/*.functions.ts`, `src/lib/*.server.ts`, `supabase/`, `.env`.
-- No prop changes on `useAuth`, `useI18n`, `useTheme` — only consumers may change.
-- Every translation key referenced today continues to be referenced (no key renames).
-- Stripe/Concierge/RLS untouched.
+## Deliverables checklist
 
----
+- [ ] Migration approved & applied
+- [ ] Ops primitives
+- [ ] Driver management (list + detail + calendar)
+- [ ] Vehicle management
+- [ ] Dispatch Center (KPIs + tables + assignment)
+- [ ] Assignment workflow with audit log
+- [ ] Driver-app-ready components
+- [ ] Notification module
+- [ ] Additive i18n keys (EN + TR minimum; ES/PT/ZH/IT filled with EN fallback, then translated)
+- [ ] Typecheck clean; existing flows verified via Playwright smoke
 
-## 5. Deliverable order
-
-Ship in this exact order so each PR is safe to preview:
-
-1. Phase A tokens + primitives (no visible change yet).
-2. Phase B shell (AppHeader, widget routing, toaster theme).
-3. Phase C.1 Landing → C.2 Auth → C.3 Book → C.4 History → C.5 Admin.
-4. Phase D modals + concierge chrome.
-5. Phase E perf/a11y sweep.
-6. Phase F QA + Playwright screenshots.
-
-Approve this plan and I'll start with Phase A.
+Approve to proceed with Step 1 (migration).

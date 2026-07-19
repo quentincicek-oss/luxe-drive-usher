@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          booking_id: string
+          created_at: string
+          dispatch_status: Database["public"]["Enums"]["dispatch_status"]
+          driver_id: string | null
+          id: string
+          is_current: boolean
+          note: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          booking_id: string
+          created_at?: string
+          dispatch_status?: Database["public"]["Enums"]["dispatch_status"]
+          driver_id?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          booking_id?: string
+          created_at?: string
+          dispatch_status?: Database["public"]["Enums"]["dispatch_status"]
+          driver_id?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_assignments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
@@ -166,6 +227,106 @@ export type Database = {
           percent_off?: number | null
         }
         Relationships: []
+      }
+      driver_profiles: {
+        Row: {
+          assigned_vehicle_id: string | null
+          availability_status: Database["public"]["Enums"]["driver_availability"]
+          created_at: string
+          email: string | null
+          employee_id: string
+          employment_status: Database["public"]["Enums"]["employment_status"]
+          full_name: string
+          id: string
+          license_expires_at: string | null
+          license_number: string | null
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_vehicle_id?: string | null
+          availability_status?: Database["public"]["Enums"]["driver_availability"]
+          created_at?: string
+          email?: string | null
+          employee_id: string
+          employment_status?: Database["public"]["Enums"]["employment_status"]
+          full_name: string
+          id?: string
+          license_expires_at?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_vehicle_id?: string | null
+          availability_status?: Database["public"]["Enums"]["driver_availability"]
+          created_at?: string
+          email?: string | null
+          employee_id?: string
+          employment_status?: Database["public"]["Enums"]["employment_status"]
+          full_name?: string
+          id?: string
+          license_expires_at?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_profiles_assigned_vehicle_id_fkey"
+            columns: ["assigned_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_unavailability: {
+        Row: {
+          created_at: string
+          driver_id: string
+          ends_at: string
+          id: string
+          note: string | null
+          reason: Database["public"]["Enums"]["unavailability_reason"]
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          ends_at: string
+          id?: string
+          note?: string | null
+          reason?: Database["public"]["Enums"]["unavailability_reason"]
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          ends_at?: string
+          id?: string
+          note?: string | null
+          reason?: Database["public"]["Enums"]["unavailability_reason"]
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_unavailability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       drivers: {
         Row: {
@@ -341,11 +502,54 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          category: Database["public"]["Enums"]["vehicle_category"]
+          created_at: string
+          id: string
+          insurance_expires_at: string | null
+          license_plate: string
+          model_year: number | null
+          name: string
+          seats: number
+          status: Database["public"]["Enums"]["vehicle_status"]
+          updated_at: string
+          vin: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["vehicle_category"]
+          created_at?: string
+          id?: string
+          insurance_expires_at?: string | null
+          license_plate: string
+          model_year?: number | null
+          name: string
+          seats?: number
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          vin?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["vehicle_category"]
+          created_at?: string
+          id?: string
+          insurance_expires_at?: string | null
+          license_plate?: string
+          model_year?: number | null
+          name?: string
+          seats?: number
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          vin?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_dispatch_kpis: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -362,7 +566,26 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      dispatch_status:
+        | "pending"
+        | "assigned"
+        | "accepted"
+        | "en_route"
+        | "arrived"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      driver_availability:
+        | "available"
+        | "assigned"
+        | "on_trip"
+        | "offline"
+        | "vacation"
+      employment_status: "active" | "inactive" | "vacation"
       ride_type: "escalade" | "suburban" | "denali"
+      unavailability_reason: "vacation" | "maintenance" | "personal"
+      vehicle_category: "escalade" | "suburban" | "denali" | "other"
+      vehicle_status: "active" | "maintenance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -498,7 +721,28 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      dispatch_status: [
+        "pending",
+        "assigned",
+        "accepted",
+        "en_route",
+        "arrived",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      driver_availability: [
+        "available",
+        "assigned",
+        "on_trip",
+        "offline",
+        "vacation",
+      ],
+      employment_status: ["active", "inactive", "vacation"],
       ride_type: ["escalade", "suburban", "denali"],
+      unavailability_reason: ["vacation", "maintenance", "personal"],
+      vehicle_category: ["escalade", "suburban", "denali", "other"],
+      vehicle_status: ["active", "maintenance"],
     },
   },
 } as const
