@@ -3,7 +3,7 @@ import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { History, LogOut, ShieldCheck } from "lucide-react";
+import { History, LogOut, ShieldCheck, Car } from "lucide-react";
 import type { ReactNode } from "react";
 
 type Props = { subtitle?: string; right?: ReactNode };
@@ -30,6 +30,12 @@ export function AppHeader({ subtitle, right }: Props) {
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">{t("nav.history")}</span>
           </Link>
+          {(role === "driver" || role === "admin") && (
+            <Link to="/driver" className="btn-ghost-luxe text-gold" aria-label="Driver">
+              <Car className="h-4 w-4" />
+              <span className="hidden sm:inline">Driver</span>
+            </Link>
+          )}
           {role === "admin" && (
             <Link to="/admin" className="btn-ghost-luxe text-gold" aria-label={t("nav.admin")}>
               <ShieldCheck className="h-4 w-4" />
