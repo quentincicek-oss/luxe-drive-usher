@@ -29,6 +29,7 @@ function History() {
   const [rows, setRows] = useState<Booking[]>([]);
   const [busy, setBusy] = useState(true);
 
+  useEffect(() => { document.title = `${t("history.title")} — ${t("brand.name")}`; }, [t]);
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => {
     if (!user) return;

@@ -25,6 +25,8 @@ function Auth() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", name: "", surname: "", phone: "" });
 
+  useEffect(() => { document.title = `${mode === "signin" ? t("cta.signin") : t("cta.signup")} — ${t("brand.name")}`; }, [mode, t]);
+
   useEffect(() => {
     if (!loading && user) {
       nav({ to: role === "admin" ? "/admin" : "/book" });

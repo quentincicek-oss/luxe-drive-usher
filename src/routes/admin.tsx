@@ -29,6 +29,7 @@ function Admin() {
   const [messages, setMessages] = useState<Array<{ id: string; session_id: string; role: string; content: string; user_language: string; created_at: string }>>([]);
   const [busy, setBusy] = useState(true);
 
+  useEffect(() => { document.title = `${t("admin.console")} — ${t("brand.name")}`; }, [t]);
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/auth" }); return; }

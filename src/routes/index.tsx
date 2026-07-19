@@ -23,6 +23,7 @@ function Landing() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => { videoRef.current?.play().catch(() => {}); }, []);
+  useEffect(() => { document.title = `${t("brand.name")} ${t("brand.services")}`; }, [t]);
 
   const features = [
     { icon: Award, label: t("landing.features.drivers") },

@@ -38,6 +38,7 @@ function Book() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
   useEffect(() => { setChat([{ role: "assistant", content: t("book.blake.welcome") }]); }, [t]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [chat]);
 
