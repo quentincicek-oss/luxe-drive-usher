@@ -14,6 +14,7 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -42,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBlakeRoute = ApiBlakeRouteImport.update({
   id: '/api/blake',
   path: '/api/blake',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/r/$code': typeof RCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/r/$code': typeof RCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/r/$code': typeof RCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/api/blake'
+    | '/r/$code'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/api/blake'
+    | '/r/$code'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/api/blake'
+    | '/r/$code'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   HistoryRoute: typeof HistoryRoute
   ApiBlakeRoute: typeof ApiBlakeRoute
+  RCodeRoute: typeof RCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -159,6 +172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/blake': {
       id: '/api/blake'
       path: '/api/blake'
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   HistoryRoute: HistoryRoute,
   ApiBlakeRoute: ApiBlakeRoute,
+  RCodeRoute: RCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

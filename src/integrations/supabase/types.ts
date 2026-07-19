@@ -366,6 +366,53 @@ export type Database = {
           },
         ]
       }
+      nfc_tags: {
+        Row: {
+          active: boolean
+          code_id: string
+          created_at: string
+          id: string
+          issued_to: string | null
+          label: string | null
+          last_tapped_at: string | null
+          tag_uid: string
+          tap_count: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code_id: string
+          created_at?: string
+          id?: string
+          issued_to?: string | null
+          label?: string | null
+          last_tapped_at?: string | null
+          tag_uid: string
+          tap_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code_id?: string
+          created_at?: string
+          id?: string
+          issued_to?: string | null
+          label?: string | null
+          last_tapped_at?: string | null
+          tag_uid?: string
+          tap_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfc_tags_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -439,6 +486,231 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_campaigns: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          name: string
+          per_referrer_limit: number | null
+          reward_flat_amount: number | null
+          reward_percent: number
+          reward_validity_days: number
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          name: string
+          per_referrer_limit?: number | null
+          reward_flat_amount?: number | null
+          reward_percent?: number
+          reward_validity_days?: number
+          starts_at?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          name?: string
+          per_referrer_limit?: number | null
+          reward_flat_amount?: number | null
+          reward_percent?: number
+          reward_validity_days?: number
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          active: boolean
+          campaign_id: string | null
+          code: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          campaign_id?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          campaign_id?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "referral_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_rewards: {
+        Row: {
+          amount_flat: number | null
+          amount_percent: number | null
+          booking_id: string | null
+          campaign_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_at: string
+          notes: string | null
+          recipient_user_id: string
+          redeemed_at: string | null
+          referral_id: string
+          status: Database["public"]["Enums"]["reward_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_flat?: number | null
+          amount_percent?: number | null
+          booking_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          recipient_user_id: string
+          redeemed_at?: string | null
+          referral_id: string
+          status?: Database["public"]["Enums"]["reward_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_flat?: number | null
+          amount_percent?: number | null
+          booking_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          recipient_user_id?: string
+          redeemed_at?: string | null
+          referral_id?: string
+          status?: Database["public"]["Enums"]["reward_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "referral_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          campaign_id: string | null
+          code_id: string | null
+          converted_at: string | null
+          created_at: string
+          first_booking_id: string | null
+          id: string
+          ip_hash: string | null
+          nfc_tag_id: string | null
+          referred_user_id: string | null
+          referrer_user_id: string
+          source: Database["public"]["Enums"]["referral_source"]
+          status: Database["public"]["Enums"]["referral_status"]
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          code_id?: string | null
+          converted_at?: string | null
+          created_at?: string
+          first_booking_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          nfc_tag_id?: string | null
+          referred_user_id?: string | null
+          referrer_user_id: string
+          source: Database["public"]["Enums"]["referral_source"]
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          code_id?: string | null
+          converted_at?: string | null
+          created_at?: string
+          first_booking_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          nfc_tag_id?: string | null
+          referred_user_id?: string | null
+          referrer_user_id?: string
+          source?: Database["public"]["Enums"]["referral_source"]
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "referral_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_nfc_tag_id_fkey"
+            columns: ["nfc_tag_id"]
+            isOneToOne: false
+            referencedRelation: "nfc_tags"
             referencedColumns: ["id"]
           },
         ]
@@ -550,6 +822,7 @@ export type Database = {
     }
     Functions: {
       admin_dispatch_kpis: { Args: never; Returns: Json }
+      admin_referral_kpis: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -582,6 +855,14 @@ export type Database = {
         | "offline"
         | "vacation"
       employment_status: "active" | "inactive" | "vacation"
+      referral_source: "nfc" | "qr" | "link"
+      referral_status:
+        | "pending"
+        | "converted"
+        | "rewarded"
+        | "expired"
+        | "cancelled"
+      reward_status: "pending" | "redeemed" | "expired" | "cancelled"
       ride_type: "escalade" | "suburban" | "denali"
       unavailability_reason: "vacation" | "maintenance" | "personal"
       vehicle_category: "escalade" | "suburban" | "denali" | "other"
@@ -739,6 +1020,15 @@ export const Constants = {
         "vacation",
       ],
       employment_status: ["active", "inactive", "vacation"],
+      referral_source: ["nfc", "qr", "link"],
+      referral_status: [
+        "pending",
+        "converted",
+        "rewarded",
+        "expired",
+        "cancelled",
+      ],
+      reward_status: ["pending", "redeemed", "expired", "cancelled"],
       ride_type: ["escalade", "suburban", "denali"],
       unavailability_reason: ["vacation", "maintenance", "personal"],
       vehicle_category: ["escalade", "suburban", "denali", "other"],

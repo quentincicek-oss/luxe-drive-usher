@@ -27,6 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const r = data.map((x) => x.role);
             setRole(r.includes("admin") ? "admin" : r.includes("driver") ? "driver" : "passenger");
           } else setRole("passenger");
+          // Claim any pending referral captured via /r/:code
+          try {
+            const raw = sessionStorage.getItem("harborline.referral");
+            if (raw) {
+              const { code, source } = JSON.parse(raw);
+              const { claimReferral } = await import("@/lib/referrals.functions");
+              await claimReferral({ data: { code, source } }).catch(() => {});
+              sessionStorage.removeItem("harborline.referral");
+            }
+          } catch { /* noop */ }
         }, 0);
       } else setRole(null);
     });

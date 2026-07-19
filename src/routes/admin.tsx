@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
 import { AssignmentPanel } from "@/components/ops/AssignmentPanel";
+import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
@@ -30,7 +31,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "dispatch" | "bookings" | "drivers" | "vehicles" | "discounts" | "concierge";
+type Tab = "dispatch" | "bookings" | "drivers" | "vehicles" | "referrals" | "discounts" | "concierge";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
@@ -135,6 +136,7 @@ function Admin() {
     { key: "bookings",  label: t("admin.tabs.bookings") },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
+    { key: "referrals", label: "Referrals" },
     { key: "discounts", label: t("admin.tabs.discounts") },
     { key: "concierge", label: t("admin.tabs.concierge") },
   ];
@@ -269,6 +271,9 @@ function Admin() {
         {tab === "vehicles" && !busy && (
           <VehiclesPanel vehicles={filteredVehicles} onRefresh={refresh} />
         )}
+
+        {/* ============ REFERRALS ============ */}
+        {tab === "referrals" && <ReferralsPanel />}
 
         {/* ============ DISCOUNTS (existing) ============ */}
         {tab === "discounts" && !busy && (
