@@ -40,8 +40,8 @@ function Landing() {
 
   return (
     <main className="relative min-h-screen bg-obsidian">
-      {/* HERO — cinematic video (fully visible, text-free) */}
-      <section className="relative h-[70vh] md:h-[80vh] w-full overflow-hidden bg-black">
+      {/* HERO — cinematic video (top-aligned, text-free) */}
+      <section className="relative h-[60vh] md:h-[64vh] w-full overflow-hidden bg-background">
         <video
           ref={videoRef}
           src={introVideo.url}
@@ -49,16 +49,16 @@ function Landing() {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full object-contain object-center"
+          className="absolute inset-0 h-full w-full object-cover object-top"
         />
-        {/* Header-only readability gradient at the very top; vehicle stays unobstructed */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background/80 to-transparent" />
-
+        {/* Light readability gradient for the header; cars remain unobstructed */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/60 via-background/10 to-transparent" />
+        <div className="absolute inset-0 vignette" />
 
         {/* Top bar — logo placement unchanged */}
         <header className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-8">
           <div className="flex items-center gap-3">
-            <HarborLogo className="h-10 w-10" />
+            <HarborLogo className="h-12 w-12" />
             <div className="hidden md:block">
               <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
               <div className="text-[9px] tracking-[0.35em] text-muted-foreground mt-1">EXECUTIVE SERVICES</div>
