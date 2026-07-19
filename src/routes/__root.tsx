@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
+import { ConciergeWidget } from "@/components/ConciergeWidget";
 
 function NotFoundComponent() {
   return (
@@ -104,6 +105,7 @@ function RootComponent() {
         <I18nProvider>
           <AuthProvider>
             <Outlet />
+            <ConciergeWidget />
             <Toaster theme="dark" position="top-center" richColors />
           </AuthProvider>
         </I18nProvider>
