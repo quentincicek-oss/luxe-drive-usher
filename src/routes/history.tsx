@@ -9,6 +9,7 @@ import { BookingCheckoutModal } from "@/components/BookingCheckoutModal";
 import { Star, Receipt, CreditCard, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
+import { MyReferralCard } from "@/components/referrals/MyReferralCard";
 
 interface Booking {
   id: string; pickup: string; dropoff: string; pickup_time: string;
