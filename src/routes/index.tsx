@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HarborLogo, Wordmark } from "@/components/HarborLogo";
-import { useI18n, SUPPORTED } from "@/lib/i18n";
+import { LanguageMenu } from "@/components/LanguageMenu";
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import introVideo from "@/assets/intro-hero.mp4.asset.json";
 import { Award, CalendarCheck, ShieldCheck, Sparkles, Globe2, ChevronRight, Phone, Mail, MapPin } from "lucide-react";
 
@@ -17,10 +18,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const { user, role } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => { videoRef.current?.play().catch(() => {}); }, []);
 
@@ -62,27 +62,11 @@ function Landing() {
             <HarborLogo className="h-10 w-10" />
             <div className="hidden md:block">
               <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
-              <div className="text-[9px] tracking-[0.35em] text-muted-foreground mt-1">EXECUTIVE SERVICES</div>
+              <div className="text-[9px] tracking-[0.35em] text-muted-foreground mt-1 uppercase">{t("brand.services")}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                onClick={() => setLangOpen((x) => !x)}
-                className="rounded-full border border-border/70 bg-background/50 backdrop-blur px-4 py-2 text-xs uppercase tracking-widest hover:border-gold transition"
-              >{SUPPORTED.find((s) => s.code === lang)?.label ?? "EN"}</button>
-              {langOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-md border border-border bg-popover shadow-luxe p-1 z-50">
-                  {SUPPORTED.map((s) => (
-                    <button
-                      key={s.code}
-                      onClick={() => { setLang(s.code as typeof lang); setLangOpen(false); }}
-                      className={"block w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent " + (s.code === lang ? "text-gold" : "")}
-                    >{s.label}</button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <LanguageMenu />
             {user ? (
               <Link to={role === "admin" ? "/admin" : "/book"} className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold tracking-wide text-primary-foreground shadow-gold">
                 {t("cta.continue")}
@@ -101,7 +85,7 @@ function Landing() {
             <HarborLogo className="h-24 w-24 md:h-28 md:w-28" />
           </div>
           <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.4s" }}>
-            <Wordmark />
+            <Wordmark subtitle={t("brand.services")} />
           </div>
           <h1
             className="mt-10 max-w-3xl font-display text-4xl md:text-6xl lg:text-7xl leading-[1.05] animate-fade-up"
