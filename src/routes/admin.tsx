@@ -136,6 +136,7 @@ function Admin() {
     { key: "bookings",  label: t("admin.tabs.bookings") },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
+    { key: "referrals", label: "Referrals" },
     { key: "discounts", label: t("admin.tabs.discounts") },
     { key: "concierge", label: t("admin.tabs.concierge") },
   ];
