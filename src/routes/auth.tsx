@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { HarborLogo } from "@/components/HarborLogo";
-import { LanguageMenu } from "@/components/LanguageMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -25,8 +24,6 @@ function Auth() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", name: "", surname: "", phone: "" });
 
-  useEffect(() => { document.title = `${mode === "signin" ? t("cta.signin") : t("cta.signup")} — ${t("brand.name")}`; }, [mode, t]);
-
   useEffect(() => {
     if (!loading && user) {
       nav({ to: role === "admin" ? "/admin" : "/book" });
@@ -47,14 +44,14 @@ function Auth() {
           },
         });
         if (error) throw error;
-        toast.success(t("auth.created"));
+        toast.success("Account created. You're in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
         if (error) throw error;
-        toast.success(t("auth.welcome"));
+        toast.success("Welcome back.");
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t("auth.failed"));
+      toast.error(e instanceof Error ? e.message : "Authentication failed");
     } finally {
       setBusy(false);
     }
@@ -65,9 +62,9 @@ function Auth() {
     try {
       const { lovable } = await import("@/integrations/lovable/index");
       const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-      if (result.error) throw new Error((result.error as Error).message || t("auth.googleFailed"));
+      if (result.error) throw new Error((result.error as Error).message || "Google sign-in failed");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t("auth.googleFailed"));
+      toast.error(e instanceof Error ? e.message : "Google sign-in failed");
     } finally {
       setBusy(false);
     }
@@ -76,14 +73,11 @@ function Auth() {
   return (
     <main className="min-h-screen bg-obsidian flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-end">
-          <LanguageMenu />
-        </div>
         <Link to="/" className="flex flex-col items-center gap-3 mb-10">
           <HarborLogo className="h-14 w-14" />
           <div className="text-center">
             <div className="font-display text-2xl text-gradient-gold">HarborLine</div>
-            <div className="text-[9px] tracking-[0.4em] text-muted-foreground mt-0.5 uppercase">{t("brand.services")}</div>
+            <div className="text-[9px] tracking-[0.4em] text-muted-foreground mt-0.5">EXECUTIVE SERVICES</div>
           </div>
         </Link>
 
@@ -114,7 +108,7 @@ function Auth() {
           </form>
 
           <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" /><span>{t("auth.or")}</span><div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border" /><span>OR</span><div className="h-px flex-1 bg-border" />
           </div>
 
           <button onClick={google} disabled={busy} className="w-full rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60">
