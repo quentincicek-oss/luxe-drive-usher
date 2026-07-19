@@ -119,6 +119,24 @@ export type Database = {
         }
         Relationships: []
       }
+      concierge_sessions: {
+        Row: {
+          agent: string
+          last_active_at: string
+          user_id: string
+        }
+        Insert: {
+          agent: string
+          last_active_at?: string
+          user_id: string
+        }
+        Update: {
+          agent?: string
+          last_active_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       discount_rules: {
         Row: {
           active: boolean
