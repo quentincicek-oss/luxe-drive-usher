@@ -3,6 +3,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 export const SUPPORTED = [
   { code: "en", label: "English" },
   { code: "tr", label: "Türkçe" },
+  { code: "es", label: "Español" },
+  { code: "pt", label: "Português" },
+  { code: "zh", label: "中文" },
+  { code: "it", label: "Italiano" },
 ] as const;
 
 export type Lang = (typeof SUPPORTED)[number]["code"];
@@ -1330,7 +1334,7 @@ const hi: Dict = {
   "status.cancelled": "रद्द",
 };
 
-const dicts: Record<Lang, Dict> = { en, tr };
+const dicts: Record<Lang, Dict> = { en, tr, es, pt, zh, it };
 
 const RTL: Lang[] = [];
 
