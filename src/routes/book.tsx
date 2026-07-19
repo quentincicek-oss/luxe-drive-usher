@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { HarborLogo } from "@/components/HarborLogo";
+import { LanguageMenu } from "@/components/LanguageMenu";
 import { toast } from "sonner";
 import { Send, Sparkles, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
 
@@ -31,14 +32,14 @@ function Book() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [chat, setChat] = useState<ChatMsg[]>([
-    { role: "assistant", content: "Good day. I'm Blake, your HarborLine concierge. How may I assist with your ride today?" },
-  ]);
+  const [chat, setChat] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
+  useEffect(() => { setChat([{ role: "assistant", content: t("book.blake.welcome") }]); }, [t]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [chat]);
 
   async function reserve(e: React.FormEvent) {
@@ -57,10 +58,10 @@ function Book() {
         suggested_price: est,
       });
       if (error) throw error;
-      toast.success("Reservation received. Concierge will confirm shortly.");
+      toast.success(t("book.success"));
       setForm({ ...form, pickup: "", dropoff: "", notes: "" });
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Reservation failed");
+      toast.error(e instanceof Error ? e.message : t("book.failed"));
     } finally { setSaving(false); }
   }
 
@@ -78,8 +79,8 @@ function Book() {
         body: JSON.stringify({ messages: next }),
       });
       if (!res.ok || !res.body) {
-        const t = await res.text().catch(() => "");
-        toast.error(t || "Blake is unavailable");
+        const message = await res.text().catch(() => "");
+        toast.error(message || t("book.blake.unavailable"));
         setSending(false); return;
       }
       const reader = res.body.getReader();
@@ -93,7 +94,7 @@ function Book() {
         setChat([...next, { role: "assistant", content: assistant }]);
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Chat failed");
+      toast.error(e instanceof Error ? e.message : t("book.chat.failed"));
     } finally { setSending(false); }
   }
 
@@ -108,10 +109,11 @@ function Book() {
             <HarborLogo className="h-9 w-9" />
             <div className="hidden sm:block">
               <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
-              <div className="text-[8px] tracking-[0.3em] text-muted-foreground mt-1">EXECUTIVE SERVICES</div>
+                <div className="text-[8px] tracking-[0.3em] text-muted-foreground mt-1 uppercase">{t("brand.services")}</div>
             </div>
           </Link>
           <nav className="flex items-center gap-1 text-sm">
+            <LanguageMenu compact />
             <Link to="/history" className="rounded-md px-3 py-2 hover:bg-accent flex items-center gap-1.5">
               <History className="h-4 w-4" />{t("nav.history")}
             </Link>
@@ -130,18 +132,18 @@ function Book() {
       <div className="mx-auto max-w-7xl px-6 py-10 grid lg:grid-cols-5 gap-6">
         {/* Booking form */}
         <section className="lg:col-span-3 rounded-xl border border-border/60 bg-surface-elevated shadow-luxe p-8">
-          <div className="text-xs tracking-[0.35em] text-gold uppercase">Reservation</div>
+          <div className="text-xs tracking-[0.35em] text-gold uppercase">{t("book.kicker")}</div>
           <h1 className="mt-2 font-display text-3xl">{t("book.title")}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Every ride is fully insured and driven by a vetted chauffeur.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("book.subtitle")}</p>
 
           <form onSubmit={reserve} className="mt-8 space-y-4">
             <div>
               <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{t("book.pickup")}</label>
-              <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="JFK Airport, Terminal 4" className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none" />
+                <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder={t("book.pickup.example")} className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none" />
             </div>
             <div>
               <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{t("book.dropoff")}</label>
-              <input required value={form.dropoff} onChange={(e) => setForm({ ...form, dropoff: e.target.value })} placeholder="The Plaza Hotel, 5th Ave" className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none" />
+                <input required value={form.dropoff} onChange={(e) => setForm({ ...form, dropoff: e.target.value })} placeholder={t("book.dropoff.example")} className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -170,10 +172,10 @@ function Book() {
             </div>
             <div>
               <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{t("book.notes")}</label>
-              <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Flight number, meet-and-greet, child seat…" className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none resize-none" />
+              <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("book.notes.placeholder")} className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none resize-none" />
             </div>
             <button disabled={saving} className="w-full rounded-md bg-gold-gradient py-3.5 text-sm font-semibold text-primary-foreground shadow-gold disabled:opacity-60">
-              {saving ? "Reserving…" : t("book.submit")}
+              {saving ? t("book.saving") : t("book.submit")}
             </button>
           </form>
         </section>
@@ -185,8 +187,8 @@ function Book() {
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-display text-base">Blake</div>
-              <div className="text-[10px] tracking-widest text-muted-foreground uppercase">AI Concierge · Online</div>
+              <div className="font-display text-base">{t("book.blake.name")}</div>
+              <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{t("book.blake.status")}</div>
             </div>
           </div>
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[380px] max-h-[560px]">
