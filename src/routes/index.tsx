@@ -97,14 +97,6 @@ function Landing() {
 
         {/* Hero content */}
         <div className="relative z-10 flex flex-col items-center justify-center px-6 text-center mt-[16vh] md:mt-[20vh]">
-          {/* Fleet ribbon — positioned near the vehicle roofline */}
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-x-6 md:gap-x-8 gap-y-2 text-[10px] md:text-xs tracking-[0.35em] text-gold/90 font-medium animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            <span>CADILLAC ESCALADE</span>
-            <span>◆</span>
-            <span>CHEVROLET SUBURBAN</span>
-            <span>◆</span>
-            <span>GMC DENALI</span>
-          </div>
           <div className="animate-scale-in">
             <HarborLogo className="h-24 w-24 md:h-28 md:w-28" />
           </div>
