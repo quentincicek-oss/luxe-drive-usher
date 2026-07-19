@@ -177,11 +177,8 @@ function Book() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{t("book.notes")}</label>
-              <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("book.notes.placeholder")} className="w-full rounded-md bg-input border border-border/60 px-3 py-2.5 text-sm focus:border-gold outline-none resize-none" />
-            </div>
             <button disabled={saving} className="w-full rounded-md bg-gold-gradient py-3.5 text-sm font-semibold text-primary-foreground shadow-gold disabled:opacity-60">
+
               {saving ? t("book.saving") : t("book.submit")}
             </button>
           </form>
