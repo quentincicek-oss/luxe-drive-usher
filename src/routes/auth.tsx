@@ -60,17 +60,11 @@ function Auth() {
   async function google() {
     setBusy(true);
     try {
-      const { lovable } = await import("@/integrations/lovable/index").catch(() => ({ lovable: null as any }));
-      if (lovable?.auth?.signInWithOAuth) {
-        const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-        if (result.error) throw new Error(result.error.message || "Google sign-in failed");
-      } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo: `${window.location.origin}/book` },
-        });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/book` },
+      });
+      if (error) throw error;
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Google sign-in failed");
     } finally {
