@@ -78,8 +78,8 @@ function Book() {
         body: JSON.stringify({ messages: next }),
       });
       if (!res.ok || !res.body) {
-        const t = await res.text().catch(() => "");
-        toast.error(t || this.t("book.blake.unavailable"));
+        const message = await res.text().catch(() => "");
+        toast.error(message || t("book.blake.unavailable"));
         setSending(false); return;
       }
       const reader = res.body.getReader();
