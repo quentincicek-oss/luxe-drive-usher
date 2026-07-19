@@ -21,6 +21,8 @@ const AGENT_ROLES: Record<string, string> = {
 export function ConciergeWidget() {
   const { user, loading } = useAuth();
   const { t } = useI18n();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const [open, setOpen] = useState(false);
   const [agent, setAgent] = useState("Blake");
   const [chat, setChat] = useState<ChatMsg[]>([]);
