@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SiriOrb } from "@/components/SiriOrb";
 import { Send, X } from "lucide-react";
 import { toast } from "sonner";
+
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
