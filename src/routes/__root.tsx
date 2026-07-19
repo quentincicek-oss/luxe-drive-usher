@@ -105,6 +105,7 @@ function RootComponent() {
         <I18nProvider>
           <AuthProvider>
             <Outlet />
+            <ConciergeWidget />
             <Toaster theme="dark" position="top-center" richColors />
           </AuthProvider>
         </I18nProvider>
