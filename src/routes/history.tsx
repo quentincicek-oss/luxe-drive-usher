@@ -115,24 +115,24 @@ function History() {
                         ${(b.price ?? b.suggested_price ?? 0).toFixed(0)}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 items-stretch">
                       {!b.paid ? (
-                        <button onClick={() => setPayFor(b.id)} className="inline-flex items-center gap-1.5 rounded-full bg-gold-gradient px-3 py-1.5 text-[11px] font-medium text-primary-foreground shadow-gold">
-                          <CreditCard className="h-3 w-3" /> Pay
+                        <button onClick={() => setPayFor(b.id)} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-gradient px-3.5 h-9 text-xs font-medium text-primary-foreground shadow-gold">
+                          <CreditCard className="h-3.5 w-3.5" /> Pay
                         </button>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[11px] text-gold">
-                          <CheckCircle2 className="h-3 w-3" /> Paid
+                        <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3.5 h-8 text-xs text-gold">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Paid
                         </span>
                       )}
                       {done && !alreadyReviewed && (
-                        <button onClick={() => setRateFor(b.id)} className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 px-3 py-1 text-[11px] text-gold hover:bg-gold/10">
-                          <Star className="h-3 w-3" /> {t("review.submit")}
+                        <button onClick={() => setRateFor(b.id)} className="inline-flex items-center justify-center gap-1.5 rounded-full border border-gold/50 px-3.5 h-9 text-xs text-gold hover:bg-gold/10">
+                          <Star className="h-3.5 w-3.5" /> {t("review.submit")}
                         </button>
                       )}
                       {b.paid && (
-                        <button onClick={() => setReceiptFor(b.id)} className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-[11px] hover:border-gold hover:text-gold">
-                          <Receipt className="h-3 w-3" /> {t("receipt.request")}
+                        <button onClick={() => setReceiptFor(b.id)} className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border/60 px-3.5 h-9 text-xs hover:border-gold hover:text-gold">
+                          <Receipt className="h-3.5 w-3.5" /> {t("receipt.request")}
                         </button>
                       )}
                     </div>
