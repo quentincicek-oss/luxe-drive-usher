@@ -58,7 +58,7 @@ function Landing() {
         {/* Top bar — logo placement unchanged */}
         <header className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-8">
           <div className="flex items-center gap-3">
-            <HarborLogo className="h-10 w-10" />
+            <HarborLogo className="h-12 w-12" />
             <div className="hidden md:block">
               <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
               <div className="text-[9px] tracking-[0.35em] text-muted-foreground mt-1">EXECUTIVE SERVICES</div>
