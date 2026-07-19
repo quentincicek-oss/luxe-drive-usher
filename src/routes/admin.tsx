@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { HarborLogo } from "@/components/HarborLogo";
+import { LanguageMenu } from "@/components/LanguageMenu";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 
 interface Booking {
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const { user, role, loading } = useAuth();
+  const { t } = useI18n();
   const nav = useNavigate();
   const [tab, setTab] = useState<"bookings" | "discounts" | "concierge">("bookings");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -29,8 +32,8 @@ function Admin() {
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/auth" }); return; }
-    if (role !== null && role !== "admin") { toast.error("Admin access required"); nav({ to: "/book" }); }
-  }, [user, role, loading, nav]);
+    if (role !== null && role !== "admin") { toast.error(t("admin.accessRequired")); nav({ to: "/book" }); }
+  }, [user, role, loading, nav, t]);
 
   async function refresh() {
     setBusy(true);
@@ -49,7 +52,7 @@ function Admin() {
   async function updateStatus(id: string, status: string) {
     const { error } = await supabase.from("bookings").update({ status: status as Booking["status"] } as never).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Status updated"); refresh();
+    toast.success(t("admin.statusUpdated")); refresh();
   }
   async function addDiscount() {
     const { error } = await supabase.from("discount_rules").insert({ min_miles: 0, max_miles: 25, flat_off: 10, percent_off: 5 });
@@ -72,10 +75,13 @@ function Admin() {
             <HarborLogo className="h-9 w-9" />
             <div>
               <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
-              <div className="text-[8px] tracking-[0.3em] text-muted-foreground mt-1">ADMIN CONSOLE</div>
+              <div className="text-[8px] tracking-[0.3em] text-muted-foreground mt-1 uppercase">{t("admin.console")}</div>
             </div>
           </Link>
-          <Link to="/book" className="text-sm text-muted-foreground hover:text-foreground">← Passenger view</Link>
+          <div className="flex items-center gap-3">
+            <LanguageMenu compact />
+            <Link to="/book" className="text-sm text-muted-foreground hover:text-foreground">← {t("admin.passengerView")}</Link>
+          </div>
         </div>
       </header>
 
@@ -84,24 +90,24 @@ function Admin() {
           {(["bookings", "discounts", "concierge"] as const).map((v) => (
             <button key={v} onClick={() => setTab(v)}
               className={"px-4 py-2.5 text-sm capitalize transition border-b-2 " + (tab === v ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground")}>
-              {v === "bookings" ? "Reservations" : v === "discounts" ? "Discount Rules" : "Concierge Logs"}
+              {t(`admin.tabs.${v}`)}
             </button>
           ))}
         </div>
 
-        {busy && <div className="text-muted-foreground text-sm">Loading…</div>}
+        {busy && <div className="text-muted-foreground text-sm">{t("history.loading")}</div>}
 
         {tab === "bookings" && !busy && (
           <div className="rounded-lg border border-border/60 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-surface text-xs uppercase tracking-widest text-muted-foreground">
                 <tr>
-                  <th className="text-left px-4 py-3">Pickup Time</th>
-                  <th className="text-left px-4 py-3">Route</th>
-                  <th className="text-left px-4 py-3">Vehicle</th>
-                  <th className="text-left px-4 py-3">Pax</th>
-                  <th className="text-left px-4 py-3">Price</th>
-                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.pickupTime")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.price")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,12 +121,12 @@ function Admin() {
                     <td className="px-4 py-3">
                       <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
                         className="bg-input border border-border/60 rounded px-2 py-1 text-xs capitalize">
-                        {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{s}</option>)}
+                        {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
                       </select>
                     </td>
                   </tr>
                 ))}
-                {bookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No reservations yet.</td></tr>}
+                {bookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">{t("admin.empty.reservations")}</td></tr>}
               </tbody>
             </table>
           </div>
@@ -129,8 +135,8 @@ function Admin() {
         {tab === "discounts" && !busy && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <div className="text-xs text-muted-foreground">Mileage-based fare adjustments</div>
-              <button onClick={addDiscount} className="rounded-full bg-gold-gradient px-4 py-2 text-xs font-medium text-primary-foreground shadow-gold">+ New rule</button>
+              <div className="text-xs text-muted-foreground">{t("admin.discounts.subtitle")}</div>
+              <button onClick={addDiscount} className="rounded-full bg-gold-gradient px-4 py-2 text-xs font-medium text-primary-foreground shadow-gold">+ {t("admin.discounts.new")}</button>
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               {discounts.map((d) => (
@@ -139,7 +145,7 @@ function Admin() {
                     <div className="font-display text-lg text-gradient-gold">{d.min_miles}–{d.max_miles} mi</div>
                     <div className="text-xs text-muted-foreground mt-1">-${d.flat_off} flat · -{d.percent_off}%</div>
                   </div>
-                  <button onClick={() => deleteDiscount(d.id)} className="text-xs text-destructive hover:underline">Delete</button>
+                  <button onClick={() => deleteDiscount(d.id)} className="text-xs text-destructive hover:underline">{t("admin.discounts.delete")}</button>
                 </div>
               ))}
             </div>
@@ -148,7 +154,7 @@ function Admin() {
 
         {tab === "concierge" && !busy && (
           <div className="space-y-2">
-            {messages.length === 0 && <div className="text-muted-foreground text-sm">No conversations yet.</div>}
+            {messages.length === 0 && <div className="text-muted-foreground text-sm">{t("admin.empty.conversations")}</div>}
             {messages.map((m) => (
               <div key={m.id} className="rounded-lg border border-border/60 bg-surface p-4">
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
