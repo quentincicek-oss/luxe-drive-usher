@@ -22,13 +22,17 @@ export type Database = {
           dropoff: string
           id: string
           notes: string | null
+          paid: boolean
+          paid_at: string | null
           passenger_id: string
           passengers: number
           pickup: string
           pickup_time: string
           price: number | null
+          receipt_url: string | null
           ride_type: Database["public"]["Enums"]["ride_type"]
           status: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id: string | null
           suggested_price: number | null
           updated_at: string
         }
@@ -39,13 +43,17 @@ export type Database = {
           dropoff: string
           id?: string
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           passenger_id: string
           passengers?: number
           pickup: string
           pickup_time: string
           price?: number | null
+          receipt_url?: string | null
           ride_type?: Database["public"]["Enums"]["ride_type"]
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           suggested_price?: number | null
           updated_at?: string
         }
@@ -56,13 +64,17 @@ export type Database = {
           dropoff?: string
           id?: string
           notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
           passenger_id?: string
           passengers?: number
           pickup?: string
           pickup_time?: string
           price?: number | null
+          receipt_url?: string | null
           ride_type?: Database["public"]["Enums"]["ride_type"]
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           suggested_price?: number | null
           updated_at?: string
         }
@@ -210,6 +222,85 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      receipt_verifications: {
+        Row: {
+          attempts: number
+          booking_id: string
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          passenger_id: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          passenger_id: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          passenger_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_verifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ride_reviews: {
+        Row: {
+          booking_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          passenger_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          passenger_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          passenger_id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
