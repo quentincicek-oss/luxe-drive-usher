@@ -60,7 +60,7 @@ function DriverProfile() {
               </div>
             </div>
 
-            <DriverStatusPicker value={p.availability_status} onChange={changeStatus} />
+            <DriverStatusPicker value={p.availability_status} onChange={(v) => { void changeStatus(v); }} />
           </>
         )}
 
