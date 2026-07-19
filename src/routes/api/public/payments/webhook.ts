@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
 
-let _admin: ReturnType<typeof createClient> | null = null;
-function admin() {
+let _admin: SupabaseClient | null = null;
+function admin(): SupabaseClient {
   if (!_admin) {
     _admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   }
   return _admin;
 }
+
 
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const metadata = (session.metadata ?? {}) as Record<string, string>;
