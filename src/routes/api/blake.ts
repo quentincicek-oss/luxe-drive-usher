@@ -158,16 +158,33 @@ export const Route = createFileRoute("/api/blake")({
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
         const reader = upstream.body.getReader();
+        let buffer = "";
         const stream = new ReadableStream<Uint8Array>({
           async pull(controller) {
             const { done, value } = await reader.read();
-            if (done) { controller.close(); return; }
-            const chunk = decoder.decode(value, { stream: true });
-            for (const line of chunk.split("\n")) {
+            if (done) {
+              // flush any trailing line
+              if (buffer.trim().startsWith("data:")) {
+                const data = buffer.trim().slice(5).trim();
+                if (data && data !== "[DONE]") {
+                  try {
+                    const j = JSON.parse(data);
+                    const delta = j.choices?.[0]?.delta?.content;
+                    if (delta) controller.enqueue(encoder.encode(delta));
+                  } catch { /* ignore */ }
+                }
+              }
+              controller.close();
+              return;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? ""; // keep incomplete last line
+            for (const line of lines) {
               const trimmed = line.trim();
               if (!trimmed.startsWith("data:")) continue;
               const data = trimmed.slice(5).trim();
-              if (data === "[DONE]") continue;
+              if (!data || data === "[DONE]") continue;
               try {
                 const j = JSON.parse(data);
                 const delta = j.choices?.[0]?.delta?.content;
@@ -176,6 +193,7 @@ export const Route = createFileRoute("/api/blake")({
             }
           },
         });
+
 
         return new Response(stream, {
           headers: {
