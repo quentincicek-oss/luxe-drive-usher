@@ -146,12 +146,15 @@ export function VehicleShowroom({ value, onChange }: Props) {
                   alt={v.name}
                   width={1280}
                   height={720}
+                  loading={active ? "eager" : "lazy"}
+                  decoding="async"
                   draggable={false}
                   className="w-[560px] max-w-[80vw] h-auto drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)]"
                   style={{
                     animation: active ? "showroom-float 6s ease-in-out infinite" : undefined,
                   }}
                 />
+
               </button>
             );
           })}
