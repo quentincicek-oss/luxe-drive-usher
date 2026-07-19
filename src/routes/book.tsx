@@ -62,12 +62,11 @@ function Book() {
         pickup: form.pickup, dropoff: form.dropoff,
         pickup_time: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers, ride_type: form.ride_type,
-        notes: form.notes || null,
         suggested_price: est,
       });
       if (error) throw error;
       toast.success(t("book.success"));
-      setForm({ ...form, pickup: "", dropoff: "", notes: "" });
+      setForm({ ...form, pickup: "", dropoff: "" });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t("book.failed"));
     } finally { setSaving(false); }
