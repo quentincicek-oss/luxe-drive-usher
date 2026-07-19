@@ -22,19 +22,19 @@ export const Route = createFileRoute("/book")({
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
-const AGENTS = [
-  { id: "Blake",  role: "Head Concierge" },
-  { id: "Ava",    role: "Reservations Lead" },
-  { id: "Marcus", role: "Airport Specialist" },
-  { id: "Sophia", role: "Events & VIP Liaison" },
-  { id: "Julian", role: "Route Advisor" },
-] as const;
+const AGENT_ROLES: Record<string, string> = {
+  Blake: "Head Concierge",
+  Ava: "Reservations Lead",
+  Marcus: "Airport Specialist",
+  Sophia: "Events & VIP Liaison",
+  Julian: "Route Advisor",
+};
 
 function Book() {
   const { user, role, loading, signOut } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
-  const [agent, setAgent] = useState<string>(AGENTS[0].id);
+  const [agent, setAgent] = useState<string>("Blake");
   const [form, setForm] = useState({
     pickup: "", dropoff: "",
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
@@ -49,7 +49,7 @@ function Book() {
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
-  useEffect(() => { setChat([{ role: "assistant", content: `${t("book.blake.greet")} ${agent}. ${t("book.blake.welcome")}` }]); }, [t, agent]);
+  useEffect(() => { setChat([{ role: "assistant", content: t("book.blake.welcome") }]); }, [t]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [chat]);
 
   async function reserve(e: React.FormEvent) {
