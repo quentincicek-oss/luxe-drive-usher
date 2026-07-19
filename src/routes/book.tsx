@@ -83,7 +83,7 @@ function Book() {
       const res = await fetch("/api/blake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, agent }),
       });
       if (!res.ok || !res.body) {
         const message = await res.text().catch(() => "");
