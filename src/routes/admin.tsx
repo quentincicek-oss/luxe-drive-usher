@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
 import { AssignmentPanel } from "@/components/ops/AssignmentPanel";
+import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
