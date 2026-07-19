@@ -1334,7 +1334,7 @@ const hi: Dict = {
   "status.cancelled": "रद्द",
 };
 
-const dicts: Record<Lang, Dict> = { en, tr };
+const dicts: Record<Lang, Dict> = { en, tr, es, pt, zh, it };
 
 const RTL: Lang[] = [];
 
