@@ -182,16 +182,6 @@ export function VehicleShowroom({ value, onChange }: Props) {
           <div className="text-[10px] tracking-[0.35em] uppercase text-gold/80">{current.tagline}</div>
           <div className="font-display text-xl mt-0.5">{current.name}</div>
         </div>
-        <div className="flex items-center gap-6 text-xs">
-          <div className="text-right">
-            <div className="text-muted-foreground uppercase tracking-widest text-[10px]">Seats</div>
-            <div className="font-display text-lg text-gold">{current.seats}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-muted-foreground uppercase tracking-widest text-[10px]">Rate</div>
-            <div className="font-display text-lg text-gold">{current.rate}</div>
-          </div>
-        </div>
       </div>
 
       {/* Dots */}
