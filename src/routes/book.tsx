@@ -37,7 +37,6 @@ function Book() {
     pickup: "", dropoff: "",
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
     passengers: 1, ride_type: "escalade" as "escalade" | "suburban" | "denali",
-    notes: "",
   });
   const [saving, setSaving] = useState(false);
 
