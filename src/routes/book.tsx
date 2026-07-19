@@ -193,21 +193,9 @@ function Book() {
           <div className="border-b border-border/60 px-6 py-4 flex items-center gap-3 bg-background/50">
             <SiriOrb speaking size={36} />
             <div className="flex-1">
-              <div className="font-display text-base">{agent} <span className="text-xs text-muted-foreground font-sans">· {AGENTS.find(a => a.id === agent)?.role}</span></div>
+              <div className="font-display text-base">{agent} <span className="text-xs text-muted-foreground font-sans">· {AGENT_ROLES[agent] ?? "Concierge"}</span></div>
               <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{t("book.blake.status")}</div>
             </div>
-          </div>
-          <div className="border-b border-border/60 px-3 py-2 flex gap-1.5 overflow-x-auto bg-background/30">
-            {AGENTS.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setAgent(a.id)}
-                className={"whitespace-nowrap rounded-full px-3 py-1 text-[11px] tracking-wide transition " + (agent === a.id ? "bg-gold-gradient text-primary-foreground shadow-gold" : "border border-border/60 hover:border-gold/60 text-muted-foreground")}
-              >
-                {a.id}
-              </button>
-            ))}
           </div>
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[380px] max-h-[560px]">
             {chat.map((m, i) => (
