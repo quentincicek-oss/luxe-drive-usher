@@ -140,8 +140,8 @@ function Book() {
         <div className="flex items-center justify-between gap-3">
           <FareEstimate value={estimate} />
           <button
-            form=""
-            onClick={reserve as unknown as () => void}
+            type="submit"
+            form="book-form"
             disabled={!canSubmit}
             className="btn-primary-luxe flex-1"
           >
