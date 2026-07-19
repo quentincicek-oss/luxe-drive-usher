@@ -114,6 +114,19 @@ function History() {
                       <div className="mt-1 font-display text-lg text-gradient-gold">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</div>
                     </div>
                     <div className="flex flex-col gap-1.5">
+                      {!b.paid && (
+                        <button
+                          onClick={() => setPayFor(b.id)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-gold-gradient px-3 py-1 text-[11px] tracking-wide text-primary-foreground shadow-gold"
+                        >
+                          <CreditCard className="h-3 w-3" /> Pay now
+                        </button>
+                      )}
+                      {b.paid && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[11px] tracking-wide text-gold">
+                          <CheckCircle2 className="h-3 w-3" /> Paid
+                        </span>
+                      )}
                       {done && !alreadyReviewed && (
                         <button
                           onClick={() => setRateFor(b.id)}
@@ -122,7 +135,7 @@ function History() {
                           <Star className="h-3 w-3" /> {t("review.submit")}
                         </button>
                       )}
-                      {done && (
+                      {b.paid && (
                         <button
                           onClick={() => setReceiptFor(b.id)}
                           className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-[11px] tracking-wide hover:border-gold hover:text-gold"
@@ -131,6 +144,7 @@ function History() {
                         </button>
                       )}
                     </div>
+
                   </div>
                 </div>
               );
