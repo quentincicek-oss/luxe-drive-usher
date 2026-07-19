@@ -91,7 +91,7 @@ export function ConciergeWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 group flex items-center gap-3 rounded-full border border-gold/40 bg-obsidian/90 backdrop-blur pl-3 pr-5 py-2.5 shadow-luxe hover:shadow-gold transition-all"
+          className="fixed bottom-24 sm:bottom-6 right-4 sm:right-6 z-40 group flex items-center gap-3 rounded-full border border-gold/40 bg-obsidian/90 backdrop-blur pl-3 pr-4 sm:pr-5 py-2.5 shadow-luxe hover:shadow-gold transition-all"
           aria-label="Open concierge"
         >
           <SiriOrb speaking={false} size={38} />
