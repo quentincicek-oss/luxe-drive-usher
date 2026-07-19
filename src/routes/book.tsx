@@ -67,48 +67,6 @@ function Book() {
     } finally { setSaving(false); }
   }
 
-  async function send() {
-    const text = draft.trim();
-    if (!text || sending) return;
-    const next: ChatMsg[] = [...chat, { role: "user", content: text }];
-    setChat(next);
-    setDraft("");
-    setSending(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) { toast.error(t("book.chat.failed")); setSending(false); return; }
-      const res = await fetch("/api/blake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ messages: next }),
-      });
-      if (!res.ok || !res.body) {
-        const message = await res.text().catch(() => "");
-        toast.error(message || t("book.blake.unavailable"));
-        setSending(false); return;
-      }
-      // All 5 concierges busy — show localized wait notice, no stream.
-      if (res.headers.get("X-Concierge-Busy") === "1") {
-        setChat([...next, { role: "assistant", content: t("book.blake.busy") }]);
-        setSending(false); return;
-      }
-      const assigned = res.headers.get("X-Concierge-Agent");
-      if (assigned && AGENT_ROLES[assigned]) setAgent(assigned);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let assistant = "";
-      setChat([...next, { role: "assistant", content: "" }]);
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        assistant += decoder.decode(value, { stream: true });
-        setChat([...next, { role: "assistant", content: assistant }]);
-      }
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t("book.chat.failed"));
-    } finally { setSending(false); }
-  }
 
   if (loading || !user) return <div className="min-h-screen bg-obsidian" />;
 
