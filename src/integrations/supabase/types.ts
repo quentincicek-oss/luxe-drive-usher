@@ -14,16 +14,246 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          created_at: string
+          distance_km: number | null
+          driver_id: string | null
+          dropoff: string
+          id: string
+          notes: string | null
+          passenger_id: string
+          passengers: number
+          pickup: string
+          pickup_time: string
+          price: number | null
+          ride_type: Database["public"]["Enums"]["ride_type"]
+          status: Database["public"]["Enums"]["booking_status"]
+          suggested_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff: string
+          id?: string
+          notes?: string | null
+          passenger_id: string
+          passengers?: number
+          pickup: string
+          pickup_time: string
+          price?: number | null
+          ride_type?: Database["public"]["Enums"]["ride_type"]
+          status?: Database["public"]["Enums"]["booking_status"]
+          suggested_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff?: string
+          id?: string
+          notes?: string | null
+          passenger_id?: string
+          passengers?: number
+          pickup?: string
+          pickup_time?: string
+          price?: number | null
+          ride_type?: Database["public"]["Enums"]["ride_type"]
+          status?: Database["public"]["Enums"]["booking_status"]
+          suggested_price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          agent_name: string | null
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          translation_en: string | null
+          translation_tr: string | null
+          user_id: string | null
+          user_language: string | null
+        }
+        Insert: {
+          agent_name?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          translation_en?: string | null
+          translation_tr?: string | null
+          user_id?: string | null
+          user_language?: string | null
+        }
+        Update: {
+          agent_name?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          translation_en?: string | null
+          translation_tr?: string | null
+          user_id?: string | null
+          user_language?: string | null
+        }
+        Relationships: []
+      }
+      discount_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          flat_off: number | null
+          id: string
+          max_miles: number
+          min_miles: number
+          percent_off: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          flat_off?: number | null
+          id?: string
+          max_miles?: number
+          min_miles?: number
+          percent_off?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          flat_off?: number | null
+          id?: string
+          max_miles?: number
+          min_miles?: number
+          percent_off?: number | null
+        }
+        Relationships: []
+      }
+      drivers: {
+        Row: {
+          active_booking_id: string | null
+          current_lat: number | null
+          current_lng: number | null
+          id: string
+          is_online: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_booking_id?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          id?: string
+          is_online?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_booking_id?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          id?: string
+          is_online?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_active_booking_id_fkey"
+            columns: ["active_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          home_address: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          preferred_language: string | null
+          surname: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          home_address?: string | null
+          id: string
+          name?: string | null
+          phone?: string | null
+          preferred_language?: string | null
+          surname?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          home_address?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          preferred_language?: string | null
+          surname?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "driver" | "passenger"
+      booking_status:
+        | "requested"
+        | "assigned"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      ride_type: "escalade" | "suburban" | "denali"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +380,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "driver", "passenger"],
+      booking_status: [
+        "requested",
+        "assigned",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      ride_type: ["escalade", "suburban", "denali"],
+    },
   },
 } as const
