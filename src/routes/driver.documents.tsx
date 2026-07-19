@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DriverShell } from "@/components/driver/DriverShell";
 import { DocumentRow } from "@/components/driver/DocumentRow";
 
-export const Route = createFileRoute("/_driver/documents")({
+export const Route = createFileRoute("/driver/documents")({
   component: DriverDocuments,
 });
 

@@ -13,7 +13,7 @@ import { emit } from "@/lib/notifications";
 import { toast } from "sonner";
 import { PhoneCall, Radio, AlertTriangle, XCircle, UserX } from "lucide-react";
 
-export const Route = createFileRoute("/_driver/trips/$id")({
+export const Route = createFileRoute("/driver/trips/$id")({
   component: TripDetail,
 });
 

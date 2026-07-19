@@ -6,7 +6,7 @@ import { DriverShell } from "@/components/driver/DriverShell";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { ArrowUpRight } from "lucide-react";
 
-export const Route = createFileRoute("/_driver/trips")({
+export const Route = createFileRoute("/driver/trips")({
   component: TripsList,
 });
 

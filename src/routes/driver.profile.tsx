@@ -7,7 +7,7 @@ import { DriverStatusPicker } from "@/components/driver/DriverStatusPicker";
 import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 
-export const Route = createFileRoute("/_driver/profile")({
+export const Route = createFileRoute("/driver/profile")({
   component: DriverProfile,
 });
 

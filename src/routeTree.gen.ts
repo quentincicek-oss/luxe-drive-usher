@@ -10,17 +10,28 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as DriverRouteImport } from './routes/driver'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DriverIndexRouteImport } from './routes/driver.index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
+import { Route as DriverTripsRouteImport } from './routes/driver.trips'
+import { Route as DriverProfileRouteImport } from './routes/driver.profile'
+import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriverRoute = DriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookRoute = BookRouteImport.update({
@@ -43,15 +54,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DriverIndexRoute = DriverIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DriverRoute,
+} as any)
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DriverTripsRoute = DriverTripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
+  getParentRoute: () => DriverRoute,
+} as any)
+const DriverProfileRoute = DriverProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DriverRoute,
+} as any)
+const DriverDocumentsRoute = DriverDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => DriverRoute,
+} as any)
 const ApiBlakeRoute = ApiBlakeRouteImport.update({
   id: '/api/blake',
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DriverTripsIdRoute = DriverTripsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DriverTripsRoute,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -65,9 +101,15 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
+  '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/driver/documents': typeof DriverDocumentsRoute
+  '/driver/profile': typeof DriverProfileRoute
+  '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/driver/': typeof DriverIndexRoute
+  '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -77,7 +119,12 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/driver/documents': typeof DriverDocumentsRoute
+  '/driver/profile': typeof DriverProfileRoute
+  '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/driver': typeof DriverIndexRoute
+  '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -86,9 +133,15 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
+  '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/api/blake': typeof ApiBlakeRoute
+  '/driver/documents': typeof DriverDocumentsRoute
+  '/driver/profile': typeof DriverProfileRoute
+  '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/driver/': typeof DriverIndexRoute
+  '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -98,9 +151,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/book'
+    | '/driver'
     | '/history'
     | '/api/blake'
+    | '/driver/documents'
+    | '/driver/profile'
+    | '/driver/trips'
     | '/r/$code'
+    | '/driver/'
+    | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,7 +169,12 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/api/blake'
+    | '/driver/documents'
+    | '/driver/profile'
+    | '/driver/trips'
     | '/r/$code'
+    | '/driver'
+    | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -118,9 +182,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/book'
+    | '/driver'
     | '/history'
     | '/api/blake'
+    | '/driver/documents'
+    | '/driver/profile'
+    | '/driver/trips'
     | '/r/$code'
+    | '/driver/'
+    | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -129,6 +199,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
+  DriverRoute: typeof DriverRouteWithChildren
   HistoryRoute: typeof HistoryRoute
   ApiBlakeRoute: typeof ApiBlakeRoute
   RCodeRoute: typeof RCodeRoute
@@ -142,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/driver': {
+      id: '/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof DriverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book': {
@@ -172,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/driver/': {
+      id: '/driver/'
+      path: '/'
+      fullPath: '/driver/'
+      preLoaderRoute: typeof DriverIndexRouteImport
+      parentRoute: typeof DriverRoute
+    }
     '/r/$code': {
       id: '/r/$code'
       path: '/r/$code'
@@ -179,12 +264,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/driver/trips': {
+      id: '/driver/trips'
+      path: '/trips'
+      fullPath: '/driver/trips'
+      preLoaderRoute: typeof DriverTripsRouteImport
+      parentRoute: typeof DriverRoute
+    }
+    '/driver/profile': {
+      id: '/driver/profile'
+      path: '/profile'
+      fullPath: '/driver/profile'
+      preLoaderRoute: typeof DriverProfileRouteImport
+      parentRoute: typeof DriverRoute
+    }
+    '/driver/documents': {
+      id: '/driver/documents'
+      path: '/documents'
+      fullPath: '/driver/documents'
+      preLoaderRoute: typeof DriverDocumentsRouteImport
+      parentRoute: typeof DriverRoute
+    }
     '/api/blake': {
       id: '/api/blake'
       path: '/api/blake'
       fullPath: '/api/blake'
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/driver/trips/$id': {
+      id: '/driver/trips/$id'
+      path: '/$id'
+      fullPath: '/driver/trips/$id'
+      preLoaderRoute: typeof DriverTripsIdRouteImport
+      parentRoute: typeof DriverTripsRoute
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -196,11 +309,41 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DriverTripsRouteChildren {
+  DriverTripsIdRoute: typeof DriverTripsIdRoute
+}
+
+const DriverTripsRouteChildren: DriverTripsRouteChildren = {
+  DriverTripsIdRoute: DriverTripsIdRoute,
+}
+
+const DriverTripsRouteWithChildren = DriverTripsRoute._addFileChildren(
+  DriverTripsRouteChildren,
+)
+
+interface DriverRouteChildren {
+  DriverDocumentsRoute: typeof DriverDocumentsRoute
+  DriverProfileRoute: typeof DriverProfileRoute
+  DriverTripsRoute: typeof DriverTripsRouteWithChildren
+  DriverIndexRoute: typeof DriverIndexRoute
+}
+
+const DriverRouteChildren: DriverRouteChildren = {
+  DriverDocumentsRoute: DriverDocumentsRoute,
+  DriverProfileRoute: DriverProfileRoute,
+  DriverTripsRoute: DriverTripsRouteWithChildren,
+  DriverIndexRoute: DriverIndexRoute,
+}
+
+const DriverRouteWithChildren =
+  DriverRoute._addFileChildren(DriverRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
+  DriverRoute: DriverRouteWithChildren,
   HistoryRoute: HistoryRoute,
   ApiBlakeRoute: ApiBlakeRoute,
   RCodeRoute: RCodeRoute,

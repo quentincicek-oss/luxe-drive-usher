@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link } from "@tanstack/react-router"
 import { useAuth } from "@/lib/auth";
 import { ShieldAlert } from "lucide-react";
 
-export const Route = createFileRoute("/_driver")({
+export const Route = createFileRoute("/driver")({
   ssr: false,
   beforeLoad: () => {
     // Client-side redirect for unauthenticated; role gate rendered in component.

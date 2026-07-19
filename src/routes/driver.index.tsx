@@ -8,7 +8,7 @@ import { StatusPill } from "@/components/ops/StatusPill";
 import { ArrowUpRight, Car } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_driver/")({
+export const Route = createFileRoute("/driver/")({
   component: DriverHome,
 });
 
