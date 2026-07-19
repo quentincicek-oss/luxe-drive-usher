@@ -1,11 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { HarborLogo } from "@/components/HarborLogo";
-import { LanguageMenu } from "@/components/LanguageMenu";
 import { useI18n } from "@/lib/i18n";
+import { AppHeader } from "@/components/AppHeader";
 import { toast } from "sonner";
+
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
