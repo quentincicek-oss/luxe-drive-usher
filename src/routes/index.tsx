@@ -40,8 +40,8 @@ function Landing() {
 
   return (
     <main className="relative min-h-screen bg-obsidian">
-      {/* HERO — cinematic video (top-aligned, text-free) */}
-      <section className="relative h-[60vh] md:h-[64vh] w-full overflow-hidden bg-background">
+      {/* HERO — cinematic video */}
+      <section className="relative h-[100vh] w-full overflow-hidden">
         <video
           ref={videoRef}
           src={introVideo.url}
@@ -49,13 +49,14 @@ function Landing() {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full object-cover object-top"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        {/* Light readability gradient for the header; cars remain unobstructed */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/60 via-background/10 to-transparent" />
+        {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/70 via-background/10 to-background" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50" />
 
-        {/* Top bar — logo placement unchanged */}
+        {/* Top bar */}
         <header className="relative z-10 flex items-center justify-between px-6 md:px-12 pt-8">
           <div className="flex items-center gap-3">
             <HarborLogo className="h-10 w-10" />
@@ -93,52 +94,51 @@ function Landing() {
             )}
           </div>
         </header>
-      </section>
 
-      {/* HERO — headline, subtext, CTAs below the vehicle image */}
-      <section className="relative z-10 bg-background px-6 py-12 md:py-16 text-center">
-        <div className="animate-scale-in">
-          <HarborLogo className="mx-auto h-20 w-20 md:h-24 md:w-24" />
-        </div>
-        <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.4s" }}>
-          <Wordmark />
-        </div>
-        <h1
-          className="mx-auto mt-8 max-w-3xl font-display text-4xl md:text-6xl lg:text-7xl leading-[1.05] animate-fade-up"
-          style={{ animationDelay: "0.8s" }}
-        >
-          <span className="text-foreground">Executive travel, </span>
-          <span className="text-gradient-gold italic">refined.</span>
-        </h1>
-        <p
-          className="mx-auto mt-5 max-w-xl text-sm md:text-base text-muted-foreground animate-fade-up"
-          style={{ animationDelay: "1.1s" }}
-        >
-          {t("landing.hero.body")}
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "1.4s" }}>
-          <Link to={user ? "/book" : "/auth"} className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition">
-            {t("cta.book")}
-            <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-          </Link>
-          {!user && (
-            <Link to="/auth" className="rounded-full border border-border/70 bg-background/40 backdrop-blur px-6 py-3.5 text-sm hover:border-gold">
-              {t("cta.signup")}
+        {/* Hero content */}
+        <div className="relative z-10 flex flex-col items-center justify-center px-6 text-center mt-[18vh] md:mt-[22vh]">
+          <div className="animate-scale-in">
+            <HarborLogo className="h-24 w-24 md:h-28 md:w-28" />
+          </div>
+          <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.4s" }}>
+            <Wordmark />
+          </div>
+          <h1
+            className="mt-10 max-w-3xl font-display text-4xl md:text-6xl lg:text-7xl leading-[1.05] animate-fade-up"
+            style={{ animationDelay: "0.8s" }}
+          >
+            <span className="text-foreground">Executive travel, </span>
+            <span className="text-gradient-gold italic">refined.</span>
+          </h1>
+          <p
+            className="mt-6 max-w-xl text-sm md:text-base text-muted-foreground animate-fade-up"
+            style={{ animationDelay: "1.1s" }}
+          >
+            {t("landing.hero.body")}
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "1.4s" }}>
+            <Link to={user ? "/book" : "/auth"} className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition">
+              {t("cta.book")}
+              <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </Link>
-          )}
-        </div>
-
-        {/* Fleet labels */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 md:gap-x-8 gap-y-2 text-[10px] md:text-xs tracking-[0.3em] md:tracking-[0.35em] text-muted-foreground/80 animate-fade-in" style={{ animationDelay: "2s" }}>
-          <span>CADILLAC ESCALADE</span>
-          <span className="text-gold">◆</span>
-          <span>CHEVROLET SUBURBAN</span>
-          <span className="text-gold">◆</span>
-          <span>GMC DENALI</span>
+            {!user && (
+              <Link to="/auth" className="rounded-full border border-border/70 bg-background/40 backdrop-blur px-6 py-3.5 text-sm hover:border-gold">
+                {t("cta.signup")}
+              </Link>
+            )}
+          </div>
+          {/* Fleet labels */}
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[10px] md:text-xs tracking-[0.35em] text-muted-foreground/80 animate-fade-in" style={{ animationDelay: "2s" }}>
+            <span>CADILLAC ESCALADE</span>
+            <span className="text-gold">◆</span>
+            <span>CHEVROLET SUBURBAN</span>
+            <span className="text-gold">◆</span>
+            <span>GMC DENALI</span>
+          </div>
         </div>
 
         {/* Tagline */}
-        <div className="mt-8 animate-fade-in" style={{ animationDelay: "2.5s" }}>
+        <div className="absolute bottom-6 inset-x-0 z-10 text-center animate-fade-in" style={{ animationDelay: "2.5s" }}>
           <div className="text-[11px] md:text-sm tracking-[0.55em] text-gold/90 font-medium">
             {t("brand.tagline")}
           </div>
