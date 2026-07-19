@@ -41,15 +41,9 @@ function Book() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [chat, setChat] = useState<ChatMsg[]>([]);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
-  useEffect(() => { setChat([{ role: "assistant", content: t("book.blake.welcome") }]); }, [t]);
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [chat]);
 
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
