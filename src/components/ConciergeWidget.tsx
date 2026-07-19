@@ -40,6 +40,8 @@ export function ConciergeWidget() {
   }, [chat, open]);
 
   if (loading || !user) return null;
+  if (pathname === "/" || pathname.startsWith("/auth")) return null;
+
 
   async function send() {
     const text = draft.trim();
