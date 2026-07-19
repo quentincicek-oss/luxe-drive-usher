@@ -7,6 +7,7 @@ import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { toast } from "sonner";
 import { Send, Sparkles, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
+import { VehicleShowroom } from "@/components/VehicleShowroom";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -163,19 +164,11 @@ function Book() {
               </div>
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{t("book.ride")}</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["escalade", "suburban", "denali"] as const).map((v) => (
-                  <button
-                    type="button"
-                    key={v}
-                    onClick={() => setForm({ ...form, ride_type: v })}
-                    className={"rounded-md border px-3 py-3 text-xs capitalize transition " + (form.ride_type === v ? "border-gold bg-accent text-gold" : "border-border/60 hover:border-gold/60")}
-                  >
-                    {v === "escalade" ? "Cadillac Escalade" : v === "suburban" ? "Chevrolet Suburban" : "GMC Denali"}
-                  </button>
-                ))}
-              </div>
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">{t("book.ride")}</label>
+              <VehicleShowroom
+                value={form.ride_type}
+                onChange={(v) => setForm({ ...form, ride_type: v })}
+              />
             </div>
             <button disabled={saving} className="w-full rounded-md bg-gold-gradient py-3.5 text-sm font-semibold text-primary-foreground shadow-gold disabled:opacity-60">
 
