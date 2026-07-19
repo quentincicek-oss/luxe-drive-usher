@@ -7,13 +7,16 @@ import { LanguageMenu } from "@/components/LanguageMenu";
 import { useI18n } from "@/lib/i18n";
 import { RatingModal } from "@/components/RatingModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
-import { Star, Receipt } from "lucide-react";
+import { BookingCheckoutModal } from "@/components/BookingCheckoutModal";
+import { Star, Receipt, CreditCard, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Booking {
   id: string; pickup: string; dropoff: string; pickup_time: string;
   ride_type: string; status: string; suggested_price: number | null; price: number | null;
-  passengers: number; created_at: string;
+  passengers: number; created_at: string; paid: boolean | null;
 }
+
 
 export const Route = createFileRoute("/history")({
   head: () => ({
