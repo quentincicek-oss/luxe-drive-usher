@@ -7,6 +7,7 @@ import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { toast } from "sonner";
 import { Send, Sparkles, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
+import { VehicleShowroom } from "@/components/VehicleShowroom";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
