@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -8,6 +8,7 @@ import { VehicleShowroom } from "@/components/VehicleShowroom";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
+import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/book")({
   }),
   component: Book,
 });
+
+const RATES: Record<string, number> = { escalade: 4.5, suburban: 4.2, denali: 4.8 };
 
 function Book() {
   const { user, loading } = useAuth();
@@ -33,26 +36,28 @@ function Book() {
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
 
+  const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
+  const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
+
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
     try {
-      const rates: Record<string, number> = { escalade: 4.5, suburban: 4.2, denali: 4.8 };
-      const est = 75 + rates[form.ride_type] * 15;
       const { error } = await supabase.from("bookings").insert({
         passenger_id: user.id,
         pickup: form.pickup, dropoff: form.dropoff,
         pickup_time: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers, ride_type: form.ride_type,
-        suggested_price: est,
+        suggested_price: estimate,
       });
       if (error) throw error;
       toast.success(t("book.success"));
-      setForm({ ...form, pickup: "", dropoff: "" });
+      nav({ to: "/history" });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t("book.failed"));
-    } finally { setSaving(false); }
+      setSaving(false);
+    }
   }
 
   if (loading || !user) {
@@ -68,9 +73,9 @@ function Book() {
   }
 
   return (
-    <main className="min-h-dvh bg-obsidian">
+    <main className="min-h-dvh bg-obsidian pb-32 sm:pb-16">
       <AppHeader />
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 py-10">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-10">
         <SectionCard
           kicker={t("book.kicker")}
           title={t("book.title")}
@@ -80,6 +85,8 @@ function Book() {
             <Field
               label={t("book.pickup")}
               required
+              autoComplete="street-address"
+              leading={<MapPin className="h-4 w-4" />}
               value={form.pickup}
               onChange={(e) => setForm({ ...form, pickup: e.target.value })}
               placeholder={t("book.pickup.example")}
@@ -87,6 +94,7 @@ function Book() {
             <Field
               label={t("book.dropoff")}
               required
+              leading={<Navigation className="h-4 w-4" />}
               value={form.dropoff}
               onChange={(e) => setForm({ ...form, dropoff: e.target.value })}
               placeholder={t("book.dropoff.example")}
@@ -99,15 +107,13 @@ function Book() {
                 value={form.pickup_time}
                 onChange={(e) => setForm({ ...form, pickup_time: e.target.value })}
               />
-              <Field
-                label={t("book.passengers")}
-                required
-                type="number"
-                min={1}
-                max={7}
-                value={form.passengers}
-                onChange={(e) => setForm({ ...form, passengers: Number(e.target.value) })}
-              />
+              <div>
+                <div className="label-luxe">{t("book.passengers")}</div>
+                <PassengerStepper
+                  value={form.passengers}
+                  onChange={(n) => setForm({ ...form, passengers: n })}
+                />
+              </div>
             </div>
             <div>
               <div className="label-luxe">{t("book.ride")}</div>
@@ -116,12 +122,73 @@ function Book() {
                 onChange={(v) => setForm({ ...form, ride_type: v })}
               />
             </div>
-            <button disabled={saving} className="btn-primary-luxe w-full">
-              {saving ? t("book.saving") : t("book.submit")}
-            </button>
+
+            {/* Desktop submit */}
+            <div className="hidden sm:flex items-center justify-between gap-4 pt-2">
+              <FareEstimate value={estimate} />
+              <button disabled={!canSubmit} className="btn-primary-luxe min-w-56">
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {saving ? t("book.saving") : t("book.submit")}
+              </button>
+            </div>
           </form>
         </SectionCard>
       </div>
+
+      {/* Mobile sticky action bar */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border/60 bg-background/90 backdrop-blur-xl px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div className="flex items-center justify-between gap-3">
+          <FareEstimate value={estimate} />
+          <button
+            form=""
+            onClick={reserve as unknown as () => void}
+            disabled={!canSubmit}
+            className="btn-primary-luxe flex-1"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saving ? t("book.saving") : t("book.submit")}
+          </button>
+        </div>
+      </div>
     </main>
+  );
+}
+
+function FareEstimate({ value }: { value: number }) {
+  const { t } = useI18n();
+  return (
+    <div className="leading-tight">
+      <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+        {t("book.estimate") !== "book.estimate" ? t("book.estimate") : "Estimated fare"}
+      </div>
+      <div className="font-display text-2xl text-gradient-gold tabular-nums">${value}</div>
+    </div>
+  );
+}
+
+function PassengerStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const clamp = (n: number) => Math.min(7, Math.max(1, n));
+  return (
+    <div className="flex items-center justify-between rounded-lg bg-input border border-border/60 px-2 h-[46px]">
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value - 1))}
+        disabled={value <= 1}
+        aria-label="Decrease"
+        className="h-10 w-10 grid place-items-center rounded-md hover:bg-accent disabled:opacity-40"
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+      <div className="font-display text-lg tabular-nums">{value}</div>
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value + 1))}
+        disabled={value >= 7}
+        aria-label="Increase"
+        className="h-10 w-10 grid place-items-center rounded-md hover:bg-accent disabled:opacity-40"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
