@@ -272,6 +272,9 @@ function Admin() {
           <VehiclesPanel vehicles={filteredVehicles} onRefresh={refresh} />
         )}
 
+        {/* ============ REFERRALS ============ */}
+        {tab === "referrals" && <ReferralsPanel />}
+
         {/* ============ DISCOUNTS (existing) ============ */}
         {tab === "discounts" && !busy && (
           <div>
