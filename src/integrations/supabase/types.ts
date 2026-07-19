@@ -228,6 +228,56 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_documents: {
+        Row: {
+          created_at: string
+          document_number: string | null
+          driver_id: string
+          expires_at: string | null
+          file_url: string | null
+          id: string
+          issued_at: string | null
+          kind: Database["public"]["Enums"]["driver_document_kind"]
+          notes: string | null
+          status: Database["public"]["Enums"]["driver_document_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_number?: string | null
+          driver_id: string
+          expires_at?: string | null
+          file_url?: string | null
+          id?: string
+          issued_at?: string | null
+          kind: Database["public"]["Enums"]["driver_document_kind"]
+          notes?: string | null
+          status?: Database["public"]["Enums"]["driver_document_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_number?: string | null
+          driver_id?: string
+          expires_at?: string | null
+          file_url?: string | null
+          id?: string
+          issued_at?: string | null
+          kind?: Database["public"]["Enums"]["driver_document_kind"]
+          notes?: string | null
+          status?: Database["public"]["Enums"]["driver_document_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_documents_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_profiles: {
         Row: {
           assigned_vehicle_id: string | null
@@ -286,6 +336,51 @@ export type Database = {
             columns: ["assigned_vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_trip_events: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          driver_id: string
+          event: Database["public"]["Enums"]["driver_trip_event_kind"]
+          id: string
+          payload: Json
+          reason: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          driver_id: string
+          event: Database["public"]["Enums"]["driver_trip_event_kind"]
+          id?: string
+          payload?: Json
+          reason?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          driver_id?: string
+          event?: Database["public"]["Enums"]["driver_trip_event_kind"]
+          id?: string
+          payload?: Json
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_trip_events_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "booking_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -854,6 +949,24 @@ export type Database = {
         | "on_trip"
         | "offline"
         | "vacation"
+      driver_document_kind:
+        | "license"
+        | "insurance"
+        | "company_id"
+        | "medical"
+        | "other"
+      driver_document_status: "valid" | "expiring" | "expired"
+      driver_trip_event_kind:
+        | "accepted"
+        | "rejected"
+        | "arrived"
+        | "waiting"
+        | "started"
+        | "completed"
+        | "no_show"
+        | "incident"
+        | "dispatch_contacted"
+        | "passenger_contacted"
       employment_status: "active" | "inactive" | "vacation"
       referral_source: "nfc" | "qr" | "link"
       referral_status:
@@ -1018,6 +1131,26 @@ export const Constants = {
         "on_trip",
         "offline",
         "vacation",
+      ],
+      driver_document_kind: [
+        "license",
+        "insurance",
+        "company_id",
+        "medical",
+        "other",
+      ],
+      driver_document_status: ["valid", "expiring", "expired"],
+      driver_trip_event_kind: [
+        "accepted",
+        "rejected",
+        "arrived",
+        "waiting",
+        "started",
+        "completed",
+        "no_show",
+        "incident",
+        "dispatch_contacted",
+        "passenger_contacted",
       ],
       employment_status: ["active", "inactive", "vacation"],
       referral_source: ["nfc", "qr", "link"],
