@@ -33,9 +33,9 @@ function Landing() {
   ];
 
   const fleet = [
-    { name: "Cadillac Escalade", tag: "Flagship Executive SUV", pax: "1–6" },
-    { name: "Chevrolet Suburban", tag: "Group & Executive Travel", pax: "1–7" },
-    { name: "GMC Denali", tag: "Premium Business Class", pax: "1–6" },
+    { name: "Cadillac Escalade", tag: t("fleet.escalade.tag"), pax: "1–6" },
+    { name: "Chevrolet Suburban", tag: t("fleet.suburban.tag"), pax: "1–7" },
+    { name: "GMC Denali", tag: t("fleet.denali.tag"), pax: "1–6" },
   ];
 
   return (
@@ -107,8 +107,8 @@ function Landing() {
             className="mt-10 max-w-3xl font-display text-4xl md:text-6xl lg:text-7xl leading-[1.05] animate-fade-up"
             style={{ animationDelay: "0.8s" }}
           >
-            <span className="text-foreground">Executive travel, </span>
-            <span className="text-gradient-gold italic">refined.</span>
+            <span className="text-foreground">{t("landing.hero.title1")} </span>
+            <span className="text-gradient-gold italic">{t("landing.hero.title2")}</span>
           </h1>
           <p
             className="mt-6 max-w-xl text-sm md:text-base text-muted-foreground animate-fade-up"
@@ -157,9 +157,9 @@ function Landing() {
       <section className="relative py-24 px-6 md:px-12 border-t border-border/40">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-14">
-            <div className="text-xs tracking-[0.4em] text-gold uppercase mb-3">The Fleet</div>
-            <h2 className="font-display text-4xl md:text-5xl">Three signature vehicles.</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Every ride is fully insured, tracked in real time, and helmed by a vetted chauffeur.</p>
+            <div className="text-xs tracking-[0.4em] text-gold uppercase mb-3">{t("landing.fleet.eyebrow")}</div>
+            <h2 className="font-display text-4xl md:text-5xl">{t("landing.fleet.title")}</h2>
+            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">{t("landing.fleet.body")}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {fleet.map((v) => (
@@ -168,12 +168,12 @@ function Landing() {
                 <div className="text-xs tracking-widest text-gold uppercase">{v.tag}</div>
                 <div className="mt-3 font-display text-2xl">{v.name}</div>
                 <div className="mt-6 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Passengers</span>
+                  <span className="text-muted-foreground">{t("landing.fleet.passengers")}</span>
                   <span className="font-medium">{v.pax}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Class</span>
-                  <span className="font-medium">Executive</span>
+                  <span className="text-muted-foreground">{t("landing.fleet.class")}</span>
+                  <span className="font-medium">{t("landing.fleet.class.value")}</span>
                 </div>
               </div>
             ))}
@@ -187,29 +187,29 @@ function Landing() {
           <div className="flex items-start gap-3">
             <Phone className="h-5 w-5 text-gold mt-1" />
             <div>
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">24/7 Concierge</div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">{t("contact.247")}</div>
               <div className="mt-1 font-medium">+1 (888) 555-HARB</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Mail className="h-5 w-5 text-gold mt-1" />
             <div>
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">Reservations</div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">{t("contact.reservations")}</div>
               <div className="mt-1 font-medium">concierge@harborline.us</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <MapPin className="h-5 w-5 text-gold mt-1" />
             <div>
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">Service Region</div>
-              <div className="mt-1 font-medium">United States — Nationwide</div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">{t("contact.region")}</div>
+              <div className="mt-1 font-medium">{t("contact.region.value")}</div>
             </div>
           </div>
         </div>
       </section>
 
       <footer className="border-t border-border/40 py-10 px-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} HarborLine Executive Services. All rights reserved.
+        © {new Date().getFullYear()} HarborLine Executive Services. {t("footer.rights")}
       </footer>
     </main>
   );
