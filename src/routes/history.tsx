@@ -143,6 +143,10 @@ function History() {
             })}
           </ul>
         )}
+
+        <div className="mt-10">
+          <MyReferralCard />
+        </div>
       </section>
       {rateFor && user && (
         <RatingModal
