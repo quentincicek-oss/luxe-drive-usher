@@ -1,27 +1,19 @@
-export function HarborLogo({ className = "h-14 w-14", withGlow = true }: { className?: string; withGlow?: boolean }) {
+export function HarborLogo({ className = "h-14 w-14" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 120 120" className={className} aria-label="HarborLine">
-      <defs>
-        <linearGradient id="hl-gold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#F0D97B" />
-          <stop offset="50%" stopColor="#D4AF37" />
-          <stop offset="100%" stopColor="#9C7A24" />
-        </linearGradient>
-        {withGlow && (
-          <filter id="hl-glow"><feGaussianBlur stdDeviation="1.2" /></filter>
-        )}
-      </defs>
-      {/* Arch */}
-      <path d="M20 78 Q60 8 100 78" stroke="url(#hl-gold)" strokeWidth="4" fill="none" strokeLinecap="round" />
-      {/* H */}
-      <g fill="url(#hl-gold)">
-        <rect x="38" y="42" width="5" height="42" rx="1.2" />
-        <rect x="77" y="42" width="5" height="42" rx="1.2" />
-        <rect x="38" y="60" width="44" height="5" rx="1.2" />
+    <svg
+      viewBox="0 0 120 120"
+      className={className}
+      aria-label="HarborLine"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Bold custom H lettermark — slight forward lean, sharp angular terminals, flat gold */}
+      <g transform="rotate(5 60 60)">
+        <path
+          fill="#D4AF37"
+          d="M20,16 L52,16 L52,104 L20,104 Z M68,16 L100,16 L100,104 L68,104 Z M52,44 L68,44 L68,72 L52,72 Z"
+        />
       </g>
-      {/* Wave */}
-      <path d="M18 96 Q35 88 52 96 T86 96 T102 92" stroke="url(#hl-gold)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <path d="M22 104 Q39 97 56 104 T90 104" stroke="url(#hl-gold)" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.6" />
     </svg>
   );
 }
