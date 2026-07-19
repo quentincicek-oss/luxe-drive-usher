@@ -135,14 +135,6 @@ function Landing() {
               </Link>
             )}
           </div>
-          {/* Fleet labels */}
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[10px] md:text-xs tracking-[0.35em] text-muted-foreground/80 animate-fade-in" style={{ animationDelay: "2s" }}>
-            <span>CADILLAC ESCALADE</span>
-            <span className="text-gold">◆</span>
-            <span>CHEVROLET SUBURBAN</span>
-            <span className="text-gold">◆</span>
-            <span>GMC DENALI</span>
-          </div>
         </div>
 
         {/* Tagline */}
