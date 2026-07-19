@@ -7,13 +7,16 @@ import { LanguageMenu } from "@/components/LanguageMenu";
 import { useI18n } from "@/lib/i18n";
 import { RatingModal } from "@/components/RatingModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
-import { Star, Receipt } from "lucide-react";
+import { BookingCheckoutModal } from "@/components/BookingCheckoutModal";
+import { Star, Receipt, CreditCard, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Booking {
   id: string; pickup: string; dropoff: string; pickup_time: string;
   ride_type: string; status: string; suggested_price: number | null; price: number | null;
-  passengers: number; created_at: string;
+  passengers: number; created_at: string; paid: boolean | null;
 }
+
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -34,21 +37,40 @@ function History() {
   const [reviewed, setReviewed] = useState<Set<string>>(new Set());
   const [rateFor, setRateFor] = useState<string | null>(null);
   const [receiptFor, setReceiptFor] = useState<string | null>(null);
+  const [payFor, setPayFor] = useState<string | null>(null);
 
   useEffect(() => { document.title = `${t("history.title")} — ${t("brand.name")}`; }, [t]);
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+
+  async function refresh() {
+    const [{ data: bs }, { data: rvs }] = await Promise.all([
+      supabase.from("bookings").select("*").order("pickup_time", { ascending: false }).limit(100),
+      supabase.from("ride_reviews").select("booking_id"),
+    ]);
+    setRows((bs ?? []) as Booking[]);
+    setReviewed(new Set(((rvs ?? []) as { booking_id: string }[]).map((r) => r.booking_id)));
+    setBusy(false);
+  }
+
+  useEffect(() => { if (user) refresh(); }, [user]);
+
+  // Poll briefly after Stripe return to catch the webhook update.
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const [{ data: bs }, { data: rvs }] = await Promise.all([
-        supabase.from("bookings").select("*").order("pickup_time", { ascending: false }).limit(100),
-        supabase.from("ride_reviews").select("booking_id"),
-      ]);
-      setRows((bs ?? []) as Booking[]);
-      setReviewed(new Set(((rvs ?? []) as { booking_id: string }[]).map((r) => r.booking_id)));
-      setBusy(false);
-    })();
-  }, [user]);
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") !== "1") return;
+    toast.success("Payment received — updating your booking…");
+    let n = 0;
+    const t = setInterval(async () => {
+      n += 1;
+      await refresh();
+      if (n >= 6) clearInterval(t);
+    }, 1500);
+    // Clean the URL
+    window.history.replaceState({}, "", "/history");
+    return () => clearInterval(t);
+  }, []);
+
 
   if (loading || !user) return <div className="min-h-screen bg-obsidian" />;
 
@@ -92,6 +114,19 @@ function History() {
                       <div className="mt-1 font-display text-lg text-gradient-gold">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</div>
                     </div>
                     <div className="flex flex-col gap-1.5">
+                      {!b.paid && (
+                        <button
+                          onClick={() => setPayFor(b.id)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-gold-gradient px-3 py-1 text-[11px] tracking-wide text-primary-foreground shadow-gold"
+                        >
+                          <CreditCard className="h-3 w-3" /> Pay now
+                        </button>
+                      )}
+                      {b.paid && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/5 px-3 py-1 text-[11px] tracking-wide text-gold">
+                          <CheckCircle2 className="h-3 w-3" /> Paid
+                        </span>
+                      )}
                       {done && !alreadyReviewed && (
                         <button
                           onClick={() => setRateFor(b.id)}
@@ -100,7 +135,7 @@ function History() {
                           <Star className="h-3 w-3" /> {t("review.submit")}
                         </button>
                       )}
-                      {done && (
+                      {b.paid && (
                         <button
                           onClick={() => setReceiptFor(b.id)}
                           className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-[11px] tracking-wide hover:border-gold hover:text-gold"
@@ -109,6 +144,7 @@ function History() {
                         </button>
                       )}
                     </div>
+
                   </div>
                 </div>
               );
@@ -130,7 +166,11 @@ function History() {
       {receiptFor && (
         <ReceiptModal bookingId={receiptFor} onClose={() => setReceiptFor(null)} />
       )}
+      {payFor && (
+        <BookingCheckoutModal bookingId={payFor} onClose={() => setPayFor(null)} />
+      )}
     </main>
+
   );
 }
 
