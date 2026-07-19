@@ -1,14 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { toast } from "sonner";
-import { Send, LogOut, History, User as UserIcon, ShieldCheck } from "lucide-react";
+import { LogOut, History, ShieldCheck } from "lucide-react";
 import { VehicleShowroom } from "@/components/VehicleShowroom";
-import { SiriOrb } from "@/components/SiriOrb";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
