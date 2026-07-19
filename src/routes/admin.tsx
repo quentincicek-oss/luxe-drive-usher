@@ -1,11 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { HarborLogo } from "@/components/HarborLogo";
-import { LanguageMenu } from "@/components/LanguageMenu";
 import { useI18n } from "@/lib/i18n";
+import { AppHeader } from "@/components/AppHeader";
 import { toast } from "sonner";
+
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
@@ -69,22 +69,9 @@ function Admin() {
   if (loading || !user || role !== "admin") return <div className="min-h-screen bg-obsidian" />;
 
   return (
-    <main className="min-h-screen bg-obsidian">
-      <header className="border-b border-border/40 backdrop-blur bg-background/50 sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <HarborLogo className="h-9 w-9" />
-            <div>
-              <div className="font-display text-lg text-gradient-gold leading-none">HarborLine</div>
-              <div className="text-[8px] tracking-[0.3em] text-muted-foreground mt-1 uppercase">{t("admin.console")}</div>
-            </div>
-          </Link>
-          <div className="flex items-center gap-3">
-            <LanguageMenu compact />
-            <Link to="/book" className="text-sm text-muted-foreground hover:text-foreground">← {t("admin.passengerView")}</Link>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-dvh bg-obsidian">
+      <AppHeader subtitle={t("admin.console")} />
+
 
       <section className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex gap-1 border-b border-border/60 mb-6">

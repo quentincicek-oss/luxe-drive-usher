@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SiriOrb } from "@/components/SiriOrb";
 import { Send, X } from "lucide-react";
 import { toast } from "sonner";
+
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -19,6 +21,8 @@ const AGENT_ROLES: Record<string, string> = {
 export function ConciergeWidget() {
   const { user, loading } = useAuth();
   const { t } = useI18n();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const [open, setOpen] = useState(false);
   const [agent, setAgent] = useState("Blake");
   const [chat, setChat] = useState<ChatMsg[]>([]);
@@ -36,6 +40,8 @@ export function ConciergeWidget() {
   }, [chat, open]);
 
   if (loading || !user) return null;
+  if (pathname === "/" || pathname.startsWith("/auth")) return null;
+
 
   async function send() {
     const text = draft.trim();
