@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { AssignmentTimeline, type DispatchStatus } from "@/components/ops/AssignmentTimeline";
 import { emit } from "@/lib/notifications";
 import { toast } from "sonner";
+import { advanceAssignment } from "@/lib/dispatch.functions";
+import { adminAssignDriver, adminRemoveAssignment } from "@/lib/admin.functions";
 
 interface Driver { id: string; full_name: string; employee_id: string; availability_status: string; assigned_vehicle_id: string | null; }
 interface Vehicle { id: string; name: string; license_plate: string; }
 interface Assignment { id: string; booking_id: string; driver_id: string | null; vehicle_id: string | null; dispatch_status: DispatchStatus; }
-
-const db = supabase as ReturnType<typeof supabase.from> extends never ? typeof supabase : typeof supabase;
 
 export function AssignmentPanel({ bookingId }: { bookingId: string }) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [current, setCurrent] = useState<Assignment | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const assignFn = useServerFn(adminAssignDriver);
+  const removeFn = useServerFn(adminRemoveAssignment);
+  const advanceFn = useServerFn(advanceAssignment);
 
   async function load() {
     const [d, v, a] = await Promise.all([
@@ -29,49 +34,39 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
   }
   useEffect(() => { load(); }, [bookingId]);
 
-  async function audit(action: string, prev: unknown, next: unknown, reason?: string) {
-    try { await (supabase as any).rpc("admin_audit_log", { _action: action, _entity_type: "booking_assignment", _entity_id: bookingId, _previous: prev, _next: next, _reason: reason ?? null }); } catch { /* noop */ }
-  }
-
   async function assign(driver_id: string, vehicle_id: string | null) {
     setBusy(true);
-    const { data, error } = await (supabase as any).from("booking_assignments")
-      .insert({ booking_id: bookingId, driver_id, vehicle_id, dispatch_status: "assigned", is_current: true, assigned_by: (await supabase.auth.getUser()).data.user?.id })
-      .select().single();
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setCurrent(data as Assignment);
-    const drv = drivers.find(x => x.id === driver_id);
-    emit({ type: "driver.assigned", bookingId, driverName: drv?.full_name ?? "Driver" });
-    audit(current ? "assignment.reassigned" : "assignment.created", current, { driver_id, vehicle_id });
+    try {
+      const row = (await assignFn({ data: { bookingId, driverId: driver_id, vehicleId: vehicle_id } })) as unknown as Assignment;
+      setCurrent(row);
+      const drv = drivers.find(x => x.id === driver_id);
+      emit({ type: "driver.assigned", bookingId, driverName: drv?.full_name ?? "Driver" });
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
   }
 
   async function advance(next: DispatchStatus) {
     if (!current) return;
-    const prev = current.dispatch_status;
     setBusy(true);
-    const { error } = await (supabase as any).from("booking_assignments")
-      .update({ dispatch_status: next }).eq("id", current.id);
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setCurrent({ ...current, dispatch_status: next });
-    if (next === "accepted") emit({ type: "driver.accepted", bookingId, driverName: drivers.find(x=>x.id===current.driver_id)?.full_name ?? "Driver" });
-    if (next === "arrived") emit({ type: "driver.arrived", bookingId });
-    if (next === "in_progress") emit({ type: "trip.started", bookingId });
-    if (next === "completed") emit({ type: "trip.completed", bookingId });
-    audit("assignment.advanced", { dispatch_status: prev }, { dispatch_status: next });
+    try {
+      await advanceFn({ data: { assignmentId: current.id, next } });
+      setCurrent({ ...current, dispatch_status: next });
+      if (next === "accepted") emit({ type: "driver.accepted", bookingId, driverName: drivers.find(x=>x.id===current.driver_id)?.full_name ?? "Driver" });
+      if (next === "arrived") emit({ type: "driver.arrived", bookingId });
+      if (next === "in_progress") emit({ type: "trip.started", bookingId });
+      if (next === "completed") emit({ type: "trip.completed", bookingId });
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
   }
 
   async function remove() {
     if (!current) return;
-    const prev = current;
     setBusy(true);
-    const { error } = await (supabase as any).from("booking_assignments")
-      .update({ is_current: false, dispatch_status: "cancelled" }).eq("id", current.id);
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setCurrent(null);
-    audit("assignment.removed", prev, null);
+    try {
+      await removeFn({ data: { assignmentId: current.id } });
+      setCurrent(null);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
   }
 
   if (current) {

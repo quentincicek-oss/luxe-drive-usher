@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -14,6 +15,12 @@ import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
 import { AuditTable } from "@/components/dispatch/AuditTable";
 import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
 import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
+import {
+  adminSetBookingStatus,
+  adminUpsertDriver, adminDeleteDriver,
+  adminUpsertVehicle, adminDeleteVehicle,
+  adminUpsertDiscount, adminDeleteDiscount,
+} from "@/lib/admin.functions";
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
@@ -86,20 +93,28 @@ function Admin() {
   }
   useEffect(() => { if (role === "admin") refresh(); }, [role]);
 
+  const setBookingStatus = useServerFn(adminSetBookingStatus);
+  const upsertDiscountFn = useServerFn(adminUpsertDiscount);
+  const deleteDiscountFn = useServerFn(adminDeleteDiscount);
+
   async function updateStatus(id: string, status: string) {
-    const { error } = await supabase.from("bookings").update({ status: status as Booking["status"] } as never).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("admin.statusUpdated")); refresh();
+    try {
+      await setBookingStatus({ data: { bookingId: id, status } });
+      toast.success(t("admin.statusUpdated"));
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function addDiscount() {
-    const { error } = await supabase.from("discount_rules").insert({ min_miles: 0, max_miles: 25, flat_off: 10, percent_off: 5 });
-    if (error) { toast.error(error.message); return; }
-    refresh();
+    try {
+      await upsertDiscountFn({ data: { id: null, payload: { min_miles: 0, max_miles: 25, flat_off: 10, percent_off: 5, active: true } } });
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function deleteDiscount(id: string) {
-    const { error } = await supabase.from("discount_rules").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    refresh();
+    try {
+      await deleteDiscountFn({ data: { id } });
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   const filteredBookings = useMemo(() => {
@@ -344,34 +359,35 @@ function Admin() {
 // ============ DRIVERS PANEL ============
 function DriversPanel({ drivers, vehicles, onRefresh }: { drivers: Driver[]; vehicles: Vehicle[]; onRefresh: () => void }) {
   const [editing, setEditing] = useState<Partial<Driver> | null>(null);
+  const upsertDriver = useServerFn(adminUpsertDriver);
+  const deleteDriver = useServerFn(adminDeleteDriver);
 
   async function save() {
     if (!editing?.full_name || !editing.employee_id) { toast.error("Name and Employee ID are required"); return; }
-    const payload: any = {
-      full_name: editing.full_name,
-      employee_id: editing.employee_id,
-      phone: editing.phone ?? null,
-      email: editing.email ?? null,
-      photo_url: editing.photo_url ?? null,
-      license_number: editing.license_number ?? null,
-      license_expires_at: editing.license_expires_at || null,
-      employment_status: editing.employment_status ?? "active",
-      availability_status: editing.availability_status ?? "offline",
-      assigned_vehicle_id: editing.assigned_vehicle_id || null,
-      notes: editing.notes ?? null,
-    };
-    const q = editing.id
-      ? (supabase as any).from("driver_profiles").update(payload).eq("id", editing.id)
-      : (supabase as any).from("driver_profiles").insert(payload);
-    const { error } = await q;
-    if (error) { toast.error(error.message); return; }
-    toast.success("Driver saved"); setEditing(null); onRefresh();
+    try {
+      await upsertDriver({ data: {
+        id: editing.id ?? null,
+        payload: {
+          full_name: editing.full_name,
+          employee_id: editing.employee_id,
+          phone: editing.phone ?? null,
+          email: editing.email ?? null,
+          photo_url: editing.photo_url ?? null,
+          license_number: editing.license_number ?? null,
+          license_expires_at: editing.license_expires_at || null,
+          employment_status: (editing.employment_status ?? "active") as "active" | "inactive" | "vacation",
+          availability_status: (editing.availability_status ?? "offline") as "available" | "assigned" | "on_trip" | "offline" | "vacation",
+          assigned_vehicle_id: editing.assigned_vehicle_id || null,
+          notes: editing.notes ?? null,
+        },
+      } });
+      toast.success("Driver saved"); setEditing(null); onRefresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function remove(id: string) {
     if (!confirm("Delete driver?")) return;
-    const { error } = await (supabase as any).from("driver_profiles").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    onRefresh();
+    try { await deleteDriver({ data: { id } }); onRefresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   return (
@@ -461,31 +477,32 @@ function DriversPanel({ drivers, vehicles, onRefresh }: { drivers: Driver[]; veh
 // ============ VEHICLES PANEL ============
 function VehiclesPanel({ vehicles, onRefresh }: { vehicles: Vehicle[]; onRefresh: () => void }) {
   const [editing, setEditing] = useState<Partial<Vehicle> | null>(null);
+  const upsertVehicle = useServerFn(adminUpsertVehicle);
+  const deleteVehicle = useServerFn(adminDeleteVehicle);
 
   async function save() {
     if (!editing?.name || !editing.license_plate) { toast.error("Name and plate are required"); return; }
-    const payload: any = {
-      name: editing.name,
-      category: editing.category ?? "other",
-      license_plate: editing.license_plate,
-      vin: editing.vin ?? null,
-      model_year: editing.model_year ?? null,
-      seats: editing.seats ?? 6,
-      status: editing.status ?? "active",
-      insurance_expires_at: editing.insurance_expires_at || null,
-    };
-    const q = editing.id
-      ? (supabase as any).from("vehicles").update(payload).eq("id", editing.id)
-      : (supabase as any).from("vehicles").insert(payload);
-    const { error } = await q;
-    if (error) { toast.error(error.message); return; }
-    toast.success("Vehicle saved"); setEditing(null); onRefresh();
+    try {
+      await upsertVehicle({ data: {
+        id: editing.id ?? null,
+        payload: {
+          name: editing.name,
+          category: (editing.category ?? "other") as "escalade" | "suburban" | "denali" | "other",
+          license_plate: editing.license_plate,
+          vin: editing.vin ?? null,
+          model_year: editing.model_year ?? null,
+          seats: editing.seats ?? 6,
+          status: (editing.status ?? "active") as "active" | "maintenance",
+          insurance_expires_at: editing.insurance_expires_at || null,
+        },
+      } });
+      toast.success("Vehicle saved"); setEditing(null); onRefresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function remove(id: string) {
     if (!confirm("Delete vehicle?")) return;
-    const { error } = await (supabase as any).from("vehicles").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    onRefresh();
+    try { await deleteVehicle({ data: { id } }); onRefresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   return (
