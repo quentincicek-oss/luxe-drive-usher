@@ -417,3 +417,51 @@ export const convertUserRole = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, result };
   });
+
+/** Update an existing user's profile fields (and, for drivers, driver fields). */
+const UpdateUserInput = z.object({
+  userId: z.string().uuid(),
+  profile: z.object({
+    name: NameSchema.optional(),
+    surname: NameSchema.optional(),
+    phone: z.string().trim().max(40).optional(),
+    preferredLanguage: LangSchema,
+  }).optional(),
+  driver: z
+    .object({
+      fullName: NameSchema.optional(),
+      employeeId: EmployeeIdSchema,
+      phone: z.string().trim().max(40).optional(),
+      employmentStatus: z.enum(["active", "inactive", "vacation"]).optional(),
+    })
+    .optional(),
+});
+
+export const adminUpdateUserProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.input<typeof UpdateUserInput>) => UpdateUserInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const ctx = context as any;
+    await assertAdmin(ctx);
+    const { data: result, error } = await ctx.supabase.rpc("admin_update_user_profile", {
+      _user_id: data.userId,
+      _profile: data.profile
+        ? {
+            name: data.profile.name ?? null,
+            surname: data.profile.surname ?? null,
+            phone: data.profile.phone ?? null,
+            preferred_language: data.profile.preferredLanguage ?? null,
+          }
+        : null,
+      _driver: data.driver
+        ? {
+            full_name: data.driver.fullName ?? null,
+            employee_id: data.driver.employeeId ?? null,
+            phone: data.driver.phone ?? null,
+            employment_status: data.driver.employmentStatus ?? null,
+          }
+        : null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, result };
+  });
