@@ -426,7 +426,7 @@ const UpdateUserInput = z.object({
     surname: NameSchema.optional(),
     phone: z.string().trim().max(40).optional(),
     preferredLanguage: LangSchema,
-  }),
+  }).optional(),
   driver: z
     .object({
       fullName: NameSchema.optional(),
