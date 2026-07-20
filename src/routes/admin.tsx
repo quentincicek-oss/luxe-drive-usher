@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { HarborLogo } from "@/components/HarborLogo";
 import { LogOut, Loader2 } from "lucide-react";
 
@@ -17,12 +18,17 @@ export const Route = createFileRoute("/admin")({
 
 // Route-based independent admin application.
 // Server authorization is enforced by every admin RPC (has_role check).
-// This client-side gate is a UX guard — non-admins are rejected on any privileged call.
+// This client-side gate is defence-in-depth. Additionally enforces TOTP MFA
+// (AAL2) for admin operational routes; MFA state comes from Supabase Auth,
+// never from localStorage or route params.
 function AdminLayout() {
   const { user, role, loading, roleLoading, signOut } = useAuth();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isLogin = pathname === "/admin/login";
+  const isMfa = pathname === "/admin/mfa";
+  const [aalReady, setAalReady] = useState(false);
+  const [aalOk, setAalOk] = useState(false);
 
   useEffect(() => {
     if (loading || roleLoading) return;
@@ -31,9 +37,26 @@ function AdminLayout() {
     if (role && role !== "admin") { nav({ to: "/admin/login", replace: true }); }
   }, [user, role, loading, roleLoading, isLogin, nav]);
 
-  if (isLogin) return <Outlet />;
+  // Authoritative MFA/AAL check for admin operational routes.
+  useEffect(() => {
+    if (isLogin || isMfa) { setAalReady(true); setAalOk(true); return; }
+    if (loading || roleLoading || !user || role !== "admin") return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (cancelled) return;
+      if (error) { setAalReady(true); setAalOk(false); return; }
+      const ok = data?.currentLevel === "aal2";
+      setAalReady(true);
+      setAalOk(ok);
+      if (!ok) nav({ to: "/admin/mfa", replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [user, role, loading, roleLoading, isLogin, isMfa, pathname, nav]);
 
-  if (loading || roleLoading || !user || role !== "admin") {
+  if (isLogin || isMfa) return <Outlet />;
+
+  if (loading || roleLoading || !user || role !== "admin" || !aalReady || !aalOk) {
     return (
       <div className="grid min-h-dvh place-items-center bg-obsidian text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin text-gold" />
