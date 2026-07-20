@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { VehicleShowroom } from "@/components/VehicleShowroom";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
+import { createBookingServer } from "@/lib/dispatch.functions";
 import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
@@ -39,19 +40,22 @@ function Book() {
   const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
   const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
 
+  const createBookingFn = useServerFn(createBookingServer);
+
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("bookings").insert({
-        passenger_id: user.id,
-        pickup: form.pickup, dropoff: form.dropoff,
-        pickup_time: new Date(form.pickup_time).toISOString(),
-        passengers: form.passengers, ride_type: form.ride_type,
-        suggested_price: estimate,
-      });
-      if (error) throw error;
+      // C4: pricing is derived server-side inside create_booking(); the
+      // browser no longer controls suggested_price.
+      await createBookingFn({ data: {
+        pickup: form.pickup,
+        dropoff: form.dropoff,
+        pickupTime: new Date(form.pickup_time).toISOString(),
+        passengers: form.passengers,
+        rideType: form.ride_type,
+      }});
       toast.success(t("book.success"));
       nav({ to: "/history" });
     } catch (e: unknown) {

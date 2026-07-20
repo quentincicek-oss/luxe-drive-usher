@@ -1,22 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyBookingPin } from "@/lib/dispatch.functions";
 import { KeyRound, Check } from "lucide-react";
 
 export function BookingPinCard({ bookingId }: { bookingId: string }) {
+  const fetchPin = useServerFn(getMyBookingPin);
   const q = useQuery({
     queryKey: ["booking-pin", bookingId],
     queryFn: async () => {
-      const [pin, ver] = await Promise.all([
-        (supabase as any).from("booking_pins").select("pin_plain").eq("booking_id", bookingId).maybeSingle(),
-        (supabase as any).from("passenger_verifications").select("id, verified_at, method").eq("booking_id", bookingId).limit(1).maybeSingle(),
+      const [pinRes, ver] = await Promise.all([
+        fetchPin({ data: { bookingId } }).catch(() => ({ pin: null })),
+        supabase.from("passenger_verifications").select("id, verified_at, method").eq("booking_id", bookingId).limit(1).maybeSingle(),
       ]);
-      return { pin: pin.data?.pin_plain as string | undefined, verified: ver.data };
+      return { pin: pinRes.pin, verified: ver.data };
     },
+    staleTime: 30_000,
   });
 
-  if (!q.data?.pin) return null;
-
-  if (q.data.verified) {
+  if (q.data?.verified) {
     return (
       <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
         <Check className="h-4 w-4 text-emerald-400" />
@@ -24,6 +26,8 @@ export function BookingPinCard({ bookingId }: { bookingId: string }) {
       </div>
     );
   }
+
+  if (!q.data?.pin) return null;
 
   return (
     <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/10 to-transparent p-4">
