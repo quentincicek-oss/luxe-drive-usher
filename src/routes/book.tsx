@@ -223,7 +223,7 @@ function Book() {
             {/* Desktop submit */}
             <div className="hidden sm:flex items-center justify-between gap-4 pt-2">
               <FareEstimate value={estimate} />
-              <button disabled={!canSubmit} className="btn-primary-luxe min-w-56">
+              <button disabled={saving} className="btn-primary-luxe min-w-56">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {saving ? t("book.saving") : t("book.submit")}
               </button>
