@@ -210,6 +210,10 @@ function Admin() {
         {/* ============ AUDIT ============ */}
         {tab === "audit" && <AuditTable />}
 
+        {/* ============ USERS ============ */}
+        {tab === "users" && <UsersPanel />}
+
+
         {/* ============ DISPATCH ============ */}
         {tab === "dispatch" && !busy && (
           <div className="space-y-6">
