@@ -178,6 +178,21 @@ function Admin() {
 
         {busy && <div className="text-muted-foreground text-sm">{t("history.loading")}</div>}
 
+        {/* ============ OVERVIEW ============ */}
+        {tab === "overview" && <DispatchOverview />}
+
+        {/* ============ SCHEDULE ============ */}
+        {tab === "schedule" && <ScheduleGrid />}
+
+        {/* ============ FLEET HEALTH ============ */}
+        {tab === "fleet" && <FleetExpirations />}
+
+        {/* ============ INCIDENTS ============ */}
+        {tab === "incidents" && <IncidentFeed />}
+
+        {/* ============ AUDIT ============ */}
+        {tab === "audit" && <AuditTable />}
+
         {/* ============ DISPATCH ============ */}
         {tab === "dispatch" && !busy && (
           <div className="space-y-6">
