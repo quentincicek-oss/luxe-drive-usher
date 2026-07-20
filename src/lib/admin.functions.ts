@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 // All admin RPCs authorize inside the SECURITY DEFINER body (has_role) and
 // write their audit row atomically with the mutation. The frontend must NOT
@@ -8,14 +9,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type RpcClient = {
   rpc: (fn: string, args: Record<string, unknown>) =>
-    Promise<{ data: unknown; error: { message: string } | null }>;
+    Promise<{ data: Json | null; error: { message: string } | null }>;
 };
 const asRpc = (s: unknown) => s as RpcClient;
 
-async function callRpc<T>(supabase: unknown, fn: string, args: Record<string, unknown>): Promise<T> {
+async function callRpc(supabase: unknown, fn: string, args: Record<string, unknown>): Promise<Json | null> {
   const { data, error } = await asRpc(supabase).rpc(fn, args);
   if (error) throw new Error(error.message);
-  return data as T;
+  return data;
 }
 
 // ============ Bookings ============
