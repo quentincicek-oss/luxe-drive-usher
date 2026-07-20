@@ -55,53 +55,61 @@ export function ReferralsPanel() {
   }
   useEffect(() => { refresh(); }, []);
 
+  const upsertCampaign = useServerFn(adminUpsertCampaign);
+  const toggleCampaignFn = useServerFn(adminToggleCampaign);
+  const deleteCampaignFn = useServerFn(adminDeleteCampaign);
+  const upsertTag = useServerFn(adminUpsertNfcTag);
+  const deleteTagFn = useServerFn(adminDeleteNfcTag);
+
   async function saveCampaign() {
     if (!editingCamp?.name) { toast.error("Name required"); return; }
-    const payload: any = {
-      name: editingCamp.name,
-      description: editingCamp.description ?? null,
-      reward_percent: editingCamp.reward_percent ?? 10,
-      reward_flat_amount: editingCamp.reward_flat_amount ?? null,
-      reward_validity_days: editingCamp.reward_validity_days ?? 90,
-      per_referrer_limit: editingCamp.per_referrer_limit ?? null,
-      starts_at: editingCamp.starts_at ?? new Date().toISOString(),
-      ends_at: editingCamp.ends_at || null,
-      active: editingCamp.active ?? true,
-    };
-    const q = editingCamp.id
-      ? (supabase as any).from("referral_campaigns").update(payload).eq("id", editingCamp.id)
-      : (supabase as any).from("referral_campaigns").insert(payload);
-    const { error } = await q;
-    if (error) { toast.error(error.message); return; }
-    toast.success("Campaign saved"); setEditingCamp(null); refresh();
+    try {
+      await upsertCampaign({ data: {
+        id: editingCamp.id ?? null,
+        payload: {
+          name: editingCamp.name,
+          description: editingCamp.description ?? null,
+          reward_percent: editingCamp.reward_percent ?? 10,
+          reward_flat_amount: editingCamp.reward_flat_amount ?? null,
+          reward_validity_days: editingCamp.reward_validity_days ?? 90,
+          per_referrer_limit: editingCamp.per_referrer_limit ?? null,
+          starts_at: editingCamp.starts_at ?? new Date().toISOString(),
+          ends_at: editingCamp.ends_at || null,
+          active: editingCamp.active ?? true,
+        },
+      } });
+      toast.success("Campaign saved"); setEditingCamp(null); refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function toggleCampaign(c: Campaign) {
-    const { error } = await (supabase as any).from("referral_campaigns").update({ active: !c.active }).eq("id", c.id);
-    if (error) return toast.error(error.message);
-    refresh();
+    try { await toggleCampaignFn({ data: { id: c.id } }); refresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
   async function deleteCampaign(id: string) {
     if (!confirm("Delete campaign?")) return;
-    const { error } = await (supabase as any).from("referral_campaigns").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    refresh();
+    try { await deleteCampaignFn({ data: { id } }); refresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   async function saveTag() {
     if (!editingTag?.tag_uid || !editingTag.code_id) { toast.error("Tag UID and code required"); return; }
-    const payload: any = { tag_uid: editingTag.tag_uid, code_id: editingTag.code_id, label: editingTag.label ?? null, active: editingTag.active ?? true };
-    const q = editingTag.id
-      ? (supabase as any).from("nfc_tags").update(payload).eq("id", editingTag.id)
-      : (supabase as any).from("nfc_tags").insert(payload);
-    const { error } = await q;
-    if (error) return toast.error(error.message);
-    toast.success("NFC tag saved"); setEditingTag(null); refresh();
+    try {
+      await upsertTag({ data: {
+        id: editingTag.id ?? null,
+        payload: {
+          tag_uid: editingTag.tag_uid,
+          code_id: editingTag.code_id,
+          label: editingTag.label ?? null,
+          active: editingTag.active ?? true,
+        },
+      } });
+      toast.success("NFC tag saved"); setEditingTag(null); refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function deleteTag(id: string) {
     if (!confirm("Delete NFC tag?")) return;
-    const { error } = await (supabase as any).from("nfc_tags").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    refresh();
+    try { await deleteTagFn({ data: { id } }); refresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   const codeOptions = useMemo(() =>
