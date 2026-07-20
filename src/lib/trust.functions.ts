@@ -212,11 +212,10 @@ export const reportIncident = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
-// ============ Admin actions (audit-wrapped) ============
-async function requireAdmin(supabase: any, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!data) throw new Error("forbidden");
-}
+// ============ Admin actions (delegate to atomic RPCs) ============
+// resolveIncident + reviewNoShow now call admin_resolve_incident /
+// admin_review_no_show, which authorize via has_role and write the audit
+// row inside the same transaction as the mutation. No separate audit call.
 
 export const resolveIncident = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -228,22 +227,12 @@ export const resolveIncident = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
-    await requireAdmin(supabase, userId);
-    const { data: prev } = await (supabase as any).from("incidents").select("*").eq("id", data.id).maybeSingle();
-    if (!prev) throw new Error("not found");
-    const patch: any = { status: data.status, admin_notes: data.notes ?? prev.admin_notes };
-    if (data.status === "resolved" || data.status === "dismissed") {
-      patch.resolved_by = userId;
-      patch.resolved_at = new Date().toISOString();
-    }
-    const { data: next, error } = await (supabase as any).from("incidents").update(patch).eq("id", data.id).select("*").single();
-    if (error) throw new Error(error.message);
-    await (supabase as any).rpc("admin_audit_log", {
-      _action: "incident.resolve", _entity_type: "incident", _entity_id: data.id,
-      _previous: prev, _next: next, _reason: data.notes ?? null,
+    const { supabase } = context as any;
+    const { data: next, error } = await (supabase as any).rpc("admin_resolve_incident", {
+      _id: data.id, _status: data.status, _notes: data.notes ?? null,
     });
-    return next;
+    if (error) throw new Error(error.message);
+    return next as Record<string, unknown>;
   });
 
 export const reviewNoShow = createServerFn({ method: "POST" })
@@ -256,20 +245,12 @@ export const reviewNoShow = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
-    await requireAdmin(supabase, userId);
-    const { data: prev } = await (supabase as any).from("no_show_reports").select("*").eq("id", data.id).maybeSingle();
-    if (!prev) throw new Error("not found");
-    const { data: next, error } = await (supabase as any).from("no_show_reports").update({
-      admin_status: data.status, admin_notes: data.notes ?? prev.admin_notes,
-      reviewed_by: userId, reviewed_at: new Date().toISOString(),
-    }).eq("id", data.id).select("*").single();
-    if (error) throw new Error(error.message);
-    await (supabase as any).rpc("admin_audit_log", {
-      _action: "no_show.review", _entity_type: "no_show_report", _entity_id: data.id,
-      _previous: prev, _next: next, _reason: data.notes ?? null,
+    const { supabase } = context as any;
+    const { data: next, error } = await (supabase as any).rpc("admin_review_no_show", {
+      _id: data.id, _status: data.status, _notes: data.notes ?? null,
     });
-    return next;
+    if (error) throw new Error(error.message);
+    return next as Record<string, unknown>;
   });
 
 export const updateVerificationSettings = createServerFn({ method: "POST" })
