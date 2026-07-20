@@ -266,17 +266,12 @@ export const updateVerificationSettings = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data, context }): Promise<Json | null> => {
-    const { supabase, userId } = context as any;
-    // Admin gate — verification_settings has no dedicated atomic RPC yet.
-    const { data: isAdmin } = await (supabase as any).rpc("has_role", { _user_id: userId, _role: "admin" });
-    if (!isAdmin) throw new Error("forbidden");
-    const { data: prev } = await (supabase as any).from("verification_settings").select("*").eq("id", 1).maybeSingle();
-    const patch = { ...data, updated_at: new Date().toISOString(), updated_by: userId };
-    const { data: next, error } = await (supabase as any).from("verification_settings").update(patch).eq("id", 1).select("*").single();
-    if (error) throw new Error(error.message);
-    await (supabase as any).rpc("admin_audit_log", {
-      _action: "settings.verification.update", _entity_type: "verification_settings", _entity_id: null,
-      _previous: prev, _next: next, _reason: null,
+    const { supabase } = context as any;
+    // Atomic admin RPC: authorizes via has_role, applies mutation and audit
+    // write in the same transaction. No direct client write remains.
+    const { data: next, error } = await (supabase as any).rpc("admin_upsert_verification_settings", {
+      _payload: data as unknown as Json,
     });
+    if (error) throw new Error(error.message);
     return next as Json | null;
   });
