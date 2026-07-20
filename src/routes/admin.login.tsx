@@ -23,6 +23,23 @@ function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+
+  async function sendReset() {
+    if (!email.trim()) {
+      toast.error("Enter your email above, then tap Forgot password.");
+      return;
+    }
+    setResetBusy(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } finally {
+      toast.success("If an account exists for that email, a reset link has been sent.");
+      setResetBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (loading || roleLoading) return;
@@ -71,7 +88,17 @@ function AdminLogin() {
             />
           </div>
           <div>
-            <label className="label-luxe">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="label-luxe">Password</label>
+              <button
+                type="button"
+                onClick={sendReset}
+                disabled={resetBusy}
+                className="text-[11px] text-gold underline disabled:opacity-50"
+              >
+                {resetBusy ? "Sending…" : "Forgot password?"}
+              </button>
+            </div>
             <input
               type="password" autoComplete="current-password" required
               value={password} onChange={(e) => setPassword(e.target.value)}
