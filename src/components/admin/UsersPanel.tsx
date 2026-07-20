@@ -294,12 +294,32 @@ export function UsersPanel() {
                 <td className="px-4 py-3 text-xs tabular-nums text-muted-foreground">
                   {new Date(r.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                  {(() => {
+                    const secs = remainingCooldown(r.user_id);
+                    return (
+                      <button
+                        onClick={() => handleResend(r.user_id)}
+                        disabled={secs > 0}
+                        title={secs > 0 ? `Cooldown active — resend in ${secs}s` : "Resend invitation email"}
+                        className={
+                          "text-xs px-2.5 py-1 rounded border transition " +
+                          (secs > 0
+                            ? "border-border/30 text-muted-foreground opacity-60 cursor-not-allowed"
+                            : "border-border/60 hover:border-gold hover:text-gold")
+                        }
+                      >
+                        {secs > 0 ? `Resend in ${secs}s` : "Resend invite"}
+                      </button>
+                    );
+                  })()}
                   <button
-                    onClick={() => handleResend(r.user_id)}
-                    className="text-xs px-2.5 py-1 rounded border border-border/60 hover:border-gold hover:text-gold transition"
+                    onClick={() => handleConvert(r)}
+                    disabled={r.is_suspended}
+                    title={r.is_suspended ? "Cannot convert suspended account" : "Change this user's role (explicit conversion)"}
+                    className="text-xs px-2.5 py-1 rounded border border-border/60 hover:border-gold hover:text-gold transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Resend invite
+                    Convert
                   </button>
                   <button
                     onClick={() => handleSuspend(r.user_id, r.is_suspended)}
