@@ -33,39 +33,76 @@ export const resetAdminMfa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     requireAal2(context.claims as Record<string, unknown> | undefined);
 
-    // Audit + authorization (caller admin, target admin, no self, reason present).
-    // Runs in the caller's session so has_role() applies to auth.uid().
-    const { error: auditErr } = await (
-      context.supabase as unknown as { rpc: (n: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }
-    ).rpc("admin_audit_mfa_reset", {
+    const rpc = context.supabase as unknown as {
+      rpc: (n: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+    };
+
+    // 1) Authorize + record REQUESTED. RPC enforces admin+admin, no self, reason present.
+    const req = await rpc.rpc("admin_audit_mfa_reset_requested", {
       _target_user_id: data.targetUserId,
       _reason: data.reason,
     });
-    if (auditErr) throw new Error(auditErr.message || "not permitted");
+    if (req.error) throw new Error(req.error.message || "not permitted");
 
-    // Only after authorization audit succeeds, load the service-role client.
+    // 2) Perform deletion with service-role client, tracking per-factor outcome.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminMfa = supabaseAdmin.auth.admin as unknown as {
+      mfa: {
+        listFactors: (a: { userId: string }) => Promise<{ data: { factors: { id: string }[] } | null; error: { message: string } | null }>;
+        deleteFactor: (a: { userId: string; id: string }) => Promise<{ error: { message: string } | null }>;
+      };
+    };
 
-    // List and delete every factor. TOTP factors force re-enrollment at
-    // next login because the admin gate routes to /admin/mfa.
-    const list = await (
-      supabaseAdmin.auth.admin as unknown as {
-        mfa: { listFactors: (a: { userId: string }) => Promise<{ data: { factors: { id: string }[] } | null; error: { message: string } | null }> };
-      }
-    ).mfa.listFactors({ userId: data.targetUserId });
-    if (list.error) throw new Error("mfa list failed");
+    const recordOutcome = async (
+      outcome: "completed" | "partial" | "failed",
+      total: number,
+      removed: number,
+      error?: string,
+    ) => {
+      await rpc.rpc("admin_audit_mfa_reset_outcome", {
+        _target_user_id: data.targetUserId,
+        _outcome: outcome,
+        _total: total,
+        _removed: removed,
+        _error: error ?? null,
+      });
+    };
+
+    const list = await adminMfa.mfa.listFactors({ userId: data.targetUserId });
+    if (list.error) {
+      await recordOutcome("failed", 0, 0, `list: ${list.error.message}`);
+      throw new Error("mfa list failed");
+    }
     const factors = list.data?.factors ?? [];
+    const total = factors.length;
 
+    let removed = 0;
+    let firstError: string | null = null;
     for (const f of factors) {
-      const del = await (
-        supabaseAdmin.auth.admin as unknown as {
-          mfa: { deleteFactor: (a: { userId: string; id: string }) => Promise<{ error: { message: string } | null }> };
-        }
-      ).mfa.deleteFactor({ userId: data.targetUserId, id: f.id });
-      if (del.error) throw new Error("mfa delete failed");
+      const del = await adminMfa.mfa.deleteFactor({ userId: data.targetUserId, id: f.id });
+      if (del.error) {
+        if (!firstError) firstError = del.error.message || "delete failed";
+        continue;
+      }
+      removed += 1;
     }
 
-    return { ok: true as const, removed: factors.length };
+    if (total === 0) {
+      await recordOutcome("completed", 0, 0);
+      return { ok: true as const, removed: 0, total: 0, outcome: "completed" as const };
+    }
+    if (removed === total) {
+      await recordOutcome("completed", total, removed);
+      return { ok: true as const, removed, total, outcome: "completed" as const };
+    }
+    if (removed === 0) {
+      await recordOutcome("failed", total, removed, firstError ?? undefined);
+      throw new Error(firstError ?? "mfa delete failed");
+    }
+    await recordOutcome("partial", total, removed, firstError ?? undefined);
+    throw new Error(
+      `partial reset: ${removed}/${total} factors removed. Target may still hold a valid factor. ${firstError ?? ""}`.trim(),
+    );
   });
 
 type AdminRow = { user_id: string; email: string | null };

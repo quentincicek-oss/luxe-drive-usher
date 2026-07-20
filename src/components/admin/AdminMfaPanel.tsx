@@ -50,8 +50,8 @@ export function AdminMfaPanel() {
     if (!window.confirm(`Confirm MFA reset for ${row.email ?? row.user_id}?`)) return;
     setPending(row.user_id);
     try {
-      const res = (await reset({ data: { targetUserId: row.user_id, reason: reason.trim() } })) as { removed: number };
-      toast.success(`Removed ${res.removed} factor(s). Re-enrollment required at next sign-in.`);
+      const res = (await reset({ data: { targetUserId: row.user_id, reason: reason.trim() } })) as { removed: number; total: number; outcome: "completed" };
+      toast.success(`Removed ${res.removed} of ${res.total} factor(s). Re-enrollment required at next sign-in.`);
       await refresh();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Reset failed";

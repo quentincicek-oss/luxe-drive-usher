@@ -1864,6 +1864,20 @@ export type Database = {
         Args: { _reason: string; _target_user_id: string }
         Returns: undefined
       }
+      admin_audit_mfa_reset_outcome: {
+        Args: {
+          _error?: string
+          _outcome: string
+          _removed: number
+          _target_user_id: string
+          _total: number
+        }
+        Returns: undefined
+      }
+      admin_audit_mfa_reset_requested: {
+        Args: { _reason: string; _target_user_id: string }
+        Returns: string
+      }
       admin_audit_provisioning_failure: {
         Args: {
           _account_type: string
