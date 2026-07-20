@@ -359,34 +359,35 @@ function Admin() {
 // ============ DRIVERS PANEL ============
 function DriversPanel({ drivers, vehicles, onRefresh }: { drivers: Driver[]; vehicles: Vehicle[]; onRefresh: () => void }) {
   const [editing, setEditing] = useState<Partial<Driver> | null>(null);
+  const upsertDriver = useServerFn(adminUpsertDriver);
+  const deleteDriver = useServerFn(adminDeleteDriver);
 
   async function save() {
     if (!editing?.full_name || !editing.employee_id) { toast.error("Name and Employee ID are required"); return; }
-    const payload: any = {
-      full_name: editing.full_name,
-      employee_id: editing.employee_id,
-      phone: editing.phone ?? null,
-      email: editing.email ?? null,
-      photo_url: editing.photo_url ?? null,
-      license_number: editing.license_number ?? null,
-      license_expires_at: editing.license_expires_at || null,
-      employment_status: editing.employment_status ?? "active",
-      availability_status: editing.availability_status ?? "offline",
-      assigned_vehicle_id: editing.assigned_vehicle_id || null,
-      notes: editing.notes ?? null,
-    };
-    const q = editing.id
-      ? (supabase as any).from("driver_profiles").update(payload).eq("id", editing.id)
-      : (supabase as any).from("driver_profiles").insert(payload);
-    const { error } = await q;
-    if (error) { toast.error(error.message); return; }
-    toast.success("Driver saved"); setEditing(null); onRefresh();
+    try {
+      await upsertDriver({ data: {
+        id: editing.id ?? null,
+        payload: {
+          full_name: editing.full_name,
+          employee_id: editing.employee_id,
+          phone: editing.phone ?? null,
+          email: editing.email ?? null,
+          photo_url: editing.photo_url ?? null,
+          license_number: editing.license_number ?? null,
+          license_expires_at: editing.license_expires_at || null,
+          employment_status: (editing.employment_status ?? "active") as "active" | "inactive" | "vacation",
+          availability_status: (editing.availability_status ?? "offline") as "available" | "assigned" | "on_trip" | "offline" | "vacation",
+          assigned_vehicle_id: editing.assigned_vehicle_id || null,
+          notes: editing.notes ?? null,
+        },
+      } });
+      toast.success("Driver saved"); setEditing(null); onRefresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function remove(id: string) {
     if (!confirm("Delete driver?")) return;
-    const { error } = await (supabase as any).from("driver_profiles").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    onRefresh();
+    try { await deleteDriver({ data: { id } }); onRefresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   return (
