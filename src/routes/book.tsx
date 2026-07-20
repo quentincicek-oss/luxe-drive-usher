@@ -35,6 +35,8 @@ function Book() {
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
     passengers: 1, ride_type: "escalade" as "escalade" | "suburban" | "denali",
   });
+  const [pickupAddr, setPickupAddr] = useState<StructuredAddress | null>(null);
+  const [dropoffAddr, setDropoffAddr] = useState<StructuredAddress | null>(null);
   const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -58,6 +60,14 @@ function Book() {
         pickupTime: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers,
         rideType: form.ride_type,
+        pickupLat: pickupAddr?.lat ?? null,
+        pickupLng: pickupAddr?.lng ?? null,
+        pickupPlaceId: pickupAddr?.placeId ?? null,
+        pickupComponents: (pickupAddr?.components ?? null) as Record<string, string> | null,
+        dropoffLat: dropoffAddr?.lat ?? null,
+        dropoffLng: dropoffAddr?.lng ?? null,
+        dropoffPlaceId: dropoffAddr?.placeId ?? null,
+        dropoffComponents: (dropoffAddr?.components ?? null) as Record<string, string> | null,
       }});
       if (amenityIds.length > 0 && id) {
         try {
