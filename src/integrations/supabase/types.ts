@@ -328,6 +328,10 @@ export type Database = {
           distance_km: number | null
           driver_id: string | null
           dropoff: string
+          dropoff_components: Json | null
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          dropoff_place_id: string | null
           id: string
           notes: string | null
           paid: boolean
@@ -335,6 +339,10 @@ export type Database = {
           passenger_id: string
           passengers: number
           pickup: string
+          pickup_components: Json | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          pickup_place_id: string | null
           pickup_time: string
           price: number | null
           receipt_url: string | null
@@ -349,6 +357,10 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           dropoff: string
+          dropoff_components?: Json | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          dropoff_place_id?: string | null
           id?: string
           notes?: string | null
           paid?: boolean
@@ -356,6 +368,10 @@ export type Database = {
           passenger_id: string
           passengers?: number
           pickup: string
+          pickup_components?: Json | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_place_id?: string | null
           pickup_time: string
           price?: number | null
           receipt_url?: string | null
@@ -370,6 +386,10 @@ export type Database = {
           distance_km?: number | null
           driver_id?: string | null
           dropoff?: string
+          dropoff_components?: Json | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          dropoff_place_id?: string | null
           id?: string
           notes?: string | null
           paid?: boolean
@@ -377,6 +397,10 @@ export type Database = {
           passenger_id?: string
           passengers?: number
           pickup?: string
+          pickup_components?: Json | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_place_id?: string | null
           pickup_time?: string
           price?: number | null
           receipt_url?: string | null
@@ -2020,16 +2044,35 @@ export type Database = {
         Args: { _booking_id: string }
         Returns: number
       }
-      create_booking: {
-        Args: {
-          _dropoff: string
-          _passengers: number
-          _pickup: string
-          _pickup_time: string
-          _ride_type: string
-        }
-        Returns: string
-      }
+      create_booking:
+        | {
+            Args: {
+              _dropoff: string
+              _passengers: number
+              _pickup: string
+              _pickup_time: string
+              _ride_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _dropoff: string
+              _dropoff_components?: Json
+              _dropoff_lat?: number
+              _dropoff_lng?: number
+              _dropoff_place_id?: string
+              _passengers: number
+              _pickup: string
+              _pickup_components?: Json
+              _pickup_lat?: number
+              _pickup_lng?: number
+              _pickup_place_id?: string
+              _pickup_time: string
+              _ride_type: string
+            }
+            Returns: string
+          }
       driver_owns_booking: { Args: { _booking_id: string }; Returns: boolean }
       driver_signin_eligibility: { Args: never; Returns: boolean }
       get_my_booking_pin: { Args: { _booking_id: string }; Returns: string }
