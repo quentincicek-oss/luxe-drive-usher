@@ -150,6 +150,9 @@ function Landing() {
             <h2 className="font-display text-4xl md:text-5xl">{t("landing.fleet.title")}</h2>
             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">{t("landing.fleet.body")}</p>
           </div>
+          <div className="mb-14">
+            <VehicleTurntable label="Cadillac Escalade" tagline={t("fleet.escalade.tag")} />
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             {fleet.map((v) => (
               <div key={v.name} className="group relative overflow-hidden rounded-lg border border-border/40 bg-surface-elevated shadow-luxe p-8 hover:border-gold/60 transition">
