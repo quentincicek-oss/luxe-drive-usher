@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, UserPlus, LogIn, Car } from "lucide-react";
+import { Loader2, ShieldCheck, LogIn, Car, ShieldAlert } from "lucide-react";
 import { Field } from "@/components/ui/Field";
 
 export const Route = createFileRoute("/auth")({
@@ -19,9 +19,9 @@ export const Route = createFileRoute("/auth")({
   component: Auth,
 });
 
-type Mode = "passenger-signin" | "passenger-signup" | "driver-signin";
+type Mode = "passenger-signin" | "driver-signin" | "admin-signin";
 
-// Generic error surfaced from Driver Sign In. Never reveals whether the
+// Generic error used by protected sign-in modes. Never reveals whether the
 // email exists, is a passenger, an admin, or has no account at all.
 const DRIVER_GENERIC_ERROR =
   "Driver access is available only to accounts provisioned by HarborLine. If you believe this is an error, contact your dispatcher.";
@@ -32,13 +32,13 @@ function Auth() {
   const { user, role, loading } = useAuth();
   const [mode, setMode] = useState<Mode>("passenger-signin");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", name: "", surname: "", phone: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
 
   useEffect(() => {
     const titles: Record<Mode, string> = {
       "passenger-signin": t("cta.signin"),
-      "passenger-signup": t("cta.signup"),
-      "driver-signin": "Driver Sign In",
+      "driver-signin": t("auth.driver.title"),
+      "admin-signin": t("auth.admin.title"),
     };
     document.title = `${titles[mode]} — ${t("brand.name")}`;
   }, [mode, t]);
@@ -52,9 +52,6 @@ function Auth() {
   }, [user, role, loading, nav]);
 
   async function verifyDriverOrReject(_uid: string) {
-    // Server-authoritative eligibility. The SECURITY DEFINER RPC returns
-    // only a boolean; the specific reason (wrong role, suspended, inactive,
-    // missing profile, conflicting roles) is intentionally not surfaced.
     try {
       const { driverSignInEligibility } = await import("@/lib/mfa.functions");
       const res = await driverSignInEligibility({ data: {} });
@@ -62,26 +59,6 @@ function Auth() {
     } catch {
       return false;
     }
-  }
-
-  async function handlePassengerSignUp() {
-    // Public self-registration is passenger-only. handle_new_user()
-    // ignores any role in metadata; we still avoid sending role-bearing
-    // fields from the client. Only display/contact fields.
-    const { error } = await supabase.auth.signUp({
-      email: form.email.trim(),
-      password: form.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/book`,
-        data: {
-          name: form.name.trim(),
-          surname: form.surname.trim(),
-          phone: form.phone.trim() || undefined,
-        },
-      },
-    });
-    if (error) throw error;
-    toast.success(t("auth.created"));
   }
 
   async function handlePassengerSignIn() {
@@ -98,13 +75,9 @@ function Auth() {
       email: form.email.trim(),
       password: form.password,
     });
-    if (error) {
-      // Generic — do not distinguish "no such user" from "wrong password".
-      throw new Error(DRIVER_GENERIC_ERROR);
-    }
+    if (error) throw new Error(DRIVER_GENERIC_ERROR);
     const uid = data.user?.id;
     if (!uid) throw new Error(DRIVER_GENERIC_ERROR);
-
     const ok = await verifyDriverOrReject(uid);
     if (!ok) {
       await supabase.auth.signOut();
@@ -116,29 +89,32 @@ function Auth() {
   async function handleForgotPassword() {
     const email = form.email.trim();
     if (!email) {
-      toast.error("Enter your email above, then tap Forgot password?");
+      toast.error(t("auth.forgot.enterEmail"));
       return;
     }
     setBusy(true);
     try {
-      // Never reveal whether the email exists. Always show the same message.
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
     } catch {
-      // Swallow provider errors — do not distinguish existence.
+      /* never reveal existence */
     } finally {
       setBusy(false);
-      toast.success("If an account exists for that email, a reset link has been sent.");
+      toast.success(t("auth.forgot.sent"));
     }
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "admin-signin") {
+      // Admin sign-in has its own dedicated screen with MFA gate.
+      nav({ to: "/admin/login" });
+      return;
+    }
     setBusy(true);
     try {
-      if (mode === "passenger-signup") await handlePassengerSignUp();
-      else if (mode === "passenger-signin") await handlePassengerSignIn();
+      if (mode === "passenger-signin") await handlePassengerSignIn();
       else await handleDriverSignIn();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t("auth.failed"));
@@ -148,9 +124,7 @@ function Auth() {
   }
 
   async function google() {
-    // Passenger-only social sign-in. First-time creates a passenger via
-    // handle_new_user (role metadata ignored). If the resulting account
-    // resolves to admin/driver server-side, role-based redirect handles it.
+    // Passenger-only social sign-in.
     setBusy(true);
     try {
       const { lovable } = await import("@/integrations/lovable/index");
@@ -166,10 +140,11 @@ function Auth() {
   }
 
   const isDriver = mode === "driver-signin";
-  const isSignup = mode === "passenger-signup";
+  const isAdmin = mode === "admin-signin";
+  const isPassenger = mode === "passenger-signin";
 
   return (
-    <main className="min-h-dvh bg-obsidian flex items-center justify-center px-5 py-10 sm:py-16">
+    <main className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-6 flex justify-end">
           <LanguageMenu />
@@ -184,60 +159,41 @@ function Auth() {
           </div>
         </Link>
 
-        {/* Segmented mode selector */}
+        {/* Three sign-in entry points. No public self-registration. */}
         <div
           role="tablist"
-          aria-label="Authentication method"
+          aria-label="Sign-in method"
           className="mb-5 grid grid-cols-3 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
         >
-          <TabBtn active={mode === "passenger-signin"} onClick={() => setMode("passenger-signin")} icon={<LogIn className="h-3.5 w-3.5" />}>
-            Passenger
+          <TabBtn active={isPassenger} onClick={() => setMode("passenger-signin")} icon={<LogIn className="h-3.5 w-3.5" />}>
+            {t("auth.tab.passenger")}
           </TabBtn>
-          <TabBtn active={mode === "passenger-signup"} onClick={() => setMode("passenger-signup")} icon={<UserPlus className="h-3.5 w-3.5" />}>
-            Sign Up
+          <TabBtn active={isDriver} onClick={() => setMode("driver-signin")} icon={<Car className="h-3.5 w-3.5" />}>
+            {t("auth.tab.driver")}
           </TabBtn>
-          <TabBtn active={mode === "driver-signin"} onClick={() => setMode("driver-signin")} icon={<Car className="h-3.5 w-3.5" />}>
-            Driver
+          <TabBtn active={isAdmin} onClick={() => setMode("admin-signin")} icon={<ShieldAlert className="h-3.5 w-3.5" />}>
+            {t("auth.tab.admin")}
           </TabBtn>
         </div>
 
         <div className="card-luxe p-6 sm:p-8">
           <h1 className="font-display text-2xl mb-1">
-            {isDriver ? "Driver Sign In" : isSignup ? t("cta.signup") : t("cta.signin")}
+            {isAdmin ? t("auth.admin.title") : isDriver ? t("auth.driver.title") : t("cta.signin")}
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
-            {isDriver ? (
-              <span className="flex items-start gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                <span>
-                  Driver access is available only to accounts provisioned by HarborLine. There is
-                  no public driver sign-up.
-                </span>
+            <span className="flex items-start gap-2">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+              <span>
+                {isAdmin
+                  ? t("auth.admin.notice")
+                  : isDriver
+                    ? t("auth.driver.notice")
+                    : t("auth.passenger.notice")}
               </span>
-            ) : isSignup ? (
-              <>
-                {t("auth.have")}{" "}
-                <button
-                  className="text-gold underline-offset-4 hover:underline"
-                  onClick={() => setMode("passenger-signin")}
-                >
-                  {t("cta.signin")}
-                </button>
-              </>
-            ) : (
-              <>
-                {t("auth.need")}{" "}
-                <button
-                  className="text-gold underline-offset-4 hover:underline"
-                  onClick={() => setMode("passenger-signup")}
-                >
-                  {t("cta.signup")}
-                </button>
-              </>
-            )}
+            </span>
           </p>
 
-          {!isDriver && (
+          {isPassenger && (
             <>
               <button
                 onClick={google}
@@ -254,63 +210,41 @@ function Auth() {
             </>
           )}
 
-          <form onSubmit={submit} className="space-y-4">
-            {isSignup && (
-              <div className="grid grid-cols-2 gap-3">
-                <Field
-                  label={t("auth.name")}
-                  required
-                  autoComplete="given-name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-                <Field
-                  label={t("auth.surname")}
-                  required
-                  autoComplete="family-name"
-                  value={form.surname}
-                  onChange={(e) => setForm({ ...form, surname: e.target.value })}
-                />
-              </div>
-            )}
-            <Field
-              label={t("auth.email")}
-              required
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-            <Field
-              label={t("auth.password")}
-              required
-              type="password"
-              autoComplete={isSignup ? "new-password" : "current-password"}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-            {isSignup && (
-              <Field
-                label={t("auth.phone")}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-            )}
-            <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
-              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isDriver
-                ? "Sign in as Driver"
-                : isSignup
-                  ? t("auth.create")
-                  : t("cta.signin")}
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={() => nav({ to: "/admin/login" })}
+              className="btn-primary-luxe w-full"
+            >
+              {t("auth.admin.goToLogin")}
             </button>
-          </form>
+          ) : (
+            <form onSubmit={submit} className="space-y-4" noValidate>
+              <Field
+                label={t("auth.email")}
+                required
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <Field
+                label={t("auth.password")}
+                required
+                type="password"
+                autoComplete="current-password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+              <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isDriver ? t("auth.driver.submit") : t("cta.signin")}
+              </button>
+            </form>
+          )}
 
-          {!isSignup && !isDriver && (
+          {isPassenger && (
             <div className="mt-4 text-center">
               <button
                 type="button"
@@ -318,18 +252,14 @@ function Auth() {
                 disabled={busy}
                 className="text-xs text-muted-foreground hover:text-gold underline-offset-4 hover:underline"
               >
-                Forgot password?
+                {t("auth.forgot.link")}
               </button>
             </div>
           )}
 
-          {isDriver && (
-            <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-              Sign-in attempts are recorded. Repeated failures may result in temporary account
-              lockout. To apply as a driver, contact HarborLine dispatch directly — applications
-              cannot be submitted through this app.
-            </p>
-          )}
+          <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground border-t border-border/40 pt-4">
+            {t("auth.provisioning.notice")}
+          </p>
         </div>
       </div>
     </main>

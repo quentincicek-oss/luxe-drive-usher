@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useDeferredValue } from "react";
+import { useEffect, useMemo, useState, useDeferredValue, Fragment } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -156,20 +156,20 @@ function Admin() {
   if (loading || !user || role !== "admin") return <div className="min-h-screen bg-obsidian" />;
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "overview",  label: "Overview" },
-    { key: "dispatch",  label: "Dispatch" },
+    { key: "overview",  label: t("admin.tabs.overview") },
+    { key: "dispatch",  label: t("admin.tabs.dispatch") },
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
-    { key: "users",     label: "Users" },
-    { key: "mfa",       label: "Admin 2FA" },
+    { key: "users",     label: t("admin.tabs.users") },
+    { key: "mfa",       label: t("admin.tabs.mfa") },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
-    { key: "amenities", label: "Amenities" },
-    { key: "support",   label: "Support" },
-    { key: "fleet",     label: "Fleet health" },
+    { key: "amenities", label: t("admin.tabs.amenities") },
+    { key: "support",   label: t("admin.tabs.support") },
+    { key: "fleet",     label: t("admin.tabs.fleet") },
     { key: "incidents", label: "Incidents" },
-    { key: "audit",     label: "Audit log" },
-    { key: "referrals", label: "Referrals" },
+    { key: "audit",     label: t("admin.tabs.audit") },
+    { key: "referrals", label: t("admin.tabs.referrals") },
     { key: "discounts", label: t("admin.tabs.discounts") },
     { key: "concierge", label: t("admin.tabs.concierge") },
   ];
@@ -177,15 +177,18 @@ function Admin() {
   return (
     <main className="min-h-dvh bg-obsidian">
 
-      <section className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-wrap gap-1 border-b border-border/60 mb-6">
-          {TABS.map((v) => (
-            <button key={v.key} onClick={() => setTab(v.key)}
-              className={"px-4 py-2.5 text-sm capitalize transition border-b-2 " + (tab === v.key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground")}>
-              {v.label}
-            </button>
-          ))}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="-mx-4 sm:mx-0 mb-6 border-b border-border/60 overflow-x-auto">
+          <div className="flex gap-1 px-4 sm:px-0 min-w-max">
+            {TABS.map((v) => (
+              <button key={v.key} onClick={() => setTab(v.key)}
+                className={"whitespace-nowrap px-4 py-2.5 text-sm capitalize transition border-b-2 " + (tab === v.key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
+
 
         {(tab === "bookings" || tab === "drivers" || tab === "vehicles") && (
           <div className="mb-4">
@@ -248,40 +251,43 @@ function Admin() {
                 <span className="text-xs text-muted-foreground">Click a row to assign a driver</span>
               </div>
               <div className="rounded-lg border border-border/60 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-4 py-3">Pickup time</th>
-                      <th className="text-left px-4 py-3">Route</th>
-                      <th className="text-left px-4 py-3">Vehicle</th>
-                      <th className="text-left px-4 py-3">Pax</th>
-                      <th className="text-left px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").map((b) => (
-                      <>
-                        <tr key={b.id} onClick={() => setOpenBookingId(openBookingId === b.id ? null : b.id)}
-                            className="border-t border-border/40 hover:bg-accent/40 cursor-pointer">
-                          <td className="px-4 py-3 text-xs tabular-nums">{new Date(b.pickup_time).toLocaleString()}</td>
-                          <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
-                          <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
-                          <td className="px-4 py-3">{b.passengers}</td>
-                          <td className="px-4 py-3"><StatusPill tone={(b.status === "completed" ? "completed" : b.status === "cancelled" ? "cancelled" : "pending") as any}>{b.status.replace("_"," ")}</StatusPill></td>
-                        </tr>
-                        {openBookingId === b.id && (
-                          <tr className="bg-surface/30">
-                            <td colSpan={5} className="px-4 py-4"><AssignmentPanel bookingId={b.id} /></td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[720px]">
+                    <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-4 py-3 whitespace-nowrap">{t("admin.table.pickupTime")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").map((b) => (
+                        <Fragment key={b.id}>
+                          <tr onClick={() => setOpenBookingId(openBookingId === b.id ? null : b.id)}
+                              className="border-t border-border/40 hover:bg-accent/40 cursor-pointer">
+                            <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(b.pickup_time).toLocaleString()}</td>
+                            <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
+                            <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
+                            <td className="px-4 py-3">{b.passengers}</td>
+                            <td className="px-4 py-3"><StatusPill tone={(b.status === "completed" ? "completed" : b.status === "cancelled" ? "cancelled" : "pending") as any}>{b.status.replace("_"," ")}</StatusPill></td>
                           </tr>
-                        )}
-                      </>
-                    ))}
-                    {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").length === 0 && (
-                      <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">No pending dispatches</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                          {openBookingId === b.id && (
+                            <tr className="bg-surface/30">
+                              <td colSpan={5} className="px-4 py-4"><AssignmentPanel bookingId={b.id} /></td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                      {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").length === 0 && (
+                        <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">No pending dispatches</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
             </div>
           </div>
         )}
@@ -289,37 +295,40 @@ function Admin() {
         {/* ============ BOOKINGS (existing) ============ */}
         {tab === "bookings" && !busy && (
           <div className="rounded-lg border border-border/60 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3">{t("admin.table.pickupTime")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.price")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBookings.map((b) => (
-                  <tr key={b.id} className="border-t border-border/40 hover:bg-accent/40">
-                    <td className="px-4 py-3 text-xs tabular-nums">{new Date(b.pickup_time).toLocaleString()}</td>
-                    <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
-                    <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
-                    <td className="px-4 py-3">{b.passengers}</td>
-                    <td className="px-4 py-3 text-gold">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</td>
-                    <td className="px-4 py-3">
-                      <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
-                        className="bg-input border border-border/60 rounded px-2 py-1 text-xs capitalize">
-                        {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
-                      </select>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[780px]">
+                <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">{t("admin.table.pickupTime")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.price")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
                   </tr>
-                ))}
-                {filteredBookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">{t("admin.empty.reservations")}</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredBookings.map((b) => (
+                    <tr key={b.id} className="border-t border-border/40 hover:bg-accent/40">
+                      <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(b.pickup_time).toLocaleString()}</td>
+                      <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
+                      <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
+                      <td className="px-4 py-3">{b.passengers}</td>
+                      <td className="px-4 py-3 text-gold whitespace-nowrap">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</td>
+                      <td className="px-4 py-3">
+                        <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
+                          className="bg-input border border-border/60 rounded px-2 py-1 text-xs capitalize">
+                          {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredBookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">{t("admin.empty.reservations")}</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
+
         )}
 
         {/* ============ DRIVERS ============ */}
