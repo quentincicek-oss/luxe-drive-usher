@@ -1,0 +1,1 @@
+ALTER VIEW public.trip_evidence_v SET (security_invoker = true);
