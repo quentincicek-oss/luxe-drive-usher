@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { toast } from "sonner";
+import {
+  adminUpsertCampaign, adminToggleCampaign, adminDeleteCampaign,
+  adminUpsertNfcTag, adminDeleteNfcTag,
+} from "@/lib/admin.functions";
 
 interface Campaign {
   id: string; name: string; description: string | null;
