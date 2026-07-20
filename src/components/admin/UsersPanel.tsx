@@ -396,6 +396,23 @@ export function UsersPanel() {
           </table>
         </div>
       </div>
+
+      {editing && (
+        <EditUserModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (payload) => {
+            try {
+              await updateProfile({ data: payload });
+              toast.success("User updated");
+              setEditing(null);
+              refresh();
+            } catch (e: any) {
+              toast.error(e?.message ?? "Update failed");
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
