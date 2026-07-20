@@ -1,113 +1,131 @@
-# Phase G — Enterprise Dispatch & Fleet Operations
 
-## 1. Business Model Alignment (recap before code)
+# Phase H — Trust, Safety & Operational Proof
 
-HarborLine = closed executive fleet. Admins are the ONLY dispatch authority. Drivers execute; passengers request. Every mutation in this phase is admin-only, server-verified via `has_role(auth.uid(),'admin')`, and permanently logged.
-
-## 2. Scope Boundaries (untouched)
-
-- Booking creation flow (`book.tsx`), Stripe/payments, Referrals, AI Concierge, Auth, Driver App (`_driver.*`), existing schema for `bookings` / `booking_assignments` / `driver_profiles` / `vehicles`.
-- Additive only: 1 new table (`audit_log`), 3 new admin RPCs, and a rewrite of the **admin console presentation layer** (routes + components under `src/routes/admin.*` and `src/components/dispatch/*`). Data model already covers 90% of requirements from Phase E.
-
-## 3. What already exists (reuse, don't rebuild)
-
-- Tables: `bookings`, `booking_assignments` (with `dispatch_status`, `is_current`, history preserved), `driver_profiles` (with `availability_status`, `employment_status`), `vehicles`, `driver_unavailability`, `driver_trip_events`, `driver_documents`, `ride_reviews`, `referrals`, `chat_messages`.
-- Components: `StatusPill`, `AssignmentTimeline`, `DispatchKpi`, `AssignmentPanel`, `admin_dispatch_kpis()` RPC.
-- Trigger `handle_booking_assignment_change` already syncs driver availability + enforces one current assignment per booking.
-
-**Gap to close**: audit log, incident aggregation view, fleet expirations view, richer KPIs, professional multi-section admin UI.
-
-## 4. Additive Schema (one migration)
-
-**`audit_log`** — immutable admin actions
-- `id`, `actor_id` (admin uuid), `actor_email` (snapshot), `action` (text, e.g. `assignment.create`, `assignment.reassign`, `assignment.remove`, `driver.suspend`, `driver.activate`, `vehicle.update`, `booking.cancel`), `entity_type`, `entity_id`, `previous jsonb`, `next jsonb`, `reason` text, `created_at`.
-- RLS: admins SELECT; INSERT via SECURITY DEFINER RPC only; no UPDATE/DELETE policies (immutable).
-
-**RPCs** (all `SECURITY DEFINER`, admin-gated):
-- `admin_audit_log(_action, _entity_type, _entity_id, _previous, _next, _reason)` → inserts row, snapshots actor email from `profiles`.
-- `admin_dispatch_overview()` → returns jsonb with all dashboard counters (new/pending/assigned/en_route/waiting/in_progress/completed_today/cancelled_today) + driver-status buckets in one round trip.
-- `admin_fleet_expirations()` → vehicles with insurance/registration/inspection dates + traffic-light status.
-- `admin_incident_feed(_limit)` → union of `driver_trip_events` (no_show|incident), cancelled bookings, low-rating reviews (`rating<=3`), ordered by created_at desc.
-
-No table alterations. No trigger changes.
-
-## 5. Route Architecture (admin surface refactor)
-
-Split monolithic `src/routes/admin.tsx` into a layout + tabs. Keep the URL `/admin` as overview.
-
-```
-src/routes/
-  admin.tsx                        (layout: sidebar nav + <Outlet/>)
-  admin.index.tsx                  (/admin      — Dispatch Overview / KPI board)
-  admin.dispatch.tsx               (/admin/dispatch — live booking board + assignment)
-  admin.bookings.$id.tsx           (/admin/bookings/:id — single operational screen)
-  admin.fleet.tsx                  (/admin/fleet — vehicles + expirations)
-  admin.drivers.tsx                (/admin/drivers — roster, status, suspend/activate)
-  admin.schedule.tsx               (/admin/schedule — driver day/week schedule)
-  admin.incidents.tsx              (/admin/incidents — incident + complaint feed)
-  admin.audit.tsx                  (/admin/audit — immutable audit trail, filterable)
-```
-
-All routes gated by existing `_authenticated` layout + in-component `role==='admin'` guard (same pattern as current `admin.tsx`). No new gate primitive.
-
-## 6. Component Library (new, under `src/components/dispatch/`)
-
-Reuse `StatusPill`, `DispatchKpi`, `AssignmentTimeline`, `SectionCard`. Add:
-
-- `DispatchLayout.tsx` — sidebar + header + `<Outlet/>`, dense enterprise chrome.
-- `BookingBoard.tsx` — column/table hybrid grouped by `dispatch_status`; each row → `BookingRow` with driver, vehicle, pickup ETA, payment pill, quick-actions.
-- `AssignmentDrawer.tsx` — slide-over from a booking row; hosts `AssignmentPanel` + audit-writing wrappers + confirmation sheets.
-- `DriverRosterTable.tsx` — sortable table: driver, employee id, status pill, active-assignment count, upcoming-count, actions (suspend/activate/set-unavailable).
-- `FleetTable.tsx` — vehicle rows with expiration traffic-light chips (green >30d, amber ≤30d, red expired) computed client-side from `admin_fleet_expirations()`.
-- `ScheduleGrid.tsx` — driver rows × time columns for today+7d; blocks = assignments or unavailability; read-only in v1.
-- `IncidentFeed.tsx` — vertical feed of incident cards (no-show, incident, cancellation, low rating) with entity links.
-- `AuditTable.tsx` — filterable log with diff view for `previous`/`next`.
-- `ConfirmSheet.tsx` — generic confirmation modal for every destructive/dispatch action (required by spec).
-- `FiltersBar.tsx` — shared filter primitives (date range, driver, vehicle, customer, airport, status, payment, referral source).
-
-## 7. Server Functions (`src/lib/dispatch.functions.ts`)
-
-All `.middleware([requireSupabaseAuth])` + server-side re-verify admin role via `has_role`. Each mutation wraps its Supabase write and calls `admin_audit_log` with `previous`/`next` snapshots in the SAME server call.
-
-- `assignBookingDriver({ bookingId, driverId, vehicleId, reason? })`
-- `reassignBookingDriver({ bookingId, driverId, vehicleId, reason })`
-- `removeBookingAssignment({ bookingId, reason })`
-- `advanceAssignmentStatus({ assignmentId, next, reason? })` (admin override path; drivers still use `driver.functions.ts`)
-- `suspendDriver({ driverId, reason })` / `activateDriver({ driverId })`
-- `setDriverUnavailability({ driverId, starts_at, ends_at, kind, reason })`
-- `updateVehicle({ vehicleId, patch, reason })` (status, expirations, notes)
-- `cancelBooking({ bookingId, reason })`
-
-Read helpers use TanStack Query directly against Supabase (no server fn needed) for realtime-friendly polling; heavy aggregations use the new RPCs.
-
-## 8. UX Principles
-
-- Dense but calm: 13–14px base, generous line-height, single accent (gold) on active state + primary CTA only.
-- One primary action per drawer; every mutation opens `ConfirmSheet` with a reason field where applicable.
-- No decorative animation. State changes use opacity + slide only.
-- Persistent sidebar with 8 sections; keyboard shortcuts (`g d` dispatch, `g f` fleet…) — optional stretch, only if trivial.
-- All strings via `useI18n()` under new `admin.*` namespace (EN + TR populated; others fall back).
-
-## 9. Guardrails
-
-- No edits to `bookings`, `booking_assignments`, `driver_profiles`, `vehicles`, `driver_*`, `referral*`, `receipt*`, `stripe*`, `payments*`, `blake.ts`, `book.tsx`, `history.tsx`, `_driver.*`, `AuthProvider`, `AppHeader` (except adding an `Admin` label styling — optional).
-- Existing `admin.tsx` gets converted to a layout; its previous tab content is redistributed to the new child routes with **zero behavior loss**.
-
-## 10. Implementation Order (each step compiles + preserves prior behavior)
-
-1. **Migration** — `audit_log` + 4 RPCs + GRANTs + RLS.
-2. **Server functions** — `dispatch.functions.ts` with audit-wrapped mutations.
-3. **Layout split** — convert `admin.tsx` to layout, move current content to `admin.index.tsx` unchanged (baseline preserved).
-4. **Dispatch board** — `admin.dispatch.tsx` + `BookingBoard` + `AssignmentDrawer` + `ConfirmSheet`.
-5. **Booking detail** — `admin.bookings.$id.tsx` with full operational panels + timeline.
-6. **Fleet** — `admin.fleet.tsx` + `FleetTable` with expiration RPC.
-7. **Drivers** — `admin.drivers.tsx` + `DriverRosterTable` + suspend/activate/unavailability flows.
-8. **Schedule** — `admin.schedule.tsx` + `ScheduleGrid` (read-only).
-9. **Incidents** — `admin.incidents.tsx` + `IncidentFeed`.
-10. **Audit** — `admin.audit.tsx` + `AuditTable` + `FiltersBar`.
-11. **i18n** — additive `admin.*` keys (EN + TR).
-12. **Verify** — typecheck; smoke test as admin in preview; confirm no regressions in booking/driver/passenger paths.
+Per your directive, I performed an architecture review **before** proposing code. Below is the impact analysis, the additive design, and the clarifications I need before implementation.
 
 ---
 
-Approve to proceed with Step 1 (migration).
+## 1. Architecture review (what exists today, what we reuse)
+
+Already in place — will be **reused, not rebuilt**:
+
+- `bookings`, `booking_assignments` (with `dispatch_status`, `is_current`, history preserved by the `handle_booking_assignment_change` trigger).
+- `driver_trip_events` — already captures `accepted`, `arrived`, `waiting`, `started`, `completed`, `no_show`, `incident`, `passenger_contacted`, `dispatch_contacted`, `rejected`. Reason field exists.
+- `driver_profiles`, `vehicles` (with `insurance_expires_at`, `registration_expires_at`, `inspection_expires_at`), `driver_unavailability`, `driver_documents`.
+- `audit_log` (Phase G) — immutable, admin-only, INSERT via `admin_audit_log()` SECURITY DEFINER RPC.
+- `admin_incident_feed`, `admin_fleet_expirations`, `admin_dispatch_overview` RPCs.
+- Receipts + OTP verification (`receipt_verifications`), Stripe webhook, referrals — **untouched**.
+- Driver workflow UI (`WorkflowStepper`, `VerificationSlot`, `AssignmentDetailCard`, `useDispatchState`) — extended, not replaced.
+
+**Gap map** (what Phase H must add):
+
+| Requirement | Gap | Fill |
+|---|---|---|
+| Passenger PIN / QR / NFC verification | `VerificationSlot` is UI-only, no server enforcement, no code storage | 4-digit PIN on booking + verification RPC + event |
+| Trip lifecycle proof | Events exist per assignment; no unified read model, no "Evidence Package" concept | New `trip_evidence` view + Evidence Package screen (read-only) |
+| GPS evidence (arrival / start / end / route) | No location table | New `trip_locations` + `trip_route_points` tables, offline-tolerant batch upload |
+| No-show workflow | Event exists, but no waiting timer / arrival-location / attempt log tie-in | Structured `no_show_reports` referencing existing events + GPS |
+| Communication logging | `passenger_contacted` / `dispatch_contacted` events exist as flat rows | New `communication_events` table with direction, duration, status |
+| Incident reporting expansion | Free-text `reason` on `driver_trip_events` | New `incidents` table with `category`, `severity`, `status`, admin resolution |
+| Vehicle compliance warnings | RPC returns expirations; no proactive UI banner or dashboard alerts | Reuse RPC, add banner + admin toast; no schema change |
+| Admin verification-method policy | Not present | New `verification_settings` row (single-row config table) |
+| Everything auditable | `admin_audit_log` exists | Wrap every new admin mutation |
+
+---
+
+## 2. Additive schema (one migration, no changes to existing tables)
+
+```text
+trip_locations         (booking_id, kind: arrival|trip_start|trip_end,
+                        lat, lng, accuracy_m, recorded_at, driver_id)
+trip_route_points      (booking_id, driver_id, lat, lng, recorded_at, speed_mps, seq)
+passenger_verifications(booking_id, method: pin|qr|nfc, verified_at,
+                        verified_by_driver_id, evidence jsonb)
+booking_pins           (booking_id PK, pin_hash, salt, attempts, locked_until)
+no_show_reports        (booking_id, driver_id, arrival_at, waited_seconds,
+                        attempts_count, arrival_lat, arrival_lng, reason,
+                        admin_status: pending|approved|rejected, admin_notes)
+communication_events   (booking_id, driver_id, direction: driver_to_passenger|
+                        passenger_to_driver, channel: phone|inapp, duration_sec,
+                        status: initiated|connected|missed|failed, started_at)
+incidents              (booking_id, driver_id, category, severity, description,
+                        photo_urls text[], status: open|reviewing|resolved|dismissed,
+                        admin_notes, resolved_by, resolved_at)
+verification_settings  (id=1 single row: pin_enabled, qr_enabled, nfc_enabled,
+                        min_waiting_seconds default 300)
+```
+
+Plus **view** (not a table): `trip_evidence_v` joining booking + assignment + verifications + locations summary + incidents + no-show + receipt + payment status. Read-only.
+
+**Immutability**: every table above has RLS with `INSERT` allowed for the correct actor (driver for own trip, admin for settings), **no `UPDATE`/`DELETE` policies** except for `incidents.status` (admin only) and `no_show_reports.admin_status` (admin only). Those two updates are the only mutable fields — everything else append-only. All admin updates go through server functions that write to `audit_log` in the same call.
+
+**RLS shape**:
+- Drivers: `INSERT/SELECT` on rows where `driver_id = (SELECT id FROM driver_profiles WHERE user_id=auth.uid())` and the booking's current assignment is theirs.
+- Passengers: `SELECT` only their own booking's verification status + evidence summary (no raw GPS).
+- Admins: full `SELECT`, controlled `UPDATE` on the two mutable fields via server fns.
+
+GRANTs follow the mandated pattern (authenticated + service_role; no anon).
+
+---
+
+## 3. Server functions (all `requireSupabaseAuth` + audit-wrapped for admin actions)
+
+`src/lib/trust.functions.ts`:
+- `startPassengerVerification({bookingId, method})` — driver-only, logs attempt.
+- `submitPin({bookingId, pin})` — driver submits the code the passenger showed, hash-compare, lock after 5 fails, insert `passenger_verifications` + `driver_trip_events('verified')`.
+- `recordTripLocation({bookingId, kind, lat, lng, accuracy})` — driver only.
+- `uploadRoutePoints({bookingId, points[]})` — bulk insert; idempotent by `(booking_id, seq)`.
+- `submitNoShow({bookingId, arrivalAt, attempts, arrivalLoc, reason})` — requires ≥ configured wait + at least one communication event.
+- `logCommunication({bookingId, direction, channel, durationSec, status})`.
+- `reportIncident({bookingId, category, severity, description})`.
+- Admin-only: `resolveIncident`, `reviewNoShow`, `updateVerificationSettings` — each wrapped in `admin_audit_log`.
+
+Reads: TanStack Query directly to Supabase (RLS-scoped).
+
+---
+
+## 4. Client surfaces (additive, no design overhaul)
+
+- **Booking confirmation**: passenger sees a 4-digit PIN card ("Show this to your chauffeur"). Also renders QR (encodes booking id + short-lived HMAC token). NFC prep only.
+- **Driver trip screen**: `VerificationSlot` becomes real — 3 tabs (PIN / QR / NFC), gated by admin `verification_settings`. Start-trip button disabled until verified. Waiting timer + "Log call" + "Report No-Show" (enabled after `min_waiting_seconds`). Silent GPS pings every 10s while `en_route`/`in_progress`, queued in IndexedDB when offline, flushed via `uploadRoutePoints`.
+- **Admin → Incidents** (existing tab): switch data source from ad-hoc `driver_trip_events` union to new `incidents` table; keep the legacy feed as "Historical events".
+- **Admin → Evidence** (new subview under a booking row): read-only Evidence Package — timeline, verification, GPS summary (distance/duration/map static image), no-show report, incidents, receipt link.
+- **Admin → Fleet**: compliance banner + row-level red/amber pills already exist; add a dashboard-top warning when any doc expires ≤ 14 days.
+- **Admin → Settings**: new "Verification methods" panel (toggle PIN/QR/NFC, wait-time).
+
+**No** changes to Stripe, Concierge, Referrals, Auth, booking creation flow copy, landing, showroom.
+
+---
+
+## 5. Rollout order (each step compiles and preserves prior behavior)
+
+1. Migration (all new tables + view + RLS + GRANTs + `verification_settings` seed row).
+2. `trust.functions.ts` (all server fns, audit-wrapped where admin).
+3. PIN generation on booking create (trigger on `bookings` INSERT — the only touch to an existing table is via trigger, no column changes) + passenger PIN card component.
+4. Real `VerificationSlot` + gated Start-trip button.
+5. GPS collector hook + offline queue + upload fn wiring.
+6. No-show structured flow (replaces the `window.confirm` prompt).
+7. Communication log button + panel.
+8. Incident modal + admin incidents table swap.
+9. Fleet compliance banner (UI only).
+10. Evidence Package admin view.
+11. Verification settings admin panel.
+12. Typecheck, smoke-test as passenger / driver / admin.
+
+---
+
+## 6. Guardrails re-confirmed
+
+Untouched: `book.tsx` booking submit logic, `payments.functions.ts`, `receipts.functions.ts`, `stripe.*`, `blake.ts`, referral tables/fns, `auth.tsx`, `_authenticated` gate, `AppHeader`, `AuthProvider`. No column added or removed on any existing table. Only new trigger is one `AFTER INSERT` on `bookings` to mint a PIN into the new `booking_pins` table.
+
+---
+
+## 7. Clarifications I need before writing code
+
+1. **Verification default**: Should PIN be the only method enabled at launch (QR/NFC toggles present but off), or all three on by default?
+2. **No-show waiting time**: Default I proposed is **5 minutes** after driver marks "arrived". Confirm, or specify per-ride-type (airport vs city)?
+3. **GPS retention**: How long should raw `trip_route_points` be kept? I propose **90 days**, then auto-purge via cron; summary in `trip_evidence_v` stays forever. OK?
+4. **PIN visibility**: Show PIN to the passenger **immediately on booking confirmation**, or only **T-30 min before pickup**? (Security vs convenience.)
+5. **Photos on incidents**: You wrote "photos (future-ready)". Do you want Supabase Storage bucket created now (private, admin+owner-driver read) or truly deferred?
+
+Once these are answered I'll execute steps 1–12 in order, running typecheck between phases, without touching any protected surface.

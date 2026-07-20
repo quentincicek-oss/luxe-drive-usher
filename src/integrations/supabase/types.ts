@@ -99,6 +99,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_assignments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
             foreignKeyName: "booking_assignments_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -111,6 +118,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_pins: {
+        Row: {
+          attempts: number
+          booking_id: string
+          created_at: string
+          locked_until: string | null
+          pin_hash: string
+          pin_plain: string
+          salt: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          created_at?: string
+          locked_until?: string | null
+          pin_hash: string
+          pin_plain: string
+          salt: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          created_at?: string
+          locked_until?: string | null
+          pin_hash?: string
+          pin_plain?: string
+          salt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_pins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
           },
         ]
       }
@@ -218,6 +270,61 @@ export type Database = {
           user_language?: string | null
         }
         Relationships: []
+      }
+      communication_events: {
+        Row: {
+          booking_id: string
+          channel: Database["public"]["Enums"]["comm_channel"]
+          direction: Database["public"]["Enums"]["comm_direction"]
+          driver_id: string | null
+          duration_sec: number
+          id: string
+          started_at: string
+          status: Database["public"]["Enums"]["comm_status"]
+        }
+        Insert: {
+          booking_id: string
+          channel?: Database["public"]["Enums"]["comm_channel"]
+          direction: Database["public"]["Enums"]["comm_direction"]
+          driver_id?: string | null
+          duration_sec?: number
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["comm_status"]
+        }
+        Update: {
+          booking_id?: string
+          channel?: Database["public"]["Enums"]["comm_channel"]
+          direction?: Database["public"]["Enums"]["comm_direction"]
+          driver_id?: string | null
+          duration_sec?: number
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["comm_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "communication_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       concierge_sessions: {
         Row: {
@@ -498,6 +605,80 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "drivers_active_booking_id_fkey"
+            columns: ["active_booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          admin_notes: string | null
+          booking_id: string | null
+          category: Database["public"]["Enums"]["incident_category"]
+          created_at: string
+          description: string
+          driver_id: string | null
+          id: string
+          photo_urls: string[]
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: Database["public"]["Enums"]["incident_status"]
+        }
+        Insert: {
+          admin_notes?: string | null
+          booking_id?: string | null
+          category: Database["public"]["Enums"]["incident_category"]
+          created_at?: string
+          description: string
+          driver_id?: string | null
+          id?: string
+          photo_urls?: string[]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+        }
+        Update: {
+          admin_notes?: string | null
+          booking_id?: string | null
+          category?: Database["public"]["Enums"]["incident_category"]
+          created_at?: string
+          description?: string
+          driver_id?: string | null
+          id?: string
+          photo_urls?: string[]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: Database["public"]["Enums"]["incident_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "incidents_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nfc_tags: {
@@ -543,6 +724,128 @@ export type Database = {
             columns: ["code_id"]
             isOneToOne: false
             referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      no_show_reports: {
+        Row: {
+          admin_notes: string | null
+          admin_status: Database["public"]["Enums"]["no_show_status"]
+          arrival_at: string
+          arrival_lat: number | null
+          arrival_lng: number | null
+          attempts_count: number
+          booking_id: string
+          created_at: string
+          driver_id: string
+          id: string
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          waited_seconds: number
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_status?: Database["public"]["Enums"]["no_show_status"]
+          arrival_at: string
+          arrival_lat?: number | null
+          arrival_lng?: number | null
+          attempts_count?: number
+          booking_id: string
+          created_at?: string
+          driver_id: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          waited_seconds: number
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_status?: Database["public"]["Enums"]["no_show_status"]
+          arrival_at?: string
+          arrival_lat?: number | null
+          arrival_lng?: number | null
+          attempts_count?: number
+          booking_id?: string
+          created_at?: string
+          driver_id?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          waited_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "no_show_reports_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "no_show_reports_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "no_show_reports_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passenger_verifications: {
+        Row: {
+          booking_id: string
+          evidence: Json
+          id: string
+          method: Database["public"]["Enums"]["verification_method"]
+          verified_at: string
+          verified_by_driver_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          evidence?: Json
+          id?: string
+          method: Database["public"]["Enums"]["verification_method"]
+          verified_at?: string
+          verified_by_driver_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          evidence?: Json
+          id?: string
+          method?: Database["public"]["Enums"]["verification_method"]
+          verified_at?: string
+          verified_by_driver_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passenger_verifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passenger_verifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "passenger_verifications_verified_by_driver_id_fkey"
+            columns: ["verified_by_driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -621,6 +924,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_verifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
           },
         ]
       }
@@ -885,6 +1195,120 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ride_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
+      trip_locations: {
+        Row: {
+          accuracy_m: number | null
+          booking_id: string
+          driver_id: string
+          id: string
+          kind: Database["public"]["Enums"]["trip_location_kind"]
+          lat: number
+          lng: number
+          recorded_at: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          booking_id: string
+          driver_id: string
+          id?: string
+          kind: Database["public"]["Enums"]["trip_location_kind"]
+          lat: number
+          lng: number
+          recorded_at?: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          booking_id?: string
+          driver_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["trip_location_kind"]
+          lat?: number
+          lng?: number
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_locations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_locations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "trip_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_route_points: {
+        Row: {
+          booking_id: string
+          driver_id: string
+          lat: number
+          lng: number
+          recorded_at: string
+          seq: number
+          speed_mps: number | null
+        }
+        Insert: {
+          booking_id: string
+          driver_id: string
+          lat: number
+          lng: number
+          recorded_at?: string
+          seq: number
+          speed_mps?: number | null
+        }
+        Update: {
+          booking_id?: string
+          driver_id?: string
+          lat?: number
+          lng?: number
+          recorded_at?: string
+          seq?: number
+          speed_mps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_route_points_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_route_points_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "trip_route_points_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -950,9 +1374,74 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_settings: {
+        Row: {
+          id: number
+          min_waiting_seconds: number
+          nfc_enabled: boolean
+          pin_enabled: boolean
+          qr_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          min_waiting_seconds?: number
+          nfc_enabled?: boolean
+          pin_enabled?: boolean
+          qr_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          min_waiting_seconds?: number
+          nfc_enabled?: boolean
+          pin_enabled?: boolean
+          qr_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      trip_evidence_v: {
+        Row: {
+          booking_id: string | null
+          booking_status: Database["public"]["Enums"]["booking_status"] | null
+          communications: Json | null
+          dispatch_status: Database["public"]["Enums"]["dispatch_status"] | null
+          driver_id: string | null
+          dropoff: string | null
+          events: Json | null
+          incidents: Json | null
+          key_locations: Json | null
+          no_show: Json | null
+          passenger_id: string | null
+          pickup: string | null
+          pickup_time: string | null
+          route_point_count: number | null
+          vehicle_id: string | null
+          verifications: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "driver_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_audit_log: {
@@ -968,15 +1457,25 @@ export type Database = {
       }
       admin_dispatch_kpis: { Args: never; Returns: Json }
       admin_dispatch_overview: { Args: never; Returns: Json }
+      admin_fleet_compliance_alerts: { Args: { _days?: number }; Returns: Json }
       admin_fleet_expirations: { Args: never; Returns: Json }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
       admin_referral_kpis: { Args: never; Returns: Json }
+      driver_owns_booking: { Args: { _booking_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      passenger_owns_booking: {
+        Args: { _booking_id: string }
+        Returns: boolean
+      }
+      verify_booking_pin: {
+        Args: { _booking_id: string; _pin: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -987,6 +1486,9 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      comm_channel: "phone" | "inapp"
+      comm_direction: "driver_to_passenger" | "passenger_to_driver"
+      comm_status: "initiated" | "connected" | "missed" | "failed"
       dispatch_status:
         | "pending"
         | "assigned"
@@ -1021,6 +1523,17 @@ export type Database = {
         | "dispatch_contacted"
         | "passenger_contacted"
       employment_status: "active" | "inactive" | "vacation"
+      incident_category:
+        | "vehicle"
+        | "passenger"
+        | "traffic"
+        | "road_closure"
+        | "lost_property"
+        | "emergency"
+        | "other"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_status: "open" | "reviewing" | "resolved" | "dismissed"
+      no_show_status: "pending" | "approved" | "rejected"
       referral_source: "nfc" | "qr" | "link"
       referral_status:
         | "pending"
@@ -1030,9 +1543,11 @@ export type Database = {
         | "cancelled"
       reward_status: "pending" | "redeemed" | "expired" | "cancelled"
       ride_type: "escalade" | "suburban" | "denali"
+      trip_location_kind: "arrival" | "trip_start" | "trip_end"
       unavailability_reason: "vacation" | "maintenance" | "personal"
       vehicle_category: "escalade" | "suburban" | "denali" | "other"
       vehicle_status: "active" | "maintenance"
+      verification_method: "pin" | "qr" | "nfc"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1168,6 +1683,9 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      comm_channel: ["phone", "inapp"],
+      comm_direction: ["driver_to_passenger", "passenger_to_driver"],
+      comm_status: ["initiated", "connected", "missed", "failed"],
       dispatch_status: [
         "pending",
         "assigned",
@@ -1206,6 +1724,18 @@ export const Constants = {
         "passenger_contacted",
       ],
       employment_status: ["active", "inactive", "vacation"],
+      incident_category: [
+        "vehicle",
+        "passenger",
+        "traffic",
+        "road_closure",
+        "lost_property",
+        "emergency",
+        "other",
+      ],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_status: ["open", "reviewing", "resolved", "dismissed"],
+      no_show_status: ["pending", "approved", "rejected"],
       referral_source: ["nfc", "qr", "link"],
       referral_status: [
         "pending",
@@ -1216,9 +1746,11 @@ export const Constants = {
       ],
       reward_status: ["pending", "redeemed", "expired", "cancelled"],
       ride_type: ["escalade", "suburban", "denali"],
+      trip_location_kind: ["arrival", "trip_start", "trip_end"],
       unavailability_reason: ["vacation", "maintenance", "personal"],
       vehicle_category: ["escalade", "suburban", "denali", "other"],
       vehicle_status: ["active", "maintenance"],
+      verification_method: ["pin", "qr", "nfc"],
     },
   },
 } as const
