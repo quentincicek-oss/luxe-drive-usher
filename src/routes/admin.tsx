@@ -93,20 +93,28 @@ function Admin() {
   }
   useEffect(() => { if (role === "admin") refresh(); }, [role]);
 
+  const setBookingStatus = useServerFn(adminSetBookingStatus);
+  const upsertDiscountFn = useServerFn(adminUpsertDiscount);
+  const deleteDiscountFn = useServerFn(adminDeleteDiscount);
+
   async function updateStatus(id: string, status: string) {
-    const { error } = await supabase.from("bookings").update({ status: status as Booking["status"] } as never).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("admin.statusUpdated")); refresh();
+    try {
+      await setBookingStatus({ data: { bookingId: id, status } });
+      toast.success(t("admin.statusUpdated"));
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function addDiscount() {
-    const { error } = await supabase.from("discount_rules").insert({ min_miles: 0, max_miles: 25, flat_off: 10, percent_off: 5 });
-    if (error) { toast.error(error.message); return; }
-    refresh();
+    try {
+      await upsertDiscountFn({ data: { id: null, payload: { min_miles: 0, max_miles: 25, flat_off: 10, percent_off: 5, active: true } } });
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function deleteDiscount(id: string) {
-    const { error } = await supabase.from("discount_rules").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    refresh();
+    try {
+      await deleteDiscountFn({ data: { id } });
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   const filteredBookings = useMemo(() => {
