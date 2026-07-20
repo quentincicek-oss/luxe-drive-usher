@@ -45,11 +45,14 @@ export function UsersPanel() {
   const resend = useServerFn(resendInvitation);
   const suspend = useServerFn(setUserSuspension);
   const convert = useServerFn(convertUserRole);
+  const updateProfile = useServerFn(adminUpdateUserProfile);
 
   const [rows, setRows] = useState<ManagedUser[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<ManagedUser | null>(null);
+  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "admin" | "driver" | "passenger" | "suspended">("all");
   // Per-user resend cooldown expressed as an "available at" timestamp (ms).
   const [cooldownUntil, setCooldownUntil] = useState<Record<string, number>>({});
