@@ -22,6 +22,7 @@ import { Route as DriverTripsRouteImport } from './routes/driver.trips'
 import { Route as DriverProfileRouteImport } from './routes/driver.profile'
 import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -91,6 +92,11 @@ const ApiBlakeRoute = ApiBlakeRouteImport.update({
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminMfaRoute = AdminMfaRouteImport.update({
+  id: '/mfa',
+  path: '/mfa',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/admin/login'
+    | '/admin/mfa'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/admin/login'
+    | '/admin/mfa'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/admin/login'
+    | '/admin/mfa'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -321,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/mfa': {
+      id: '/admin/mfa'
+      path: '/mfa'
+      fullPath: '/admin/mfa'
+      preLoaderRoute: typeof AdminMfaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -347,11 +366,13 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminMfaRoute: typeof AdminMfaRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
+  AdminMfaRoute: AdminMfaRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
