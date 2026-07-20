@@ -51,30 +51,17 @@ function Auth() {
     }
   }, [user, role, loading, nav]);
 
-  async function verifyDriverOrReject(uid: string) {
-    // Server-authoritative role + status resolution. Never trust the tab.
-    // 1) exactly one authoritative driver role
-    const rolesQ = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    if (rolesQ.error) return false;
-    const roles = (rolesQ.data ?? []).map((r) => r.role);
-    if (!roles.includes("driver")) return false;
-
-    // 2) profile not suspended
-    const profQ = await supabase.from("profiles").select("is_suspended").eq("id", uid).maybeSingle();
-    if (profQ.error) return false;
-    if (profQ.data?.is_suspended) return false;
-
-    // 3) linked driver profile, active employment
-    const dpQ = await supabase
-      .from("driver_profiles")
-      .select("employment_status")
-      .eq("user_id", uid)
-      .maybeSingle();
-    if (dpQ.error) return false;
-    if (!dpQ.data) return false;
-    if (dpQ.data.employment_status !== "active") return false;
-
-    return true;
+  async function verifyDriverOrReject(_uid: string) {
+    // Server-authoritative eligibility. The SECURITY DEFINER RPC returns
+    // only a boolean; the specific reason (wrong role, suspended, inactive,
+    // missing profile, conflicting roles) is intentionally not surfaced.
+    try {
+      const { driverSignInEligibility } = await import("@/lib/mfa.functions");
+      const res = await driverSignInEligibility({ data: {} });
+      return res.ok === true;
+    } catch {
+      return false;
+    }
   }
 
   async function handlePassengerSignUp() {

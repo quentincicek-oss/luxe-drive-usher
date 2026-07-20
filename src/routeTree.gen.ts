@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as BookRouteImport } from './routes/book'
@@ -27,6 +28,11 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/api/blake': typeof ApiBlakeRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/driver'
     | '/history'
+    | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
     | '/api/blake'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/history'
+    | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
     | '/api/blake'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/driver'
     | '/history'
+    | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
     | '/api/blake'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   DriverRoute: typeof DriverRouteWithChildren
   HistoryRoute: typeof HistoryRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiBlakeRoute: typeof ApiBlakeRoute
   RCodeRoute: typeof RCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -242,6 +255,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history': {
       id: '/history'
       path: '/history'
@@ -414,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   DriverRoute: DriverRouteWithChildren,
   HistoryRoute: HistoryRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiBlakeRoute: ApiBlakeRoute,
   RCodeRoute: RCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
