@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -6,6 +6,7 @@ import {
   resendInvitation,
   setUserSuspension,
   listManagedUsers,
+  convertUserRole,
 } from "@/lib/provisioning.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,12 +43,17 @@ export function UsersPanel() {
   const provision = useServerFn(provisionUser);
   const resend = useServerFn(resendInvitation);
   const suspend = useServerFn(setUserSuspension);
+  const convert = useServerFn(convertUserRole);
 
   const [rows, setRows] = useState<ManagedUser[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | "admin" | "driver" | "passenger" | "suspended">("all");
+  // Per-user resend cooldown expressed as an "available at" timestamp (ms).
+  const [cooldownUntil, setCooldownUntil] = useState<Record<string, number>>({});
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const tickRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -57,7 +63,14 @@ export function UsersPanel() {
       const { data: a } = await supabase
         .from("audit_log")
         .select("id, action, entity_id, actor_email, reason, created_at, next")
-        .in("action", ["user.provisioned", "user.suspended", "user.reactivated", "user.invitation_resent"])
+        .in("action", [
+          "user.provisioned",
+          "user.suspended",
+          "user.reactivated",
+          "user.invitation_resent",
+          "user.provisioning_failed",
+          "user.role_converted",
+        ])
         .order("created_at", { ascending: false })
         .limit(50);
       setAudit((a ?? []) as AuditRow[]);
@@ -70,15 +83,42 @@ export function UsersPanel() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // 1-second ticker only while any cooldown is active, for button countdowns.
+  useEffect(() => {
+    const hasActive = Object.values(cooldownUntil).some((t) => t > Date.now());
+    if (!hasActive) {
+      if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+      return;
+    }
+    if (tickRef.current) return;
+    tickRef.current = window.setInterval(() => setNowTick(Date.now()), 1000) as unknown as number;
+    return () => {
+      if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+    };
+  }, [cooldownUntil, nowTick]);
+
   const filtered = rows.filter((r) => {
     if (filter === "all") return true;
     if (filter === "suspended") return r.is_suspended;
     return r.role === filter;
   });
 
+  function remainingCooldown(userId: string): number {
+    const t = cooldownUntil[userId];
+    if (!t) return 0;
+    return Math.max(0, Math.ceil((t - nowTick) / 1000));
+  }
+
   async function handleResend(id: string) {
+    if (remainingCooldown(id) > 0) return;
     try {
-      await resend({ data: { userId: id } });
+      const res: any = await resend({ data: { userId: id } });
+      if (res?.cooldown) {
+        setCooldownUntil((m) => ({ ...m, [id]: Date.now() + (res.retryAfterSeconds ?? 300) * 1000 }));
+        toast.error(res.message ?? "Please wait before retrying.");
+        return;
+      }
+      setCooldownUntil((m) => ({ ...m, [id]: Date.now() + (res?.retryAfterSeconds ?? 300) * 1000 }));
       toast.success("Invitation resent");
       refresh();
     } catch (e: any) {
@@ -97,6 +137,47 @@ export function UsersPanel() {
       refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Action failed");
+    }
+  }
+
+  async function handleConvert(user: ManagedUser) {
+    if (!user.role) return;
+    const nextRoleRaw = window.prompt(
+      `Convert account ${user.email}\nCurrent role: ${user.role}\n\nEnter NEW role (admin / driver / passenger):`,
+    );
+    const nextRole = (nextRoleRaw ?? "").trim().toLowerCase();
+    if (!["admin", "driver", "passenger"].includes(nextRole)) return;
+    if (nextRole === user.role) { toast.error("Already has that role"); return; }
+    const reason = window.prompt("Reason for conversion (min 4 chars, visible in audit log):");
+    if (!reason || reason.trim().length < 4) return;
+    let driver: any = undefined;
+    if (nextRole === "driver") {
+      const employeeId = window.prompt("Employee ID for new driver profile (e.g. HL-D-002):");
+      if (!employeeId || !employeeId.trim()) return;
+      driver = {
+        employeeId: employeeId.trim().toUpperCase(),
+        fullName: user.full_name || user.email || "Driver",
+        email: user.email ?? undefined,
+      };
+    }
+    const confirmed = window.confirm(
+      `You are about to convert ${user.email} from "${user.role}" to "${nextRole}". This writes an atomic user.role_converted audit event and cannot be undone by simply provisioning again. Continue?`,
+    );
+    if (!confirmed) return;
+    try {
+      await convert({
+        data: {
+          userId: user.user_id,
+          newRole: nextRole as any,
+          reason: reason.trim(),
+          confirmed: true as const,
+          driver,
+        },
+      });
+      toast.success(`Converted to ${nextRole}`);
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Conversion failed");
     }
   }
 
@@ -146,7 +227,14 @@ export function UsersPanel() {
               setShowForm(false);
               refresh();
             } catch (e: any) {
-              toast.error(e?.message ?? "Provisioning failed");
+              const msg = String(e?.message ?? "Provisioning failed");
+              if (msg.startsWith("conflict_existing_role")) {
+                toast.error(
+                  "This email already belongs to another account. Use the Convert action on that user instead of provisioning.",
+                );
+              } else {
+                toast.error(msg);
+              }
             }
           }}
         />
@@ -206,12 +294,32 @@ export function UsersPanel() {
                 <td className="px-4 py-3 text-xs tabular-nums text-muted-foreground">
                   {new Date(r.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                  {(() => {
+                    const secs = remainingCooldown(r.user_id);
+                    return (
+                      <button
+                        onClick={() => handleResend(r.user_id)}
+                        disabled={secs > 0}
+                        title={secs > 0 ? `Cooldown active — resend in ${secs}s` : "Resend invitation email"}
+                        className={
+                          "text-xs px-2.5 py-1 rounded border transition " +
+                          (secs > 0
+                            ? "border-border/30 text-muted-foreground opacity-60 cursor-not-allowed"
+                            : "border-border/60 hover:border-gold hover:text-gold")
+                        }
+                      >
+                        {secs > 0 ? `Resend in ${secs}s` : "Resend invite"}
+                      </button>
+                    );
+                  })()}
                   <button
-                    onClick={() => handleResend(r.user_id)}
-                    className="text-xs px-2.5 py-1 rounded border border-border/60 hover:border-gold hover:text-gold transition"
+                    onClick={() => handleConvert(r)}
+                    disabled={r.is_suspended}
+                    title={r.is_suspended ? "Cannot convert suspended account" : "Change this user's role (explicit conversion)"}
+                    className="text-xs px-2.5 py-1 rounded border border-border/60 hover:border-gold hover:text-gold transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Resend invite
+                    Convert
                   </button>
                   <button
                     onClick={() => handleSuspend(r.user_id, r.is_suspended)}

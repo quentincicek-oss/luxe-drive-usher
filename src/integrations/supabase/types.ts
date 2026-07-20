@@ -681,6 +681,33 @@ export type Database = {
           },
         ]
       }
+      invitation_cooldowns: {
+        Row: {
+          created_at: string
+          email_key: string
+          last_actor_id: string | null
+          last_sent_at: string
+          send_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_key: string
+          last_actor_id?: string | null
+          last_sent_at?: string
+          send_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_key?: string
+          last_actor_id?: string | null
+          last_sent_at?: string
+          send_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nfc_tags: {
         Row: {
           active: boolean
@@ -1492,6 +1519,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _email_fingerprint: { Args: { _email: string }; Returns: string }
       admin_assign_driver: {
         Args: {
           _booking_id: string
@@ -1512,6 +1540,25 @@ export type Database = {
         }
         Returns: string
       }
+      admin_audit_provisioning_failure: {
+        Args: {
+          _account_type: string
+          _correlation_id: string
+          _email: string
+          _failure_category: string
+        }
+        Returns: undefined
+      }
+      admin_convert_user_role: {
+        Args: {
+          _confirmed?: boolean
+          _driver?: Json
+          _new_role: string
+          _reason: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       admin_delete_campaign: { Args: { _id: string }; Returns: undefined }
       admin_delete_discount: { Args: { _id: string }; Returns: undefined }
       admin_delete_driver: {
@@ -1527,6 +1574,10 @@ export type Database = {
       admin_dispatch_overview: { Args: never; Returns: Json }
       admin_fleet_compliance_alerts: { Args: { _days?: number }; Returns: Json }
       admin_fleet_expirations: { Args: never; Returns: Json }
+      admin_get_invitation_cooldown: {
+        Args: { _cooldown_seconds?: number; _email: string }
+        Returns: Json
+      }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
       admin_list_managed_users: { Args: never; Returns: Json }
       admin_provision_user_finalize: {
@@ -1542,6 +1593,10 @@ export type Database = {
       admin_referral_kpis: { Args: never; Returns: Json }
       admin_remove_assignment: {
         Args: { _assignment_id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_reserve_invitation_slot: {
+        Args: { _cooldown_seconds?: number; _email: string }
         Returns: Json
       }
       admin_resolve_incident: {
