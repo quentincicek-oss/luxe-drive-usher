@@ -227,7 +227,14 @@ export function UsersPanel() {
               setShowForm(false);
               refresh();
             } catch (e: any) {
-              toast.error(e?.message ?? "Provisioning failed");
+              const msg = String(e?.message ?? "Provisioning failed");
+              if (msg.startsWith("conflict_existing_role")) {
+                toast.error(
+                  "This email already belongs to another account. Use the Convert action on that user instead of provisioning.",
+                );
+              } else {
+                toast.error(msg);
+              }
             }
           }}
         />
