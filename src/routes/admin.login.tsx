@@ -24,6 +24,22 @@ function AdminLogin() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  async function signInWithGoogle() {
+    setGoogleBusy(true);
+    try {
+      const { lovable } = await import("@/integrations/lovable/index");
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw new Error((result.error as Error).message || "Google sign-in failed");
+      // Auth state change + admin gate in /admin will redirect appropriately.
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
+      setGoogleBusy(false);
+    }
+  }
 
   async function sendReset() {
     if (!email.trim()) {
