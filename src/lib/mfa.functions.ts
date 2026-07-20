@@ -59,19 +59,36 @@ export const resetAdminMfa = createServerFn({ method: "POST" })
       removed: number,
       error?: string,
     ) => {
+      // Sanitize provider errors before persisting to the audit channel:
+      // drop tokens, bearer headers, URLs, UUIDs (factor IDs), stack frames,
+      // and cap length. Detailed provider payloads are never returned to the UI.
+      const sanitize = (s: string | undefined | null): string | null => {
+        if (!s) return null;
+        let out = String(s);
+        out = out.replace(/bearer\s+[a-z0-9._\-]+/gi, "[redacted-token]");
+        out = out.replace(/eyJ[a-zA-Z0-9._-]{20,}/g, "[redacted-jwt]");
+        out = out.replace(/https?:\/\/\S+/gi, "[redacted-url]");
+        out = out.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "[redacted-id]");
+        out = out.replace(/\s+at\s+.*?(\n|$)/g, " ");
+        out = out.replace(/\s+/g, " ").trim();
+        return out.slice(0, 240);
+      };
       await rpc.rpc("admin_audit_mfa_reset_outcome", {
         _target_user_id: data.targetUserId,
         _outcome: outcome,
         _total: total,
         _removed: removed,
-        _error: error ?? null,
+        _error: sanitize(error),
       });
     };
+
+    // Generic operator-facing failure message. Details live only in the audit log.
+    const GENERIC_FAIL = "Unable to complete the MFA reset. Review the audit event and retry safely.";
 
     const list = await adminMfa.mfa.listFactors({ userId: data.targetUserId });
     if (list.error) {
       await recordOutcome("failed", 0, 0, `list: ${list.error.message}`);
-      throw new Error("mfa list failed");
+      throw new Error(GENERIC_FAIL);
     }
     const factors = list.data?.factors ?? [];
     const total = factors.length;
@@ -97,12 +114,12 @@ export const resetAdminMfa = createServerFn({ method: "POST" })
     }
     if (removed === 0) {
       await recordOutcome("failed", total, removed, firstError ?? undefined);
-      throw new Error(firstError ?? "mfa delete failed");
+      throw new Error(GENERIC_FAIL);
     }
     await recordOutcome("partial", total, removed, firstError ?? undefined);
-    throw new Error(
-      `partial reset: ${removed}/${total} factors removed. Target may still hold a valid factor. ${firstError ?? ""}`.trim(),
-    );
+    // Partial: report counts (safe, non-sensitive) but never the provider message.
+    throw new Error(`Partial reset: ${removed}/${total} factor(s) removed. ${GENERIC_FAIL}`);
+
   });
 
 type AdminRow = { user_id: string; email: string | null };
