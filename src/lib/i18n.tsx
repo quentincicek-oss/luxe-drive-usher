@@ -183,6 +183,10 @@ const en: Dict = {
   "admin.tabs.mfa": "MFA",
   "admin.tabs.referrals": "Referrals",
   "admin.tabs.audit": "Audit log",
+  "theme.label": "Appearance",
+  "theme.auto": "Auto",
+  "theme.day": "Day",
+  "theme.night": "Night",
 };
 
 
@@ -326,6 +330,10 @@ const tr: Dict = {
   "admin.tabs.mfa": "MFA",
   "admin.tabs.referrals": "Tavsiyeler",
   "admin.tabs.audit": "Denetim Kaydı",
+  "theme.label": "Görünüm",
+  "theme.auto": "Otomatik",
+  "theme.day": "Gündüz",
+  "theme.night": "Gece",
 };
 
 const es: Dict = {
