@@ -7,6 +7,7 @@ import { RatingModal } from "@/components/RatingModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { BookingCheckoutModal } from "@/components/BookingCheckoutModal";
 import { Star, Receipt, CreditCard, CheckCircle2, Sparkles } from "lucide-react";
+import { BookingPinCard } from "@/components/BookingPinCard";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { MyReferralCard } from "@/components/referrals/MyReferralCard";
