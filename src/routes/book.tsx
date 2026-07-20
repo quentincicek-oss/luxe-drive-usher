@@ -140,42 +140,62 @@ function Book() {
           title={t("book.title")}
           description={t("book.subtitle")}
         >
-          <form id="book-form" onSubmit={reserve} className="space-y-5">
-            <AddressAutocomplete
-              label={t("book.pickup")}
-              required
-              value={form.pickup}
-              onTextChange={(v) => setForm({ ...form, pickup: v })}
-              onSelect={(a) => {
-                setPickupAddr(a);
-                setForm((f) => ({ ...f, pickup: a.formatted }));
-              }}
-              onClear={() => setPickupAddr(null)}
-              placeholder={t("book.pickup.example")}
-              autoComplete="off"
-            />
-            <AddressAutocomplete
-              label={t("book.dropoff")}
-              required
-              value={form.dropoff}
-              onTextChange={(v) => setForm({ ...form, dropoff: v })}
-              onSelect={(a) => {
-                setDropoffAddr(a);
-                setForm((f) => ({ ...f, dropoff: a.formatted }));
-              }}
-              onClear={() => setDropoffAddr(null)}
-              placeholder={t("book.dropoff.example")}
-              autoComplete="off"
-            />
+          <form id="book-form" onSubmit={reserve} noValidate className="space-y-5">
+            <div ref={pickupRef}>
+              <AddressAutocomplete
+                label={t("book.pickup")}
+                required
+                value={form.pickup}
+                error={errors.pickup ?? null}
+                onTextChange={(v) => {
+                  setForm({ ...form, pickup: v });
+                  if (errors.pickup) setErrors((e) => ({ ...e, pickup: undefined }));
+                }}
+                onSelect={(a) => {
+                  setPickupAddr(a);
+                  setForm((f) => ({ ...f, pickup: a.formatted }));
+                  setErrors((e) => ({ ...e, pickup: undefined }));
+                }}
+                onClear={() => setPickupAddr(null)}
+                placeholder={t("book.pickup.example")}
+                autoComplete="off"
+              />
+            </div>
+            <div ref={dropoffRef}>
+              <AddressAutocomplete
+                label={t("book.dropoff")}
+                required
+                value={form.dropoff}
+                error={errors.dropoff ?? null}
+                onTextChange={(v) => {
+                  setForm({ ...form, dropoff: v });
+                  if (errors.dropoff) setErrors((e) => ({ ...e, dropoff: undefined }));
+                }}
+                onSelect={(a) => {
+                  setDropoffAddr(a);
+                  setForm((f) => ({ ...f, dropoff: a.formatted }));
+                  setErrors((e) => ({ ...e, dropoff: undefined }));
+                }}
+                onClear={() => setDropoffAddr(null)}
+                placeholder={t("book.dropoff.example")}
+                autoComplete="off"
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field
-                label={t("book.time")}
-                required
-                type="datetime-local"
-                value={form.pickup_time}
-                onChange={(e) => setForm({ ...form, pickup_time: e.target.value })}
-              />
+              <div ref={timeRef}>
+                <Field
+                  label={t("book.time")}
+                  required
+                  type="datetime-local"
+                  value={form.pickup_time}
+                  error={errors.time ?? null}
+                  onChange={(e) => {
+                    setForm({ ...form, pickup_time: e.target.value });
+                    if (errors.time) setErrors((er) => ({ ...er, time: undefined }));
+                  }}
+                />
+              </div>
               <div>
                 <div className="label-luxe">{t("book.passengers")}</div>
                 <PassengerStepper
@@ -184,6 +204,7 @@ function Book() {
                 />
               </div>
             </div>
+
             <div>
               <div className="label-luxe">{t("book.ride")}</div>
               <VehicleShowroom
