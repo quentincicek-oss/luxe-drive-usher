@@ -1860,6 +1860,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_audit_mfa_reset: {
+        Args: { _reason: string; _target_user_id: string }
+        Returns: undefined
+      }
       admin_audit_provisioning_failure: {
         Args: {
           _account_type: string
@@ -1900,6 +1904,13 @@ export type Database = {
         Returns: Json
       }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
+      admin_list_admins: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       admin_list_amenities: { Args: never; Returns: Json }
       admin_list_managed_users: { Args: never; Returns: Json }
       admin_provision_user_finalize: {
@@ -2002,6 +2013,7 @@ export type Database = {
         Returns: string
       }
       driver_owns_booking: { Args: { _booking_id: string }; Returns: boolean }
+      driver_signin_eligibility: { Args: never; Returns: boolean }
       get_my_booking_pin: { Args: { _booking_id: string }; Returns: string }
       has_role: {
         Args: {

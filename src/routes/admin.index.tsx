@@ -18,6 +18,7 @@ import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { SupportPanel } from "@/components/admin/SupportPanel";
 import { AmenitiesPanel } from "@/components/admin/AmenitiesPanel";
+import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
@@ -46,7 +47,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge" | "support" | "amenities";
+type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "mfa" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge" | "support" | "amenities";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
@@ -160,6 +161,7 @@ function Admin() {
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
     { key: "users",     label: "Users" },
+    { key: "mfa",       label: "Admin 2FA" },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
     { key: "amenities", label: "Amenities" },
@@ -215,6 +217,9 @@ function Admin() {
 
         {/* ============ USERS ============ */}
         {tab === "users" && <UsersPanel />}
+
+        {/* ============ ADMIN MFA RECOVERY ============ */}
+        {tab === "mfa" && <AdminMfaPanel />}
 
         {/* ============ AMENITIES ============ */}
         {tab === "amenities" && <AmenitiesPanel />}
