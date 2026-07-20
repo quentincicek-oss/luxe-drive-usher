@@ -239,7 +239,7 @@ function Book() {
           <button
             type="submit"
             form="book-form"
-            disabled={!canSubmit}
+            disabled={saving}
             className="btn-primary-luxe flex-1"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
