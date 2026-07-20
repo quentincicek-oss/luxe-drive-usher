@@ -40,19 +40,52 @@ function Book() {
   const [dropoffAddr, setDropoffAddr] = useState<StructuredAddress | null>(null);
   const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<{ pickup?: string; dropoff?: string; time?: string }>({});
+
+  const pickupRef = useRef<HTMLDivElement>(null);
+  const dropoffRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
 
   const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
-  const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
 
   const createBookingFn = useServerFn(createBookingServer);
   const setAmenitiesFn = useServerFn(setBookingAmenities);
 
+  function validate() {
+    const next: typeof errors = {};
+    if (!form.pickup.trim()) next.pickup = t("book.pickup.required");
+    if (!form.dropoff.trim()) next.dropoff = t("book.dropoff.required");
+    if (!form.pickup_time) next.time = t("book.time.required");
+    else if (new Date(form.pickup_time).getTime() <= Date.now()) next.time = t("book.time.past");
+    return next;
+  }
+
+  function scrollToFirst(next: typeof errors) {
+    const order: Array<[keyof typeof errors, React.RefObject<HTMLDivElement | null>]> = [
+      ["pickup", pickupRef], ["dropoff", dropoffRef], ["time", timeRef],
+    ];
+    for (const [k, r] of order) {
+      if (next[k] && r.current) {
+        r.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = r.current.querySelector<HTMLInputElement>("input");
+        setTimeout(() => input?.focus({ preventScroll: true }), 250);
+        break;
+      }
+    }
+  }
+
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      scrollToFirst(next);
+      return;
+    }
     setSaving(true);
     try {
       const { id } = await createBookingFn({ data: {
@@ -84,6 +117,7 @@ function Book() {
       setSaving(false);
     }
   }
+
 
   if (loading || !user) {
     return (
