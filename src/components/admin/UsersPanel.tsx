@@ -180,7 +180,7 @@ export function UsersPanel() {
     try {
       await convert({
         data: {
-          userId: user.userId,
+          userId: user.user_id,
           newRole: nextRole as any,
           reason: reason.trim(),
           confirmed: true as const,
@@ -297,7 +297,7 @@ export function UsersPanel() {
               <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No users match this filter.</td></tr>
             )}
             {filtered.map((r) => (
-              <tr key={r.userId} className="border-t border-border/40">
+              <tr key={r.user_id} className="border-t border-border/40">
                 <td className="px-4 py-3">
                   <div className="font-medium">{r.full_name || "—"}</div>
                   <div className="text-xs text-muted-foreground">{r.email}</div>
@@ -333,10 +333,10 @@ export function UsersPanel() {
                 </td>
                 <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                   {(() => {
-                    const secs = remainingCooldown(r.userId);
+                    const secs = remainingCooldown(r.user_id);
                     return (
                       <button
-                        onClick={() => handleResend(r.userId)}
+                        onClick={() => handleResend(r.user_id)}
                         disabled={secs > 0}
                         title={secs > 0 ? `Cooldown active — resend in ${secs}s` : "Resend invitation email"}
                         className={
@@ -367,7 +367,7 @@ export function UsersPanel() {
                     Convert
                   </button>
                   <button
-                    onClick={() => handleSuspend(r.userId, r.is_suspended)}
+                    onClick={() => handleSuspend(r.user_id, r.is_suspended)}
                     className={
                       "text-xs px-2.5 py-1 rounded border transition " +
                       (r.is_suspended
@@ -572,7 +572,7 @@ function EditUserModal({
           setSubmitting(true);
           try {
             await onSave({
-              userId: user.userId,
+              userId: user.user_id,
               profile: {
                 name: name.trim() || undefined,
                 surname: surname.trim() || undefined,
