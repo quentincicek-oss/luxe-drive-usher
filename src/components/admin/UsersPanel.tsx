@@ -333,6 +333,14 @@ export function UsersPanel() {
                     );
                   })()}
                   <button
+                    onClick={() => setEditing(r)}
+                    disabled={r.is_suspended}
+                    title={r.is_suspended ? "Cannot edit suspended account" : "Edit profile"}
+                    className="text-xs px-2.5 py-1 rounded border border-border/60 hover:border-gold hover:text-gold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Edit
+                  </button>
+                  <button
                     onClick={() => handleConvert(r)}
                     disabled={r.is_suspended}
                     title={r.is_suspended ? "Cannot convert suspended account" : "Change this user's role (explicit conversion)"}
