@@ -37,7 +37,7 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
   async function assign(driver_id: string, vehicle_id: string | null) {
     setBusy(true);
     try {
-      const row = (await assignFn({ data: { bookingId, driverId: driver_id, vehicleId: vehicle_id } })) as Assignment;
+      const row = (await assignFn({ data: { bookingId, driverId: driver_id, vehicleId: vehicle_id } })) as unknown as Assignment;
       setCurrent(row);
       const drv = drivers.find(x => x.id === driver_id);
       emit({ type: "driver.assigned", bookingId, driverName: drv?.full_name ?? "Driver" });
