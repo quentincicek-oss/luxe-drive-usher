@@ -7,6 +7,7 @@ import { RatingModal } from "@/components/RatingModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { BookingCheckoutModal } from "@/components/BookingCheckoutModal";
 import { Star, Receipt, CreditCard, CheckCircle2, Sparkles } from "lucide-react";
+import { BookingPinCard } from "@/components/BookingPinCard";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/AppHeader";
 import { MyReferralCard } from "@/components/referrals/MyReferralCard";
@@ -109,6 +110,9 @@ function History() {
                     <div className="mt-1 text-xs text-muted-foreground capitalize">
                       {b.ride_type} · {b.passengers} {t("history.pax")} · {t(`status.${b.status}`)}
                     </div>
+                    {b.status !== "completed" && b.status !== "cancelled" && (
+                      <div className="mt-3"><BookingPinCard bookingId={b.id} /></div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right hidden sm:block">
