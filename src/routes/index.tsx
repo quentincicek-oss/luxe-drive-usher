@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HarborLogo, Wordmark } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { VehicleTurntable } from "@/components/VehicleTurntable";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useRef } from "react";
@@ -68,6 +70,7 @@ function Landing() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle className="hidden sm:inline-flex" />
             <LanguageMenu />
             {user ? (
               <Link to={role === "admin" ? "/admin" : "/book"} className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold tracking-wide text-primary-foreground shadow-gold">
@@ -146,6 +149,9 @@ function Landing() {
             <div className="text-xs tracking-[0.4em] text-gold uppercase mb-3">{t("landing.fleet.eyebrow")}</div>
             <h2 className="font-display text-4xl md:text-5xl">{t("landing.fleet.title")}</h2>
             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">{t("landing.fleet.body")}</p>
+          </div>
+          <div className="mb-14">
+            <VehicleTurntable label="Cadillac Escalade" tagline={t("fleet.escalade.tag")} />
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {fleet.map((v) => (
