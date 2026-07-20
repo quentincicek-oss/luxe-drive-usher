@@ -290,6 +290,19 @@ function Auth() {
             </button>
           </form>
 
+          {!isSignup && !isDriver && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={busy}
+                className="text-xs text-muted-foreground hover:text-gold underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
           {isDriver && (
             <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
               Sign-in attempts are recorded. Repeated failures may result in temporary account
