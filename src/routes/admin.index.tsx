@@ -46,7 +46,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
+type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge" | "support" | "amenities";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
@@ -162,6 +162,8 @@ function Admin() {
     { key: "users",     label: "Users" },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
+    { key: "amenities", label: "Amenities" },
+    { key: "support",   label: "Support" },
     { key: "fleet",     label: "Fleet health" },
     { key: "incidents", label: "Incidents" },
     { key: "audit",     label: "Audit log" },
@@ -172,7 +174,6 @@ function Admin() {
 
   return (
     <main className="min-h-dvh bg-obsidian">
-      <AppHeader subtitle={t("admin.console")} />
 
       <section className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-wrap gap-1 border-b border-border/60 mb-6">
@@ -214,6 +215,12 @@ function Admin() {
 
         {/* ============ USERS ============ */}
         {tab === "users" && <UsersPanel />}
+
+        {/* ============ AMENITIES ============ */}
+        {tab === "amenities" && <AmenitiesPanel />}
+
+        {/* ============ SUPPORT ============ */}
+        {tab === "support" && <SupportPanel />}
 
 
         {/* ============ DISPATCH ============ */}
