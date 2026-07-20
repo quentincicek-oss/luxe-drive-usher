@@ -16,11 +16,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverIndexRouteImport } from './routes/driver.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as DriverTripsRouteImport } from './routes/driver.trips'
 import { Route as DriverProfileRouteImport } from './routes/driver.profile'
 import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -59,6 +61,11 @@ const DriverIndexRoute = DriverIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DriverRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const RCodeRoute = RCodeRouteImport.update({
   id: '/r/$code',
   path: '/r/$code',
@@ -84,6 +91,11 @@ const ApiBlakeRoute = ApiBlakeRouteImport.update({
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DriverTripsIdRoute = DriverTripsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -98,31 +110,34 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
+  '/admin/login': typeof AdminLoginRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
+  '/admin/login': typeof AdminLoginRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/admin': typeof AdminIndexRoute
   '/driver': typeof DriverIndexRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -130,16 +145,18 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
+  '/admin/login': typeof AdminLoginRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
   '/r/$code': typeof RCodeRoute
+  '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -153,26 +170,29 @@ export interface FileRouteTypes {
     | '/book'
     | '/driver'
     | '/history'
+    | '/admin/login'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
     | '/r/$code'
+    | '/admin/'
     | '/driver/'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/auth'
     | '/book'
     | '/history'
+    | '/admin/login'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
     | '/r/$code'
+    | '/admin'
     | '/driver'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
@@ -184,11 +204,13 @@ export interface FileRouteTypes {
     | '/book'
     | '/driver'
     | '/history'
+    | '/admin/login'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
     | '/r/$code'
+    | '/admin/'
     | '/driver/'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
@@ -196,7 +218,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   DriverRoute: typeof DriverRouteWithChildren
@@ -257,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DriverIndexRouteImport
       parentRoute: typeof DriverRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/r/$code': {
       id: '/r/$code'
       path: '/r/$code'
@@ -292,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/driver/trips/$id': {
       id: '/driver/trips/$id'
       path: '/$id'
@@ -308,6 +344,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminLoginRoute: AdminLoginRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface DriverTripsRouteChildren {
   DriverTripsIdRoute: typeof DriverTripsIdRoute
@@ -340,7 +388,7 @@ const DriverRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   DriverRoute: DriverRouteWithChildren,

@@ -8,7 +8,9 @@ import { VehicleShowroom } from "@/components/VehicleShowroom";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
+import { AmenitiesSelector } from "@/components/booking/AmenitiesSelector";
 import { createBookingServer } from "@/lib/dispatch.functions";
+import { setBookingAmenities } from "@/lib/amenities.functions";
 import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
@@ -32,6 +34,7 @@ function Book() {
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
     passengers: 1, ride_type: "escalade" as "escalade" | "suburban" | "denali",
   });
+  const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
@@ -41,21 +44,27 @@ function Book() {
   const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
 
   const createBookingFn = useServerFn(createBookingServer);
+  const setAmenitiesFn = useServerFn(setBookingAmenities);
 
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
     try {
-      // C4: pricing is derived server-side inside create_booking(); the
-      // browser no longer controls suggested_price.
-      await createBookingFn({ data: {
+      const { id } = await createBookingFn({ data: {
         pickup: form.pickup,
         dropoff: form.dropoff,
         pickupTime: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers,
         rideType: form.ride_type,
       }});
+      if (amenityIds.length > 0 && id) {
+        try {
+          await setAmenitiesFn({ data: { bookingId: id, amenityIds } });
+        } catch (err) {
+          toast.error("Reservation saved, but preferences failed: " + (err as Error).message);
+        }
+      }
       toast.success(t("book.success"));
       nav({ to: "/history" });
     } catch (e: unknown) {
@@ -126,6 +135,13 @@ function Book() {
                 onChange={(v) => setForm({ ...form, ride_type: v })}
               />
             </div>
+
+            <AmenitiesSelector
+              rideType={form.ride_type}
+              selectedIds={amenityIds}
+              onChange={setAmenityIds}
+            />
+
 
             {/* Desktop submit */}
             <div className="hidden sm:flex items-center justify-between gap-4 pt-2">

@@ -1,16 +1,20 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { HarborLogo } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { History, LogOut, ShieldCheck, Car } from "lucide-react";
+import { History, LogOut, Car } from "lucide-react";
 import type { ReactNode } from "react";
 
 type Props = { subtitle?: string; right?: ReactNode };
 
+// Customer/driver-facing header only. The admin application has its own header
+// (src/routes/admin.tsx) and never shows passenger navigation.
 export function AppHeader({ subtitle, right }: Props) {
   const { role, signOut } = useAuth();
   const { t } = useI18n();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname.startsWith("/admin")) return null;
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 sm:px-6 py-3.5">
@@ -34,12 +38,6 @@ export function AppHeader({ subtitle, right }: Props) {
             <Link to="/driver" className="btn-ghost-luxe text-gold" aria-label="Driver">
               <Car className="h-4 w-4" />
               <span className="hidden sm:inline">Driver</span>
-            </Link>
-          )}
-          {role === "admin" && (
-            <Link to="/admin" className="btn-ghost-luxe text-gold" aria-label={t("nav.admin")}>
-              <ShieldCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("nav.admin")}</span>
             </Link>
           )}
           <button onClick={signOut} className="btn-ghost-luxe" aria-label={t("nav.signout")}>

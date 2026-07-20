@@ -40,7 +40,7 @@ export function ConciergeWidget() {
   }, [chat, open]);
 
   if (loading || !user) return null;
-  if (pathname === "/" || pathname.startsWith("/auth")) return null;
+  if (pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/admin")) return null;
 
 
   async function send() {
