@@ -156,20 +156,20 @@ function Admin() {
   if (loading || !user || role !== "admin") return <div className="min-h-screen bg-obsidian" />;
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "overview",  label: "Overview" },
-    { key: "dispatch",  label: "Dispatch" },
+    { key: "overview",  label: t("admin.tabs.overview") },
+    { key: "dispatch",  label: t("admin.tabs.dispatch") },
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
-    { key: "users",     label: "Users" },
-    { key: "mfa",       label: "Admin 2FA" },
+    { key: "users",     label: t("admin.tabs.users") },
+    { key: "mfa",       label: t("admin.tabs.mfa") },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
-    { key: "amenities", label: "Amenities" },
-    { key: "support",   label: "Support" },
-    { key: "fleet",     label: "Fleet health" },
+    { key: "amenities", label: t("admin.tabs.amenities") },
+    { key: "support",   label: t("admin.tabs.support") },
+    { key: "fleet",     label: t("admin.tabs.fleet") },
     { key: "incidents", label: "Incidents" },
-    { key: "audit",     label: "Audit log" },
-    { key: "referrals", label: "Referrals" },
+    { key: "audit",     label: t("admin.tabs.audit") },
+    { key: "referrals", label: t("admin.tabs.referrals") },
     { key: "discounts", label: t("admin.tabs.discounts") },
     { key: "concierge", label: t("admin.tabs.concierge") },
   ];
@@ -177,15 +177,18 @@ function Admin() {
   return (
     <main className="min-h-dvh bg-obsidian">
 
-      <section className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-wrap gap-1 border-b border-border/60 mb-6">
-          {TABS.map((v) => (
-            <button key={v.key} onClick={() => setTab(v.key)}
-              className={"px-4 py-2.5 text-sm capitalize transition border-b-2 " + (tab === v.key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground")}>
-              {v.label}
-            </button>
-          ))}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="-mx-4 sm:mx-0 mb-6 border-b border-border/60 overflow-x-auto">
+          <div className="flex gap-1 px-4 sm:px-0 min-w-max">
+            {TABS.map((v) => (
+              <button key={v.key} onClick={() => setTab(v.key)}
+                className={"whitespace-nowrap px-4 py-2.5 text-sm capitalize transition border-b-2 " + (tab === v.key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
+
 
         {(tab === "bookings" || tab === "drivers" || tab === "vehicles") && (
           <div className="mb-4">
