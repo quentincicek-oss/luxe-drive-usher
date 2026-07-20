@@ -106,23 +106,33 @@ function Book() {
           description={t("book.subtitle")}
         >
           <form id="book-form" onSubmit={reserve} className="space-y-5">
-            <Field
+            <AddressAutocomplete
               label={t("book.pickup")}
               required
-              autoComplete="street-address"
-              leading={<MapPin className="h-4 w-4" />}
               value={form.pickup}
-              onChange={(e) => setForm({ ...form, pickup: e.target.value })}
+              onTextChange={(v) => setForm({ ...form, pickup: v })}
+              onSelect={(a) => {
+                setPickupAddr(a);
+                setForm((f) => ({ ...f, pickup: a.formatted }));
+              }}
+              onClear={() => setPickupAddr(null)}
               placeholder={t("book.pickup.example")}
+              autoComplete="off"
             />
-            <Field
+            <AddressAutocomplete
               label={t("book.dropoff")}
               required
-              leading={<Navigation className="h-4 w-4" />}
               value={form.dropoff}
-              onChange={(e) => setForm({ ...form, dropoff: e.target.value })}
+              onTextChange={(v) => setForm({ ...form, dropoff: v })}
+              onSelect={(a) => {
+                setDropoffAddr(a);
+                setForm((f) => ({ ...f, dropoff: a.formatted }));
+              }}
+              onClear={() => setDropoffAddr(null)}
               placeholder={t("book.dropoff.example")}
+              autoComplete="off"
             />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field
                 label={t("book.time")}
