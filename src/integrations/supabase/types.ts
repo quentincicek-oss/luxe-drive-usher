@@ -1555,6 +1555,10 @@ export type Database = {
         Args: { _id: string; _payload: Json }
         Returns: Json
       }
+      admin_upsert_verification_settings: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
       advance_assignment: {
         Args: { _assignment_id: string; _next_status: string; _reason?: string }
         Returns: Json
