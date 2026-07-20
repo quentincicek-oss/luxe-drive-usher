@@ -44,7 +44,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
+type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
