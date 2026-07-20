@@ -88,7 +88,17 @@ function AdminLogin() {
             />
           </div>
           <div>
-            <label className="label-luxe">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="label-luxe">Password</label>
+              <button
+                type="button"
+                onClick={sendReset}
+                disabled={resetBusy}
+                className="text-[11px] text-gold underline disabled:opacity-50"
+              >
+                {resetBusy ? "Sending…" : "Forgot password?"}
+              </button>
+            </div>
             <input
               type="password" autoComplete="current-password" required
               value={password} onChange={(e) => setPassword(e.target.value)}
