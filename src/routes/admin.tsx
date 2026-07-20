@@ -9,6 +9,11 @@ import { StatusPill } from "@/components/ops/StatusPill";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
 import { AssignmentPanel } from "@/components/ops/AssignmentPanel";
 import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
+import { DispatchOverview } from "@/components/dispatch/DispatchOverview";
+import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
+import { AuditTable } from "@/components/dispatch/AuditTable";
+import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
+import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
@@ -31,7 +36,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "dispatch" | "bookings" | "drivers" | "vehicles" | "referrals" | "discounts" | "concierge";
+type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
@@ -42,7 +47,7 @@ function Admin() {
   const { user, role, loading } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
-  const [tab, setTab] = useState<Tab>("dispatch");
+  const [tab, setTab] = useState<Tab>("overview");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [discounts, setDiscounts] = useState<DiscountRule[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -132,10 +137,15 @@ function Admin() {
   if (loading || !user || role !== "admin") return <div className="min-h-screen bg-obsidian" />;
 
   const TABS: { key: Tab; label: string }[] = [
+    { key: "overview",  label: "Overview" },
     { key: "dispatch",  label: "Dispatch" },
+    { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
+    { key: "fleet",     label: "Fleet health" },
+    { key: "incidents", label: "Incidents" },
+    { key: "audit",     label: "Audit log" },
     { key: "referrals", label: "Referrals" },
     { key: "discounts", label: t("admin.tabs.discounts") },
     { key: "concierge", label: t("admin.tabs.concierge") },
