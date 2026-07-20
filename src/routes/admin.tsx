@@ -15,6 +15,7 @@ import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
 import { AuditTable } from "@/components/dispatch/AuditTable";
 import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
 import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
+import { UsersPanel } from "@/components/admin/UsersPanel";
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
@@ -43,7 +44,7 @@ interface Kpis {
   upcoming_airport_pickups: number;
 }
 
-type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
+type Tab = "overview" | "dispatch" | "schedule" | "bookings" | "users" | "drivers" | "vehicles" | "fleet" | "incidents" | "audit" | "referrals" | "discounts" | "concierge";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — HarborLine" }, { name: "description", content: "HarborLine operations dashboard." }] }),
@@ -156,6 +157,7 @@ function Admin() {
     { key: "dispatch",  label: "Dispatch" },
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
+    { key: "users",     label: "Users" },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
     { key: "fleet",     label: "Fleet health" },
@@ -207,6 +209,10 @@ function Admin() {
 
         {/* ============ AUDIT ============ */}
         {tab === "audit" && <AuditTable />}
+
+        {/* ============ USERS ============ */}
+        {tab === "users" && <UsersPanel />}
+
 
         {/* ============ DISPATCH ============ */}
         {tab === "dispatch" && !busy && (
