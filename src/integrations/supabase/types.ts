@@ -1465,6 +1465,27 @@ export type Database = {
       }
     }
     Functions: {
+      _audit_write: {
+        Args: {
+          _action: string
+          _actor_id: string
+          _entity_id: string
+          _entity_type: string
+          _nxt: Json
+          _previous: Json
+          _reason: string
+        }
+        Returns: undefined
+      }
+      admin_assign_driver: {
+        Args: {
+          _booking_id: string
+          _driver_id: string
+          _reason?: string
+          _vehicle_id?: string
+        }
+        Returns: Json
+      }
       admin_audit_log: {
         Args: {
           _action: string
@@ -1476,12 +1497,64 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_campaign: { Args: { _id: string }; Returns: undefined }
+      admin_delete_discount: { Args: { _id: string }; Returns: undefined }
+      admin_delete_driver: {
+        Args: { _id: string; _reason?: string }
+        Returns: undefined
+      }
+      admin_delete_nfc_tag: { Args: { _id: string }; Returns: undefined }
+      admin_delete_vehicle: {
+        Args: { _id: string; _reason?: string }
+        Returns: undefined
+      }
       admin_dispatch_kpis: { Args: never; Returns: Json }
       admin_dispatch_overview: { Args: never; Returns: Json }
       admin_fleet_compliance_alerts: { Args: { _days?: number }; Returns: Json }
       admin_fleet_expirations: { Args: never; Returns: Json }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
       admin_referral_kpis: { Args: never; Returns: Json }
+      admin_remove_assignment: {
+        Args: { _assignment_id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_resolve_incident: {
+        Args: { _id: string; _notes?: string; _status: string }
+        Returns: Json
+      }
+      admin_review_no_show: {
+        Args: { _id: string; _notes?: string; _status: string }
+        Returns: Json
+      }
+      admin_set_booking_status: {
+        Args: { _booking_id: string; _reason?: string; _status: string }
+        Returns: Json
+      }
+      admin_set_driver_availability: {
+        Args: { _availability: string; _driver_id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_toggle_campaign: { Args: { _id: string }; Returns: Json }
+      admin_upsert_campaign: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
+      admin_upsert_discount: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
+      admin_upsert_driver: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
+      admin_upsert_nfc_tag: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
+      admin_upsert_vehicle: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
       advance_assignment: {
         Args: { _assignment_id: string; _next_status: string; _reason?: string }
         Returns: Json
@@ -1508,6 +1581,14 @@ export type Database = {
       passenger_owns_booking: {
         Args: { _booking_id: string }
         Returns: boolean
+      }
+      test_dispatch_state_machine: {
+        Args: never
+        Returns: {
+          detail: string
+          passed: boolean
+          t_name: string
+        }[]
       }
       verify_booking_pin: {
         Args: { _booking_id: string; _pin: string }
