@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          next: Json | null
+          previous: Json | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          next?: Json | null
+          previous?: Json | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          next?: Json | null
+          previous?: Json | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       booking_assignments: {
         Row: {
           assigned_at: string
@@ -916,7 +955,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_audit_log: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_type: string
+          _next: Json
+          _previous: Json
+          _reason?: string
+        }
+        Returns: string
+      }
       admin_dispatch_kpis: { Args: never; Returns: Json }
+      admin_dispatch_overview: { Args: never; Returns: Json }
+      admin_fleet_expirations: { Args: never; Returns: Json }
+      admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
       admin_referral_kpis: { Args: never; Returns: Json }
       has_role: {
         Args: {
