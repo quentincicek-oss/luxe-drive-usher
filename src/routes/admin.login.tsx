@@ -23,6 +23,23 @@ function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+
+  async function sendReset() {
+    if (!email.trim()) {
+      toast.error("Enter your email above, then tap Forgot password.");
+      return;
+    }
+    setResetBusy(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } finally {
+      toast.success("If an account exists for that email, a reset link has been sent.");
+      setResetBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (loading || roleLoading) return;
