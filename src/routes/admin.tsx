@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -14,6 +15,12 @@ import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
 import { AuditTable } from "@/components/dispatch/AuditTable";
 import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
 import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
+import {
+  adminSetBookingStatus,
+  adminUpsertDriver, adminDeleteDriver,
+  adminUpsertVehicle, adminDeleteVehicle,
+  adminUpsertDiscount, adminDeleteDiscount,
+} from "@/lib/admin.functions";
 
 interface Booking {
   id: string; passenger_id: string; pickup: string; dropoff: string; pickup_time: string;
