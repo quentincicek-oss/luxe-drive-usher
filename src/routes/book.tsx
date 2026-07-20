@@ -136,6 +136,13 @@ function Book() {
               />
             </div>
 
+            <AmenitiesSelector
+              rideType={form.ride_type}
+              selectedIds={amenityIds}
+              onChange={setAmenityIds}
+            />
+
+
             {/* Desktop submit */}
             <div className="hidden sm:flex items-center justify-between gap-4 pt-2">
               <FareEstimate value={estimate} />
