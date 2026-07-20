@@ -203,7 +203,20 @@ export function UsersPanel() {
             Drivers and administrators are provisioned here. They cannot self-register or assign roles to themselves.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3 justify-between">
+        <div>
+          <h3 className="font-display text-xl">Internal user provisioning</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Drivers and administrators are provisioned here. They cannot self-register or assign roles to themselves.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email, employee ID…"
+            className="w-60 rounded border border-border/60 bg-input px-3 py-1.5 text-xs"
+          />
           {(["all", "admin", "driver", "passenger", "suspended"] as const).map((k) => (
             <button
               key={k}
