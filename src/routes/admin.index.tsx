@@ -18,6 +18,7 @@ import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { SupportPanel } from "@/components/admin/SupportPanel";
 import { AmenitiesPanel } from "@/components/admin/AmenitiesPanel";
+import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
