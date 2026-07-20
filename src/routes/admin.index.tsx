@@ -161,6 +161,7 @@ function Admin() {
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
     { key: "users",     label: "Users" },
+    { key: "mfa",       label: "Admin 2FA" },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
     { key: "amenities", label: "Amenities" },
