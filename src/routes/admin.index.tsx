@@ -295,37 +295,40 @@ function Admin() {
         {/* ============ BOOKINGS (existing) ============ */}
         {tab === "bookings" && !busy && (
           <div className="rounded-lg border border-border/60 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3">{t("admin.table.pickupTime")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.price")}</th>
-                  <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBookings.map((b) => (
-                  <tr key={b.id} className="border-t border-border/40 hover:bg-accent/40">
-                    <td className="px-4 py-3 text-xs tabular-nums">{new Date(b.pickup_time).toLocaleString()}</td>
-                    <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
-                    <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
-                    <td className="px-4 py-3">{b.passengers}</td>
-                    <td className="px-4 py-3 text-gold">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</td>
-                    <td className="px-4 py-3">
-                      <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
-                        className="bg-input border border-border/60 rounded px-2 py-1 text-xs capitalize">
-                        {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
-                      </select>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[780px]">
+                <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">{t("admin.table.pickupTime")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.price")}</th>
+                    <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
                   </tr>
-                ))}
-                {filteredBookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">{t("admin.empty.reservations")}</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredBookings.map((b) => (
+                    <tr key={b.id} className="border-t border-border/40 hover:bg-accent/40">
+                      <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(b.pickup_time).toLocaleString()}</td>
+                      <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
+                      <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
+                      <td className="px-4 py-3">{b.passengers}</td>
+                      <td className="px-4 py-3 text-gold whitespace-nowrap">${(b.price ?? b.suggested_price ?? 0).toFixed(0)}</td>
+                      <td className="px-4 py-3">
+                        <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
+                          className="bg-input border border-border/60 rounded px-2 py-1 text-xs capitalize">
+                          {["requested", "assigned", "in_progress", "completed", "cancelled"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredBookings.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">{t("admin.empty.reservations")}</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
+
         )}
 
         {/* ============ DRIVERS ============ */}
