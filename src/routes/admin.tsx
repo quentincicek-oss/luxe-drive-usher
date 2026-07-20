@@ -477,31 +477,32 @@ function DriversPanel({ drivers, vehicles, onRefresh }: { drivers: Driver[]; veh
 // ============ VEHICLES PANEL ============
 function VehiclesPanel({ vehicles, onRefresh }: { vehicles: Vehicle[]; onRefresh: () => void }) {
   const [editing, setEditing] = useState<Partial<Vehicle> | null>(null);
+  const upsertVehicle = useServerFn(adminUpsertVehicle);
+  const deleteVehicle = useServerFn(adminDeleteVehicle);
 
   async function save() {
     if (!editing?.name || !editing.license_plate) { toast.error("Name and plate are required"); return; }
-    const payload: any = {
-      name: editing.name,
-      category: editing.category ?? "other",
-      license_plate: editing.license_plate,
-      vin: editing.vin ?? null,
-      model_year: editing.model_year ?? null,
-      seats: editing.seats ?? 6,
-      status: editing.status ?? "active",
-      insurance_expires_at: editing.insurance_expires_at || null,
-    };
-    const q = editing.id
-      ? (supabase as any).from("vehicles").update(payload).eq("id", editing.id)
-      : (supabase as any).from("vehicles").insert(payload);
-    const { error } = await q;
-    if (error) { toast.error(error.message); return; }
-    toast.success("Vehicle saved"); setEditing(null); onRefresh();
+    try {
+      await upsertVehicle({ data: {
+        id: editing.id ?? null,
+        payload: {
+          name: editing.name,
+          category: (editing.category ?? "other") as "escalade" | "suburban" | "denali" | "other",
+          license_plate: editing.license_plate,
+          vin: editing.vin ?? null,
+          model_year: editing.model_year ?? null,
+          seats: editing.seats ?? 6,
+          status: (editing.status ?? "active") as "active" | "maintenance",
+          insurance_expires_at: editing.insurance_expires_at || null,
+        },
+      } });
+      toast.success("Vehicle saved"); setEditing(null); onRefresh();
+    } catch (e) { toast.error((e as Error).message); }
   }
   async function remove(id: string) {
     if (!confirm("Delete vehicle?")) return;
-    const { error } = await (supabase as any).from("vehicles").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    onRefresh();
+    try { await deleteVehicle({ data: { id } }); onRefresh(); }
+    catch (e) { toast.error((e as Error).message); }
   }
 
   return (
