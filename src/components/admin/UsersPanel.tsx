@@ -423,6 +423,7 @@ function ProvisionForm({ onSubmit }: { onSubmit: (payload: {
   phone?: string; preferredLanguage?: string;
   employeeId?: string; isTestAccount?: boolean;
   invitationMessage?: string;
+  driverInitialStatus?: "active" | "inactive" | "suspended";
 }) => void | Promise<void> }) {
   const [accountType, setAccountType] = useState<"admin" | "driver" | "passenger">("driver");
   const [email, setEmail] = useState("");
@@ -433,6 +434,7 @@ function ProvisionForm({ onSubmit }: { onSubmit: (payload: {
   const [employeeId, setEmployeeId] = useState("");
   const [isTestAccount, setIsTest] = useState(false);
   const [invitationMessage, setNote] = useState("");
+  const [driverInitialStatus, setDriverStatus] = useState<"active" | "inactive" | "suspended">("active");
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -455,6 +457,7 @@ function ProvisionForm({ onSubmit }: { onSubmit: (payload: {
             employeeId: employeeId.trim() || undefined,
             isTestAccount,
             invitationMessage: invitationMessage.trim() || undefined,
+            driverInitialStatus: accountType === "driver" ? driverInitialStatus : undefined,
           });
         } finally {
           setSubmitting(false);
@@ -478,8 +481,24 @@ function ProvisionForm({ onSubmit }: { onSubmit: (payload: {
         <Field label="Last name"><input required value={lastName} onChange={(e) => setLastName(e.target.value)} className="input" /></Field>
         <Field label="Phone (optional)"><input value={phone} onChange={(e) => setPhone(e.target.value)} className="input" /></Field>
         {accountType === "driver" && (
-          <Field label="Employee ID (required)">
-            <input required value={employeeId} onChange={(e) => setEmployeeId(e.target.value.toUpperCase())} placeholder="e.g. HL-D-001" className="input" />
+          <>
+            <Field label="Employee ID (required)">
+              <input required value={employeeId} onChange={(e) => setEmployeeId(e.target.value.toUpperCase())} placeholder="e.g. HL-D-001" className="input" />
+            </Field>
+            <Field label="Initial driver status">
+              <select value={driverInitialStatus} onChange={(e) => setDriverStatus(e.target.value as any)} className="input">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </Field>
+          </>
+        )}
+        {accountType === "admin" && (
+          <Field label="Administrator security">
+            <div className="mt-2 text-xs text-muted-foreground leading-snug">
+              TOTP MFA enrollment is required on first sign-in before the admin dashboard unlocks.
+            </div>
           </Field>
         )}
         <Field label="Test account">
@@ -500,6 +519,106 @@ function ProvisionForm({ onSubmit }: { onSubmit: (payload: {
       </div>
       <style>{`.input{width:100%;background:hsl(var(--input));border:1px solid hsl(var(--border));border-radius:8px;padding:0.55rem 0.75rem;font-size:0.875rem;color:hsl(var(--foreground))}`}</style>
     </form>
+  );
+}
+
+function EditUserModal({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: ManagedUser;
+  onClose: () => void;
+  onSave: (payload: {
+    userId: string;
+    profile: { name?: string; surname?: string; phone?: string; preferredLanguage?: string };
+    driver?: { fullName?: string; employeeId?: string; phone?: string; employmentStatus?: "active" | "inactive" | "vacation" };
+  }) => Promise<void>;
+}) {
+  const [name, setName] = useState((user.full_name ?? "").split(" ")[0] ?? "");
+  const [surname, setSurname] = useState((user.full_name ?? "").split(" ").slice(1).join(" "));
+  const [phone, setPhone] = useState("");
+  const [preferredLanguage, setLang] = useState(user.preferred_language ?? "en");
+  const [employeeId, setEmployeeId] = useState(user.driver_employee_id ?? "");
+  const [employmentStatus, setEmp] = useState<"active" | "inactive" | "vacation">(
+    (user.driver_employment_status as any) ?? "active",
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const isDriver = user.role === "driver";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setSubmitting(true);
+          try {
+            await onSave({
+              userId: user.user_id,
+              profile: {
+                name: name.trim() || undefined,
+                surname: surname.trim() || undefined,
+                phone: phone.trim() || undefined,
+                preferredLanguage,
+              },
+              driver: isDriver
+                ? {
+                    fullName: `${name.trim()} ${surname.trim()}`.trim() || undefined,
+                    employeeId: employeeId.trim() || undefined,
+                    phone: phone.trim() || undefined,
+                    employmentStatus,
+                  }
+                : undefined,
+            });
+          } finally {
+            setSubmitting(false);
+          }
+        }}
+        className="w-full max-w-xl rounded-lg border border-gold/30 bg-surface p-6 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-lg">Edit user</h3>
+            <p className="text-xs text-muted-foreground">{user.email} · {user.role}</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="First name"><input value={name} onChange={(e) => setName(e.target.value)} className="input" /></Field>
+          <Field label="Last name"><input value={surname} onChange={(e) => setSurname(e.target.value)} className="input" /></Field>
+          <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Leave blank to keep current" className="input" /></Field>
+          <Field label="Preferred language">
+            <select value={preferredLanguage} onChange={(e) => setLang(e.target.value)} className="input">
+              {["en","tr","es","pt","zh","it"].map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+            </select>
+          </Field>
+          {isDriver && (
+            <>
+              <Field label="Employee ID">
+                <input value={employeeId} onChange={(e) => setEmployeeId(e.target.value.toUpperCase())} className="input" />
+              </Field>
+              <Field label="Employment status">
+                <select value={employmentStatus} onChange={(e) => setEmp(e.target.value as any)} className="input">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="vacation">Vacation</option>
+                </select>
+              </Field>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded border border-border/60 hover:border-foreground/40">Cancel</button>
+          <button type="submit" disabled={submitting}
+            className="px-5 py-2 rounded bg-gold text-obsidian font-medium disabled:opacity-60 hover:opacity-90">
+            {submitting ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+        <style>{`.input{width:100%;background:hsl(var(--input));border:1px solid hsl(var(--border));border-radius:8px;padding:0.55rem 0.75rem;font-size:0.875rem;color:hsl(var(--foreground))}`}</style>
+      </form>
+    </div>
   );
 }
 
