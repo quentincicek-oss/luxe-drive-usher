@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { AppHeader } from "@/components/AppHeader";
+
 import { toast } from "sonner";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
