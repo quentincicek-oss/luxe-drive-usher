@@ -212,10 +212,12 @@ export const reportIncident = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
-// ============ Admin actions (delegate to atomic RPCs) ============
+// ============ Admin actions ============
 // resolveIncident + reviewNoShow now call admin_resolve_incident /
 // admin_review_no_show, which authorize via has_role and write the audit
 // row inside the same transaction as the mutation. No separate audit call.
+
+import type { Json } from "@/integrations/supabase/types";
 
 export const resolveIncident = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -226,13 +228,13 @@ export const resolveIncident = createServerFn({ method: "POST" })
       notes: z.string().max(2000).optional(),
     }).parse(input)
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<Json | null> => {
     const { supabase } = context as any;
     const { data: next, error } = await (supabase as any).rpc("admin_resolve_incident", {
       _id: data.id, _status: data.status, _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    return next as Record<string, unknown>;
+    return next as Json | null;
   });
 
 export const reviewNoShow = createServerFn({ method: "POST" })
@@ -244,13 +246,13 @@ export const reviewNoShow = createServerFn({ method: "POST" })
       notes: z.string().max(2000).optional(),
     }).parse(input)
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<Json | null> => {
     const { supabase } = context as any;
     const { data: next, error } = await (supabase as any).rpc("admin_review_no_show", {
       _id: data.id, _status: data.status, _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    return next as Record<string, unknown>;
+    return next as Json | null;
   });
 
 export const updateVerificationSettings = createServerFn({ method: "POST" })
@@ -263,9 +265,11 @@ export const updateVerificationSettings = createServerFn({ method: "POST" })
       min_waiting_seconds: z.number().int().min(60).max(1800).optional(),
     }).parse(input)
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<Json | null> => {
     const { supabase, userId } = context as any;
-    await requireAdmin(supabase, userId);
+    // Admin gate — verification_settings has no dedicated atomic RPC yet.
+    const { data: isAdmin } = await (supabase as any).rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("forbidden");
     const { data: prev } = await (supabase as any).from("verification_settings").select("*").eq("id", 1).maybeSingle();
     const patch = { ...data, updated_at: new Date().toISOString(), updated_by: userId };
     const { data: next, error } = await (supabase as any).from("verification_settings").update(patch).eq("id", 1).select("*").single();
@@ -274,5 +278,5 @@ export const updateVerificationSettings = createServerFn({ method: "POST" })
       _action: "settings.verification.update", _entity_type: "verification_settings", _entity_id: null,
       _previous: prev, _next: next, _reason: null,
     });
-    return next;
+    return next as Json | null;
   });
