@@ -9,9 +9,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
 import { AmenitiesSelector } from "@/components/booking/AmenitiesSelector";
+import { AddressAutocomplete, type StructuredAddress } from "@/components/booking/AddressAutocomplete";
 import { createBookingServer } from "@/lib/dispatch.functions";
 import { setBookingAmenities } from "@/lib/amenities.functions";
-import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
+import { Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
