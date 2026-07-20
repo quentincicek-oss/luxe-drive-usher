@@ -445,12 +445,14 @@ export const adminUpdateUserProfile = createServerFn({ method: "POST" })
     await assertAdmin(ctx);
     const { data: result, error } = await ctx.supabase.rpc("admin_update_user_profile", {
       _user_id: data.userId,
-      _profile: {
-        name: data.profile.name ?? null,
-        surname: data.profile.surname ?? null,
-        phone: data.profile.phone ?? null,
-        preferred_language: data.profile.preferredLanguage ?? null,
-      },
+      _profile: data.profile
+        ? {
+            name: data.profile.name ?? null,
+            surname: data.profile.surname ?? null,
+            phone: data.profile.phone ?? null,
+            preferred_language: data.profile.preferredLanguage ?? null,
+          }
+        : null,
       _driver: data.driver
         ? {
             full_name: data.driver.fullName ?? null,
