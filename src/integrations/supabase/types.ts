@@ -1980,6 +1980,10 @@ export type Database = {
       }
       admin_toggle_campaign: { Args: { _id: string }; Returns: Json }
       admin_update_support_settings: { Args: { _payload: Json }; Returns: Json }
+      admin_update_user_profile: {
+        Args: { _driver?: Json; _profile: Json; _user_id: string }
+        Returns: Json
+      }
       admin_upsert_amenity: {
         Args: { _id: string; _payload: Json }
         Returns: Json
