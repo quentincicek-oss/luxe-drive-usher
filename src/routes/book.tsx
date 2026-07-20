@@ -8,7 +8,9 @@ import { VehicleShowroom } from "@/components/VehicleShowroom";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
+import { AmenitiesSelector } from "@/components/booking/AmenitiesSelector";
 import { createBookingServer } from "@/lib/dispatch.functions";
+import { setBookingAmenities } from "@/lib/amenities.functions";
 import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
@@ -32,6 +34,7 @@ function Book() {
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
     passengers: 1, ride_type: "escalade" as "escalade" | "suburban" | "denali",
   });
+  const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);

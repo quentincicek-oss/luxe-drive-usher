@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      amenity_categories: {
+        Row: {
+          code: string
+          created_at: string
+          display_order: number
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      amenity_options: {
+        Row: {
+          active: boolean
+          allowed_ride_types: string[]
+          category_id: string | null
+          code: string
+          complimentary: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          image_url: string | null
+          internal_cost_cents: number | null
+          inventory_note: string | null
+          name: string
+          price_delta_cents: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          allowed_ride_types?: string[]
+          category_id?: string | null
+          code: string
+          complimentary?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          internal_cost_cents?: number | null
+          inventory_note?: string | null
+          name: string
+          price_delta_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          allowed_ride_types?: string[]
+          category_id?: string | null
+          code?: string
+          complimentary?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          internal_cost_cents?: number | null
+          inventory_note?: string | null
+          name?: string
+          price_delta_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_options_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -52,6 +147,67 @@ export type Database = {
           reason?: string | null
         }
         Relationships: []
+      }
+      booking_amenities: {
+        Row: {
+          amenity_code: string
+          amenity_name: string
+          amenity_option_id: string
+          booking_id: string
+          complimentary: boolean
+          created_at: string
+          currency: string
+          id: string
+          price_delta_cents: number
+          quantity: number
+        }
+        Insert: {
+          amenity_code: string
+          amenity_name: string
+          amenity_option_id: string
+          booking_id: string
+          complimentary?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          price_delta_cents?: number
+          quantity?: number
+        }
+        Update: {
+          amenity_code?: string
+          amenity_name?: string
+          amenity_option_id?: string
+          booking_id?: string
+          complimentary?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          price_delta_cents?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_amenities_amenity_option_id_fkey"
+            columns: ["amenity_option_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_amenities_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_amenities_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
       }
       booking_assignments: {
         Row: {
@@ -1267,6 +1423,170 @@ export type Database = {
         }
         Relationships: []
       }
+      support_conversations: {
+        Row: {
+          admin_unread_count: number
+          assigned_admin_id: string | null
+          booking_id: string | null
+          category: Database["public"]["Enums"]["support_category"]
+          created_at: string
+          id: string
+          last_admin_msg_at: string | null
+          last_passenger_msg_at: string | null
+          passenger_id: string
+          passenger_unread_count: number
+          status: Database["public"]["Enums"]["support_status"]
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          admin_unread_count?: number
+          assigned_admin_id?: string | null
+          booking_id?: string | null
+          category?: Database["public"]["Enums"]["support_category"]
+          created_at?: string
+          id?: string
+          last_admin_msg_at?: string | null
+          last_passenger_msg_at?: string | null
+          passenger_id: string
+          passenger_unread_count?: number
+          status?: Database["public"]["Enums"]["support_status"]
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          admin_unread_count?: number
+          assigned_admin_id?: string | null
+          booking_id?: string | null
+          category?: Database["public"]["Enums"]["support_category"]
+          created_at?: string
+          id?: string
+          last_admin_msg_at?: string | null
+          last_passenger_msg_at?: string | null
+          passenger_id?: string
+          passenger_unread_count?: number
+          status?: Database["public"]["Enums"]["support_status"]
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_conversations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
+      support_message_rate: {
+        Row: {
+          message_count: number
+          updated_at: string
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          message_count?: number
+          updated_at?: string
+          user_id: string
+          window_started_at?: string
+        }
+        Update: {
+          message_count?: number
+          updated_at?: string
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_internal_note: boolean
+          sender_type: Database["public"]["Enums"]["support_sender"]
+          sender_user_id: string | null
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean
+          sender_type: Database["public"]["Enums"]["support_sender"]
+          sender_user_id?: string | null
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean
+          sender_type?: Database["public"]["Enums"]["support_sender"]
+          sender_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "support_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_settings: {
+        Row: {
+          email_address: string | null
+          email_enabled: boolean
+          emergency_message: string | null
+          fallback_message: string | null
+          id: number
+          operating_hours: string | null
+          updated_at: string
+          updated_by: string | null
+          whatsapp_enabled: boolean
+          whatsapp_phone_e164: string | null
+          whatsapp_template: string | null
+        }
+        Insert: {
+          email_address?: string | null
+          email_enabled?: boolean
+          emergency_message?: string | null
+          fallback_message?: string | null
+          id?: number
+          operating_hours?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_enabled?: boolean
+          whatsapp_phone_e164?: string | null
+          whatsapp_template?: string | null
+        }
+        Update: {
+          email_address?: string | null
+          email_enabled?: boolean
+          emergency_message?: string | null
+          fallback_message?: string | null
+          id?: number
+          operating_hours?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_enabled?: boolean
+          whatsapp_phone_e164?: string | null
+          whatsapp_template?: string | null
+        }
+        Relationships: []
+      }
       trip_locations: {
         Row: {
           accuracy_m: number | null
@@ -1559,6 +1879,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_delete_amenity: { Args: { _id: string }; Returns: undefined }
       admin_delete_campaign: { Args: { _id: string }; Returns: undefined }
       admin_delete_discount: { Args: { _id: string }; Returns: undefined }
       admin_delete_driver: {
@@ -1579,6 +1900,7 @@ export type Database = {
         Returns: Json
       }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
+      admin_list_amenities: { Args: never; Returns: Json }
       admin_list_managed_users: { Args: never; Returns: Json }
       admin_provision_user_finalize: {
         Args: {
@@ -1619,7 +1941,24 @@ export type Database = {
         Args: { _reason?: string; _suspend: boolean; _user_id: string }
         Returns: Json
       }
+      admin_support_assign: {
+        Args: { _assignee: string; _conversation_id: string }
+        Returns: Json
+      }
+      admin_support_reply: {
+        Args: { _body: string; _conversation_id: string; _internal?: boolean }
+        Returns: string
+      }
+      admin_support_set_status: {
+        Args: { _conversation_id: string; _status: string }
+        Returns: Json
+      }
       admin_toggle_campaign: { Args: { _id: string }; Returns: Json }
+      admin_update_support_settings: { Args: { _payload: Json }; Returns: Json }
+      admin_upsert_amenity: {
+        Args: { _id: string; _payload: Json }
+        Returns: Json
+      }
       admin_upsert_campaign: {
         Args: { _id: string; _payload: Json }
         Returns: Json
@@ -1648,6 +1987,10 @@ export type Database = {
         Args: { _assignment_id: string; _next_status: string; _reason?: string }
         Returns: Json
       }
+      booking_amenity_total_cents: {
+        Args: { _booking_id: string }
+        Returns: number
+      }
       create_booking: {
         Args: {
           _dropoff: string
@@ -1667,9 +2010,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_admin: { Args: never; Returns: boolean }
+      list_active_amenities: { Args: { _ride_type?: string }; Returns: Json }
       passenger_owns_booking: {
         Args: { _booking_id: string }
         Returns: boolean
+      }
+      set_booking_amenities: {
+        Args: { _amenity_ids: string[]; _booking_id: string }
+        Returns: Json
+      }
+      support_mark_read: {
+        Args: { _conversation_id: string }
+        Returns: undefined
+      }
+      support_open_conversation: {
+        Args: {
+          _booking_id?: string
+          _category: string
+          _first_message: string
+          _subject: string
+        }
+        Returns: string
+      }
+      support_send_message: {
+        Args: { _body: string; _conversation_id: string }
+        Returns: string
       }
       test_dispatch_state_machine: {
         Args: never
@@ -1749,6 +2115,18 @@ export type Database = {
         | "cancelled"
       reward_status: "pending" | "redeemed" | "expired" | "cancelled"
       ride_type: "escalade" | "suburban" | "denali"
+      support_category:
+        | "booking_help"
+        | "driver_concern"
+        | "payment_receipt"
+        | "lost_item"
+        | "safety_concern"
+        | "vehicle_preference"
+        | "amenity_question"
+        | "technical_problem"
+        | "general_support"
+      support_sender: "passenger" | "admin" | "system"
+      support_status: "open" | "pending" | "resolved"
       trip_location_kind: "arrival" | "trip_start" | "trip_end"
       unavailability_reason: "vacation" | "maintenance" | "personal"
       vehicle_category: "escalade" | "suburban" | "denali" | "other"
@@ -1952,6 +2330,19 @@ export const Constants = {
       ],
       reward_status: ["pending", "redeemed", "expired", "cancelled"],
       ride_type: ["escalade", "suburban", "denali"],
+      support_category: [
+        "booking_help",
+        "driver_concern",
+        "payment_receipt",
+        "lost_item",
+        "safety_concern",
+        "vehicle_preference",
+        "amenity_question",
+        "technical_problem",
+        "general_support",
+      ],
+      support_sender: ["passenger", "admin", "system"],
+      support_status: ["open", "pending", "resolved"],
       trip_location_kind: ["arrival", "trip_start", "trip_end"],
       unavailability_reason: ["vacation", "maintenance", "personal"],
       vehicle_category: ["escalade", "suburban", "denali", "other"],
