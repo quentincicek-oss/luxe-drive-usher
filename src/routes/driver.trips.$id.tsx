@@ -13,6 +13,7 @@ import { NoShowModal } from "@/components/driver/NoShowModal";
 import { IncidentModal } from "@/components/driver/IncidentModal";
 import type { DispatchStatus } from "@/components/ops/AssignmentTimeline";
 import { emit } from "@/lib/notifications";
+import { advanceAssignment } from "@/lib/dispatch.functions";
 import {
   recordTripLocation, uploadRoutePoints, logCommunication,
 } from "@/lib/trust.functions";
@@ -40,6 +41,35 @@ function tryGeolocate(): Promise<GeolocationPosition | null> {
   });
 }
 
+// H3 — batched GPS uploads. Buffer points and flush at most every FLUSH_MS
+// or when the buffer reaches FLUSH_SIZE points.
+const FLUSH_MS = 10_000;
+const FLUSH_SIZE = 15;
+
+type BookingLite = {
+  id: string;
+  passenger_id: string;
+  pickup: string;
+  dropoff: string;
+  pickup_time: string;
+  passengers: number | null;
+  ride_type: string;
+  notes: string | null;
+  profiles: { name: string | null } | null;
+};
+type VehicleLite = { name: string; license_plate: string | null; model_year: number | null } | null;
+type Assignment = {
+  id: string;
+  driver_id: string | null;
+  vehicle_id: string | null;
+  dispatch_status: DispatchStatus;
+  booking_id: string;
+  bookings: BookingLite | null;
+  vehicle: VehicleLite;
+  verified: boolean;
+  settings: { pin_enabled: boolean; qr_enabled: boolean; nfc_enabled: boolean; min_waiting_seconds: number };
+};
+
 function TripDetail() {
   const { id } = Route.useParams();
   useAuth();
@@ -53,23 +83,30 @@ function TripDetail() {
   const recordLoc = useServerFn(recordTripLocation);
   const uploadPoints = useServerFn(uploadRoutePoints);
   const logComm = useServerFn(logCommunication);
+  const advance = useServerFn(advanceAssignment);
 
   const q = useQuery({
     queryKey: ["driver", "trip", id],
-    queryFn: async () => {
-      const { data: a } = await (supabase as any)
+    queryFn: async (): Promise<Assignment | null> => {
+      // Reads only. All operational writes now flow through advance_assignment().
+      const { data: a } = await supabase
         .from("booking_assignments")
         .select("id, driver_id, vehicle_id, dispatch_status, booking_id, bookings:booking_id(id, passenger_id, pickup, dropoff, pickup_time, passengers, ride_type, notes, profiles:passenger_id(name))")
         .eq("id", id).maybeSingle();
       if (!a) return null;
       const [vehicle, ver, settings] = await Promise.all([
         a.vehicle_id
-          ? (supabase as any).from("vehicles").select("name, license_plate, model_year").eq("id", a.vehicle_id).maybeSingle()
+          ? supabase.from("vehicles").select("name, license_plate, model_year").eq("id", a.vehicle_id).maybeSingle()
           : Promise.resolve({ data: null }),
-        (supabase as any).from("passenger_verifications").select("id").eq("booking_id", a.booking_id).limit(1).maybeSingle(),
-        (supabase as any).from("verification_settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("passenger_verifications").select("id").eq("booking_id", a.booking_id).limit(1).maybeSingle(),
+        supabase.from("verification_settings").select("*").eq("id", 1).maybeSingle(),
       ]);
-      return { ...a, vehicle: vehicle.data, verified: !!ver.data, settings: settings.data ?? { pin_enabled: true, qr_enabled: false, nfc_enabled: false, min_waiting_seconds: 300 } };
+      return {
+        ...(a as unknown as Omit<Assignment, "vehicle" | "verified" | "settings">),
+        vehicle: (vehicle.data as VehicleLite) ?? null,
+        verified: !!ver.data,
+        settings: (settings.data as Assignment["settings"]) ?? { pin_enabled: true, qr_enabled: false, nfc_enabled: false, min_waiting_seconds: 300 },
+      };
     },
   });
 
@@ -77,46 +114,56 @@ function TripDetail() {
   const verified = !!a?.verified;
   const status: DispatchStatus | undefined = a?.dispatch_status;
 
-  // GPS breadcrumbs while en_route/in_progress
+  // H3 — batched GPS breadcrumbs while en_route/in_progress
   useEffect(() => {
     if (!a) return;
     if (status !== "en_route" && status !== "in_progress") return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    const buffer: Array<{ seq: number; lat: number; lng: number; speed?: number; recordedAt: string }> = [];
+    let flushing = false;
+
+    async function flush() {
+      if (flushing || buffer.length === 0) return;
+      flushing = true;
+      const batch = buffer.splice(0, buffer.length);
+      try {
+        await uploadPoints({ data: { bookingId: a!.booking_id, points: batch } });
+      } catch {
+        // Offline-tolerant: re-buffer at head so nothing is lost across reconnects.
+        buffer.unshift(...batch);
+      } finally {
+        flushing = false;
+      }
+    }
+
+    const interval = window.setInterval(flush, FLUSH_MS);
     const watch = navigator.geolocation.watchPosition(
-      async (pos) => {
-        try {
-          await uploadPoints({ data: {
-            bookingId: a.booking_id,
-            points: [{
-              seq: seqRef.current++,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-              speed: pos.coords.speed ?? undefined,
-              recordedAt: new Date().toISOString(),
-            }],
-          }});
-        } catch { /* offline-tolerant: swallow */ }
+      (pos) => {
+        buffer.push({
+          seq: seqRef.current++,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          speed: pos.coords.speed ?? undefined,
+          recordedAt: new Date().toISOString(),
+        });
+        if (buffer.length >= FLUSH_SIZE) void flush();
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
-    return () => navigator.geolocation.clearWatch(watch);
-  }, [status, a?.booking_id]);
+    return () => {
+      navigator.geolocation.clearWatch(watch);
+      window.clearInterval(interval);
+      void flush();
+    };
+  }, [status, a?.booking_id, uploadPoints, a]);
 
-  async function logEvent(event: string, reason?: string) {
-    if (!a?.driver_id) return;
-    await (supabase as any).from("driver_trip_events").insert({
-      assignment_id: a.id, driver_id: a.driver_id, event, reason: reason ?? null,
-    });
-  }
-
-  async function advance(next: DispatchStatus, event: string, notify?: () => void, gpsKind?: "arrival" | "trip_start" | "trip_end") {
+  async function transition(next: DispatchStatus, notify?: () => void, gpsKind?: "arrival" | "trip_start" | "trip_end") {
     if (!a) return;
     setBusy(true);
     try {
-      const { error } = await (supabase as any).from("booking_assignments").update({ dispatch_status: next }).eq("id", a.id);
-      if (error) throw error;
-      await logEvent(event);
+      await advance({ data: { assignmentId: a.id, next } });
       if (gpsKind) {
         const pos = await tryGeolocate();
         if (pos) await recordLoc({ data: {
@@ -129,8 +176,8 @@ function TripDetail() {
       notify?.();
       toast.success("Updated");
       q.refetch();
-    } catch (e: any) {
-      toast.error(e.message ?? "Update failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Update failed");
     } finally { setBusy(false); }
   }
 
@@ -138,40 +185,55 @@ function TripDetail() {
     if (!window.confirm("Reject this assignment?")) return;
     setBusy(true);
     try {
-      const { error } = await (supabase as any).from("booking_assignments")
-        .update({ dispatch_status: "cancelled", is_current: false }).eq("id", a!.id);
-      if (error) throw error;
-      await logEvent("rejected");
+      await advance({ data: { assignmentId: a!.id, next: "cancelled", reason: "driver_reject" } });
       toast.success("Assignment rejected");
       navigate({ to: "/driver/trips" });
-    } catch (e: any) { toast.error(e.message ?? "Failed"); }
-    finally { setBusy(false); }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setBusy(false); }
+  }
+
+  async function logDispatchContact() {
+    // Non-state-changing log; driver_trip_events INSERT policy scopes to own driver_id.
+    const { data: drv } = await supabase.from("driver_profiles").select("id").eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "").maybeSingle();
+    if (!a || !drv) return;
+    await supabase.from("driver_trip_events").insert({
+      assignment_id: a.id, driver_id: drv.id, event: "dispatch_contacted", reason: null,
+    });
+  }
+
+  async function logWaiting() {
+    const { data: drv } = await supabase.from("driver_profiles").select("id").eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "").maybeSingle();
+    if (!a || !drv) return;
+    await supabase.from("driver_trip_events").insert({
+      assignment_id: a.id, driver_id: drv.id, event: "waiting", reason: null,
+    });
   }
 
   if (q.isLoading) return <DriverShell title="Trip"><div className="text-sm text-muted-foreground">Loading…</div></DriverShell>;
   if (!a) return <DriverShell title="Trip"><div className="text-sm text-muted-foreground">Trip not found.</div></DriverShell>;
 
-  const b = a.bookings ?? {};
+  const b = a.bookings ?? {} as Partial<BookingLite>;
   const firstName = b.profiles?.name || "Passenger";
   const vehicleLabel = a.vehicle
     ? `${a.vehicle.model_year ? a.vehicle.model_year + " " : ""}${a.vehicle.name}${a.vehicle.license_plate ? " · " + a.vehicle.license_plate : ""}`
-    : RIDE_LABEL[b.ride_type] || null;
+    : (b.ride_type && RIDE_LABEL[b.ride_type]) || null;
 
   const primary = (() => {
     switch (status) {
       case "pending":
       case "assigned":
-        return { label: "Accept assignment", onClick: () => advance("accepted", "accepted", () => emit({ type: "driver.accepted", bookingId: b.id, driverName: firstName })) };
+        return { label: "Accept assignment", onClick: () => transition("accepted", () => emit({ type: "driver.accepted", bookingId: b.id!, driverName: firstName })) };
       case "accepted":
-        return { label: "Start navigating to pickup", onClick: () => advance("en_route", "en_route") };
+        return { label: "Start navigating to pickup", onClick: () => transition("en_route") };
       case "en_route":
-        return { label: "I've arrived", onClick: () => advance("arrived", "arrived", () => emit({ type: "driver.arrived", bookingId: b.id }), "arrival") };
+        return { label: "I've arrived", onClick: () => transition("arrived", () => emit({ type: "driver.arrived", bookingId: b.id! }), "arrival") };
       case "arrived":
         return verified
-          ? { label: "Start trip", onClick: () => advance("in_progress", "started", () => emit({ type: "trip.started", bookingId: b.id }), "trip_start") }
-          : { label: "Waiting for passenger", onClick: async () => { await logEvent("waiting"); toast.success("Marked waiting"); } };
+          ? { label: "Start trip", onClick: () => transition("in_progress", () => emit({ type: "trip.started", bookingId: b.id! }), "trip_start") }
+          : { label: "Waiting for passenger", onClick: async () => { await logWaiting(); toast.success("Marked waiting"); } };
       case "in_progress":
-        return { label: "Complete trip", onClick: () => advance("completed", "completed", () => emit({ type: "trip.completed", bookingId: b.id }), "trip_end") };
+        return { label: "Complete trip", onClick: () => transition("completed", () => emit({ type: "trip.completed", bookingId: b.id! }), "trip_end") };
       default:
         return null;
     }
@@ -182,11 +244,11 @@ function TripDetail() {
       <div className="space-y-5">
         <AssignmentDetailCard
           passengerFirstName={firstName}
-          pickup={b.pickup}
-          dropoff={b.dropoff}
-          pickupTime={b.pickup_time}
+          pickup={b.pickup ?? ""}
+          dropoff={b.dropoff ?? ""}
+          pickupTime={b.pickup_time ?? ""}
           passengers={b.passengers ?? 1}
-          notes={b.notes}
+          notes={b.notes ?? null}
           vehicleLabel={vehicleLabel}
         />
 
@@ -195,8 +257,8 @@ function TripDetail() {
           <WorkflowStepper status={status!} verified={verified} />
         </div>
 
-        {status === "en_route" && <NavigateButton destination={b.pickup} />}
-        {status === "in_progress" && <NavigateButton destination={b.dropoff} />}
+        {status === "en_route" && <NavigateButton destination={b.pickup ?? ""} />}
+        {status === "in_progress" && <NavigateButton destination={b.dropoff ?? ""} />}
 
         {status === "arrived" && (
           <VerificationSlot
@@ -222,7 +284,7 @@ function TripDetail() {
             await logComm({ data: { bookingId: a.booking_id, direction: "driver_to_passenger", channel: "phone", status: "initiated" } });
             toast.success("Logged");
           }} />
-          <ActionButton icon={Radio} label="Contact dispatch" onClick={async () => { await logEvent("dispatch_contacted"); toast.success("Logged"); }} />
+          <ActionButton icon={Radio} label="Contact dispatch" onClick={async () => { await logDispatchContact(); toast.success("Logged"); }} />
           {(status === "arrived" || status === "en_route") && (
             <ActionButton icon={UserX} label="Passenger no-show" onClick={() => setShowNoShow(true)} tone="warn" />
           )}
@@ -256,7 +318,10 @@ function TripDetail() {
 function ActionButton({
   icon: I, label, onClick, tone = "neutral",
 }: {
-  icon: any; label: string; onClick: () => void; tone?: "neutral" | "warn" | "danger";
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  tone?: "neutral" | "warn" | "danger";
 }) {
   const cls =
     tone === "danger" ? "text-rose-300 border-rose-500/20"

@@ -10,6 +10,20 @@ function admin(): SupabaseClient {
   return _admin;
 }
 
+// C5 — idempotency. Returns true if this Stripe event has NOT been seen
+// before (and reserves it). Retried webhooks return false and are skipped.
+async function reserveEventOnce(eventId: string, eventType: string, env: StripeEnv): Promise<boolean> {
+  const { error } = await admin()
+    .from("stripe_events")
+    .insert({ event_id: eventId, event_type: eventType, environment: env });
+  if (!error) return true;
+  // Postgres unique_violation = 23505
+  const code = (error as { code?: string }).code;
+  if (code === "23505") return false;
+  // Any other error: treat as processed to avoid infinite retries; log for ops.
+  console.error("stripe_events insert failed:", error.message);
+  return false;
+}
 
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const metadata = (session.metadata ?? {}) as Record<string, string>;
@@ -48,6 +62,16 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
 
         try {
           const event = await verifyWebhook(request, env);
+          const eventId = (event as unknown as { id?: string }).id;
+          if (!eventId) {
+            console.error("Webhook missing event id");
+            return new Response("Missing event id", { status: 400 });
+          }
+          const first = await reserveEventOnce(eventId, event.type, env);
+          if (!first) {
+            // Already processed (Stripe retry). Return 200 so Stripe stops retrying.
+            return Response.json({ received: true, duplicate: true });
+          }
           if (event.type === "checkout.session.completed") {
             await handleCheckoutCompleted(event.data.object);
           } else {

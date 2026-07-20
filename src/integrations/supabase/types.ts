@@ -128,7 +128,7 @@ export type Database = {
           created_at: string
           locked_until: string | null
           pin_hash: string
-          pin_plain: string
+          pin_plain: string | null
           salt: string
         }
         Insert: {
@@ -137,7 +137,7 @@ export type Database = {
           created_at?: string
           locked_until?: string | null
           pin_hash: string
-          pin_plain: string
+          pin_plain?: string | null
           salt: string
         }
         Update: {
@@ -146,7 +146,7 @@ export type Database = {
           created_at?: string
           locked_until?: string | null
           pin_hash?: string
-          pin_plain?: string
+          pin_plain?: string | null
           salt?: string
         }
         Relationships: [
@@ -1204,6 +1204,27 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          environment: string
+          event_id: string
+          event_type: string
+          received_at: string
+        }
+        Insert: {
+          environment: string
+          event_id: string
+          event_type: string
+          received_at?: string
+        }
+        Update: {
+          environment?: string
+          event_id?: string
+          event_type?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       trip_locations: {
         Row: {
           accuracy_m: number | null
@@ -1461,7 +1482,22 @@ export type Database = {
       admin_fleet_expirations: { Args: never; Returns: Json }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
       admin_referral_kpis: { Args: never; Returns: Json }
+      advance_assignment: {
+        Args: { _assignment_id: string; _next_status: string; _reason?: string }
+        Returns: Json
+      }
+      create_booking: {
+        Args: {
+          _dropoff: string
+          _passengers: number
+          _pickup: string
+          _pickup_time: string
+          _ride_type: string
+        }
+        Returns: string
+      }
       driver_owns_booking: { Args: { _booking_id: string }; Returns: boolean }
+      get_my_booking_pin: { Args: { _booking_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
