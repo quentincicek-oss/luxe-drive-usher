@@ -16,6 +16,8 @@ import { AuditTable } from "@/components/dispatch/AuditTable";
 import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
 import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { SupportPanel } from "@/components/admin/SupportPanel";
+import { AmenitiesPanel } from "@/components/admin/AmenitiesPanel";
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
