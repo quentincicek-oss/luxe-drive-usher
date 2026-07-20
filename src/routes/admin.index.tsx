@@ -251,40 +251,43 @@ function Admin() {
                 <span className="text-xs text-muted-foreground">Click a row to assign a driver</span>
               </div>
               <div className="rounded-lg border border-border/60 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-4 py-3">Pickup time</th>
-                      <th className="text-left px-4 py-3">Route</th>
-                      <th className="text-left px-4 py-3">Vehicle</th>
-                      <th className="text-left px-4 py-3">Pax</th>
-                      <th className="text-left px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").map((b) => (
-                      <>
-                        <tr key={b.id} onClick={() => setOpenBookingId(openBookingId === b.id ? null : b.id)}
-                            className="border-t border-border/40 hover:bg-accent/40 cursor-pointer">
-                          <td className="px-4 py-3 text-xs tabular-nums">{new Date(b.pickup_time).toLocaleString()}</td>
-                          <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
-                          <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
-                          <td className="px-4 py-3">{b.passengers}</td>
-                          <td className="px-4 py-3"><StatusPill tone={(b.status === "completed" ? "completed" : b.status === "cancelled" ? "cancelled" : "pending") as any}>{b.status.replace("_"," ")}</StatusPill></td>
-                        </tr>
-                        {openBookingId === b.id && (
-                          <tr className="bg-surface/30">
-                            <td colSpan={5} className="px-4 py-4"><AssignmentPanel bookingId={b.id} /></td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[720px]">
+                    <thead className="bg-surface text-[11px] uppercase tracking-widest text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-4 py-3 whitespace-nowrap">{t("admin.table.pickupTime")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.route")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.vehicle")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.pax")}</th>
+                        <th className="text-left px-4 py-3">{t("admin.table.status")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").map((b) => (
+                        <Fragment key={b.id}>
+                          <tr onClick={() => setOpenBookingId(openBookingId === b.id ? null : b.id)}
+                              className="border-t border-border/40 hover:bg-accent/40 cursor-pointer">
+                            <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(b.pickup_time).toLocaleString()}</td>
+                            <td className="px-4 py-3">{b.pickup} <span className="text-gold mx-1">→</span> {b.dropoff}</td>
+                            <td className="px-4 py-3 capitalize text-xs">{b.ride_type}</td>
+                            <td className="px-4 py-3">{b.passengers}</td>
+                            <td className="px-4 py-3"><StatusPill tone={(b.status === "completed" ? "completed" : b.status === "cancelled" ? "cancelled" : "pending") as any}>{b.status.replace("_"," ")}</StatusPill></td>
                           </tr>
-                        )}
-                      </>
-                    ))}
-                    {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").length === 0 && (
-                      <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">No pending dispatches</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                          {openBookingId === b.id && (
+                            <tr className="bg-surface/30">
+                              <td colSpan={5} className="px-4 py-4"><AssignmentPanel bookingId={b.id} /></td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                      {bookings.filter(b => new Date(b.pickup_time) >= new Date(Date.now() - 24*3600*1000) && b.status !== "completed" && b.status !== "cancelled").length === 0 && (
+                        <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">No pending dispatches</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
             </div>
           </div>
         )}
