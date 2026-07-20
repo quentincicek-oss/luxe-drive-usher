@@ -237,7 +237,25 @@ export function UsersPanel() {
         <ProvisionForm
           onSubmit={async (payload) => {
             try {
-              const r = await provision({ data: payload as any });
+              const { driverInitialStatus, ...provisionPayload } = payload;
+              const r = await provision({ data: provisionPayload as any });
+              // Apply driver initial status if not the default "active".
+              if (payload.accountType === "driver" && r.user_id && driverInitialStatus && driverInitialStatus !== "active") {
+                try {
+                  if (driverInitialStatus === "suspended") {
+                    await suspend({ data: { userId: r.user_id, suspend: true, reason: "Provisioned as suspended" } });
+                  } else if (driverInitialStatus === "inactive") {
+                    await updateProfile({
+                      data: {
+                        userId: r.user_id,
+                        driver: { employmentStatus: "inactive" },
+                      },
+                    });
+                  }
+                } catch (postErr: any) {
+                  toast.error(`Provisioned, but initial status update failed: ${postErr?.message ?? "unknown"}`);
+                }
+              }
               toast.success(
                 r.invited
                   ? `Invitation sent to ${payload.email}`
