@@ -1,106 +1,113 @@
-# Phase F — Professional Driver Application
+# Phase G — Enterprise Dispatch & Fleet Operations
 
-## 1. Impact Analysis (nothing existing gets modified in behavior)
+## 1. Business Model Alignment (recap before code)
 
-Reviewed the current codebase before proposing changes:
+HarborLine = closed executive fleet. Admins are the ONLY dispatch authority. Drivers execute; passengers request. Every mutation in this phase is admin-only, server-verified via `has_role(auth.uid(),'admin')`, and permanently logged.
 
-- `bookings`, `booking_assignments`, `driver_profiles`, `vehicles`, `driver_unavailability` already exist from Phase E. All dispatch state transitions, RLS, triggers and the `handle_booking_assignment_change` availability sync are reusable as-is.
-- Admin console (`admin.tsx`), Concierge widget, i18n, auth, Stripe, referrals, receipts, ratings, `AuthProvider` role detection — **untouched**.
-- Existing `driver` role in `app_role` enum + `has_role` function are the gate we already need.
-- `AssignmentTimeline`, `StatusPill`, `JobCard`, `useDispatchState`, `notifications.ts` are already built and driver-app-ready; Phase F wires them into real routes without changing their APIs.
+## 2. Scope Boundaries (untouched)
 
-Only **additive** schema (2 small tables) and **new route files** under `/driver/*`. Zero edits to existing routes/APIs except: (a) `AppHeader` gets an optional "Driver" link when role=driver, (b) `AuthProvider` post-login redirect logic stays the same — we route from the driver landing screen itself.
+- Booking creation flow (`book.tsx`), Stripe/payments, Referrals, AI Concierge, Auth, Driver App (`_driver.*`), existing schema for `bookings` / `booking_assignments` / `driver_profiles` / `vehicles`.
+- Additive only: 1 new table (`audit_log`), 3 new admin RPCs, and a rewrite of the **admin console presentation layer** (routes + components under `src/routes/admin.*` and `src/components/dispatch/*`). Data model already covers 90% of requirements from Phase E.
 
-## 2. Route Architecture (new files only)
+## 3. What already exists (reuse, don't rebuild)
+
+- Tables: `bookings`, `booking_assignments` (with `dispatch_status`, `is_current`, history preserved), `driver_profiles` (with `availability_status`, `employment_status`), `vehicles`, `driver_unavailability`, `driver_trip_events`, `driver_documents`, `ride_reviews`, `referrals`, `chat_messages`.
+- Components: `StatusPill`, `AssignmentTimeline`, `DispatchKpi`, `AssignmentPanel`, `admin_dispatch_kpis()` RPC.
+- Trigger `handle_booking_assignment_change` already syncs driver availability + enforces one current assignment per booking.
+
+**Gap to close**: audit log, incident aggregation view, fleet expirations view, richer KPIs, professional multi-section admin UI.
+
+## 4. Additive Schema (one migration)
+
+**`audit_log`** — immutable admin actions
+- `id`, `actor_id` (admin uuid), `actor_email` (snapshot), `action` (text, e.g. `assignment.create`, `assignment.reassign`, `assignment.remove`, `driver.suspend`, `driver.activate`, `vehicle.update`, `booking.cancel`), `entity_type`, `entity_id`, `previous jsonb`, `next jsonb`, `reason` text, `created_at`.
+- RLS: admins SELECT; INSERT via SECURITY DEFINER RPC only; no UPDATE/DELETE policies (immutable).
+
+**RPCs** (all `SECURITY DEFINER`, admin-gated):
+- `admin_audit_log(_action, _entity_type, _entity_id, _previous, _next, _reason)` → inserts row, snapshots actor email from `profiles`.
+- `admin_dispatch_overview()` → returns jsonb with all dashboard counters (new/pending/assigned/en_route/waiting/in_progress/completed_today/cancelled_today) + driver-status buckets in one round trip.
+- `admin_fleet_expirations()` → vehicles with insurance/registration/inspection dates + traffic-light status.
+- `admin_incident_feed(_limit)` → union of `driver_trip_events` (no_show|incident), cancelled bookings, low-rating reviews (`rating<=3`), ordered by created_at desc.
+
+No table alterations. No trigger changes.
+
+## 5. Route Architecture (admin surface refactor)
+
+Split monolithic `src/routes/admin.tsx` into a layout + tabs. Keep the URL `/admin` as overview.
 
 ```
 src/routes/
-  _driver.tsx                    (pathless layout — role gate: driver|admin only)
-  _driver/index.tsx              (/driver — Home dashboard)
-  _driver/trips.tsx              (/driver/trips — upcoming + today list)
-  _driver/trips.$id.tsx          (/driver/trips/:id — assignment detail + workflow)
-  _driver/documents.tsx          (/driver/documents — read-only license/insurance/ID)
-  _driver/profile.tsx            (/driver/profile — read-only profile + status control)
-  _driver/denied.tsx             (/driver/denied — professional access-denied screen)
+  admin.tsx                        (layout: sidebar nav + <Outlet/>)
+  admin.index.tsx                  (/admin      — Dispatch Overview / KPI board)
+  admin.dispatch.tsx               (/admin/dispatch — live booking board + assignment)
+  admin.bookings.$id.tsx           (/admin/bookings/:id — single operational screen)
+  admin.fleet.tsx                  (/admin/fleet — vehicles + expirations)
+  admin.drivers.tsx                (/admin/drivers — roster, status, suspend/activate)
+  admin.schedule.tsx               (/admin/schedule — driver day/week schedule)
+  admin.incidents.tsx              (/admin/incidents — incident + complaint feed)
+  admin.audit.tsx                  (/admin/audit — immutable audit trail, filterable)
 ```
 
-Gate logic in `_driver.tsx`: if `role !== 'driver' && role !== 'admin'` → render `<DeniedScreen />` (never leak driver UI). Admins allowed for QA.
+All routes gated by existing `_authenticated` layout + in-component `role==='admin'` guard (same pattern as current `admin.tsx`). No new gate primitive.
 
-## 3. New Schema (additive migration)
+## 6. Component Library (new, under `src/components/dispatch/`)
 
-Two small tables:
+Reuse `StatusPill`, `DispatchKpi`, `AssignmentTimeline`, `SectionCard`. Add:
 
-**`driver_documents`** — one row per document per driver
-- `driver_id`, `kind` (`license|insurance|company_id|medical|other`), `document_number`, `issued_at`, `expires_at`, `file_url` (nullable), `status` (`valid|expiring|expired`), `notes`
-- Admin-managed only. Drivers can `SELECT` their own. RLS + GRANT to authenticated + service_role.
+- `DispatchLayout.tsx` — sidebar + header + `<Outlet/>`, dense enterprise chrome.
+- `BookingBoard.tsx` — column/table hybrid grouped by `dispatch_status`; each row → `BookingRow` with driver, vehicle, pickup ETA, payment pill, quick-actions.
+- `AssignmentDrawer.tsx` — slide-over from a booking row; hosts `AssignmentPanel` + audit-writing wrappers + confirmation sheets.
+- `DriverRosterTable.tsx` — sortable table: driver, employee id, status pill, active-assignment count, upcoming-count, actions (suspend/activate/set-unavailable).
+- `FleetTable.tsx` — vehicle rows with expiration traffic-light chips (green >30d, amber ≤30d, red expired) computed client-side from `admin_fleet_expirations()`.
+- `ScheduleGrid.tsx` — driver rows × time columns for today+7d; blocks = assignments or unavailability; read-only in v1.
+- `IncidentFeed.tsx` — vertical feed of incident cards (no-show, incident, cancellation, low rating) with entity links.
+- `AuditTable.tsx` — filterable log with diff view for `previous`/`next`.
+- `ConfirmSheet.tsx` — generic confirmation modal for every destructive/dispatch action (required by spec).
+- `FiltersBar.tsx` — shared filter primitives (date range, driver, vehicle, customer, airport, status, payment, referral source).
 
-**`driver_trip_events`** — append-only audit log for driver actions
-- `assignment_id`, `driver_id`, `event` (`accepted|rejected|arrived|waiting|started|completed|no_show|incident|dispatch_contacted|passenger_contacted`), `reason`, `payload jsonb`, `created_at`
-- Driver can INSERT own; SELECT own; admin SELECT all.
+## 7. Server Functions (`src/lib/dispatch.functions.ts`)
 
-No changes to existing tables. Availability continues to sync via existing trigger on `booking_assignments`.
+All `.middleware([requireSupabaseAuth])` + server-side re-verify admin role via `has_role`. Each mutation wraps its Supabase write and calls `admin_audit_log` with `previous`/`next` snapshots in the SAME server call.
 
-## 4. Component Hierarchy (new, under `src/components/driver/`)
+- `assignBookingDriver({ bookingId, driverId, vehicleId, reason? })`
+- `reassignBookingDriver({ bookingId, driverId, vehicleId, reason })`
+- `removeBookingAssignment({ bookingId, reason })`
+- `advanceAssignmentStatus({ assignmentId, next, reason? })` (admin override path; drivers still use `driver.functions.ts`)
+- `suspendDriver({ driverId, reason })` / `activateDriver({ driverId })`
+- `setDriverUnavailability({ driverId, starts_at, ends_at, kind, reason })`
+- `updateVehicle({ vehicleId, patch, reason })` (status, expirations, notes)
+- `cancelBooking({ bookingId, reason })`
 
-Reuse existing `JobCard`, `useDispatchState`, `StatusPill`, `AssignmentTimeline`, `SectionCard`. Add:
+Read helpers use TanStack Query directly against Supabase (no server fn needed) for realtime-friendly polling; heavy aggregations use the new RPCs.
 
-- `DriverShell.tsx` — layout with bottom tab bar (Home / Trips / Docs / Profile), safe-area padding, offline banner
-- `DriverStatusPicker.tsx` — 8 statuses (Available, Assigned, Driving to Pickup, Waiting, On Trip, Offline, Break, Vacation) with confirmation sheet
-- `AssignmentDetailCard.tsx` — passenger first name, pickup, dropoff, pickup time, flight, notes, refreshments, accommodations, vehicle, ETA
-- `WorkflowStepper.tsx` — 10-step vertical stepper (New → Reviewed → Accepted → Navigating → Arrived → Waiting → Verified → Started → Completed → Archived)
-- `ActionButton.tsx` — large touch target (min 56px), single primary action per screen, confirmation sheet
-- `NavigateSheet.tsx` — opens Google Maps (`https://www.google.com/maps/dir/?api=1&destination=...`) or Apple Maps (`maps://?daddr=...`) via `<a>` links
-- `VerificationSlot.tsx` — placeholder UI for PIN / NFC / QR (disabled with "Coming soon" chip; wired to `passenger_verified` step)
-- `RejectReasonSheet.tsx`, `NoShowSheet.tsx`, `IncidentSheet.tsx` — modal forms that write to `driver_trip_events`
-- `DocumentRow.tsx` — read-only doc row with expiration pill (green >30d, amber ≤30d, red expired)
-- `OfflineBanner.tsx` + `useOnlineStatus.ts` — `navigator.onLine` + `online/offline` events
-- `useDriverSync.ts` — TanStack Query with `networkMode: 'offlineFirst'`, mutation retry queue via `queryClient.getMutationCache()` and `onlineManager`
+## 8. UX Principles
 
-## 5. State Management
+- Dense but calm: 13–14px base, generous line-height, single accent (gold) on active state + primary CTA only.
+- One primary action per drawer; every mutation opens `ConfirmSheet` with a reason field where applicable.
+- No decorative animation. State changes use opacity + slide only.
+- Persistent sidebar with 8 sections; keyboard shortcuts (`g d` dispatch, `g f` fleet…) — optional stretch, only if trivial.
+- All strings via `useI18n()` under new `admin.*` namespace (EN + TR populated; others fall back).
 
-- **Server state**: TanStack Query. Query keys: `['driver','me']`, `['driver','assignments','today']`, `['driver','assignments','upcoming']`, `['driver','assignment',id]`, `['driver','documents']`. All loaders prime via `ensureQueryData`; components use `useSuspenseQuery`.
-- **Mutations**: `advanceAssignment`, `rejectAssignment`, `reportNoShow`, `reportIncident`, `updateDriverStatus`. Each via `createServerFn` in `src/lib/driver.functions.ts` with `requireSupabaseAuth` middleware; server-side re-verifies caller is the assigned driver.
-- **Offline**: mutations use `networkMode: 'offlineFirst'` + `retry: 3` with exponential backoff; queued when offline, flushed on `online` event. Reads fall back to cached data with staleness banner.
-- **Notification bus**: extend existing `src/lib/notifications.ts` with driver-facing event types (`assignment.new`, `assignment.updated`, `trip.cancelled`, `passenger.delay`, `dispatch.message`, `document.expiring`). Adapters remain toast-only; push transport deferred.
+## 9. Guardrails
 
-## 6. Workflow Enforcement
+- No edits to `bookings`, `booking_assignments`, `driver_profiles`, `vehicles`, `driver_*`, `referral*`, `receipt*`, `stripe*`, `payments*`, `blake.ts`, `book.tsx`, `history.tsx`, `_driver.*`, `AuthProvider`, `AppHeader` (except adding an `Admin` label styling — optional).
+- Existing `admin.tsx` gets converted to a layout; its previous tab content is redistributed to the new child routes with **zero behavior loss**.
 
-`WorkflowStepper` reads `booking_assignments.dispatch_status` and exposes only the single next legal action. Server function `advanceAssignment(assignmentId, nextStatus)` validates the transition against the same 10-step ladder server-side — no client can skip steps.
+## 10. Implementation Order (each step compiles + preserves prior behavior)
 
-Verification step (`passenger_verified`) is currently auto-passed with a UI placeholder showing the three future methods (PIN/NFC/QR) as disabled; a feature flag `VERIFICATION_REQUIRED = false` in `src/lib/driver.constants.ts` flips on later without any UI rewrite.
+1. **Migration** — `audit_log` + 4 RPCs + GRANTs + RLS.
+2. **Server functions** — `dispatch.functions.ts` with audit-wrapped mutations.
+3. **Layout split** — convert `admin.tsx` to layout, move current content to `admin.index.tsx` unchanged (baseline preserved).
+4. **Dispatch board** — `admin.dispatch.tsx` + `BookingBoard` + `AssignmentDrawer` + `ConfirmSheet`.
+5. **Booking detail** — `admin.bookings.$id.tsx` with full operational panels + timeline.
+6. **Fleet** — `admin.fleet.tsx` + `FleetTable` with expiration RPC.
+7. **Drivers** — `admin.drivers.tsx` + `DriverRosterTable` + suspend/activate/unavailability flows.
+8. **Schedule** — `admin.schedule.tsx` + `ScheduleGrid` (read-only).
+9. **Incidents** — `admin.incidents.tsx` + `IncidentFeed`.
+10. **Audit** — `admin.audit.tsx` + `AuditTable` + `FiltersBar`.
+11. **i18n** — additive `admin.*` keys (EN + TR).
+12. **Verify** — typecheck; smoke test as admin in preview; confirm no regressions in booking/driver/passenger paths.
 
-## 7. UX Principles
-
-- 56px min tap targets, 17px base type, no decorative animation
-- One primary action per screen, sticky at bottom with safe-area inset
-- Gold accent used sparingly (primary CTA only); dispatch surfaces stay neutral
-- Offline banner slides down from top when `!navigator.onLine`
-- Bottom tab bar (Home / Trips / Docs / Profile) with 44px icons
-- All strings pass through existing `useI18n()` under new `driver.*` namespace (EN + TR populated; ES/PT/ZH/IT fall back to EN then translated)
-
-## 8. Guardrails (explicitly untouched)
-
-- `src/routes/index.tsx`, `auth.tsx`, `book.tsx`, `history.tsx`, `admin.tsx`
-- `src/routes/api/blake.ts`, `src/routes/api/public/payments/webhook.ts`
-- `src/lib/payments.functions.ts`, `receipts.functions.ts`, `referrals.functions.ts`, `stripe*`
-- All existing tables, enums, triggers, RLS policies
-- Concierge widget, referral card, receipts, ratings — unchanged
-
-## 9. Explicitly NOT built (per constraints)
-
-Live GPS, realtime tracking, PIN/NFC/QR verification logic, push notifications. UI slots + architecture only.
-
-## 10. Implementation Order (each step ships working, typechecks clean)
-
-1. **Migration** — `driver_documents` + `driver_trip_events` with RLS + GRANTs
-2. **Server functions** — `src/lib/driver.functions.ts` (advance, reject, no-show, incident, status)
-3. **Layout + gate** — `_driver.tsx`, `DriverShell`, `denied.tsx`, `OfflineBanner`
-4. **Home** — `/driver` dashboard with today/upcoming + status picker + vehicle card
-5. **Trips list + detail** — `/driver/trips`, `/driver/trips/$id` with `WorkflowStepper`, all action sheets, navigation launcher
-6. **Documents** — `/driver/documents` read-only with expiration pills
-7. **Profile** — `/driver/profile` read-only + status control
-8. **i18n keys** — additive `driver.*` namespace (EN + TR at minimum)
-9. **Header wiring** — `AppHeader` shows "Driver" link when role=driver
-10. **Verify** — typecheck; smoke test the driver route as admin (role bypass) in preview
+---
 
 Approve to proceed with Step 1 (migration).
