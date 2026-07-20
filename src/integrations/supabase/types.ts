@@ -856,10 +856,15 @@ export type Database = {
           email: string
           home_address: string | null
           id: string
+          is_suspended: boolean
+          is_test_account: boolean
           name: string | null
           phone: string | null
           preferred_language: string | null
           surname: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -867,10 +872,15 @@ export type Database = {
           email: string
           home_address?: string | null
           id: string
+          is_suspended?: boolean
+          is_test_account?: boolean
           name?: string | null
           phone?: string | null
           preferred_language?: string | null
           surname?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -878,10 +888,15 @@ export type Database = {
           email?: string
           home_address?: string | null
           id?: string
+          is_suspended?: boolean
+          is_test_account?: boolean
           name?: string | null
           phone?: string | null
           preferred_language?: string | null
           surname?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1513,6 +1528,17 @@ export type Database = {
       admin_fleet_compliance_alerts: { Args: { _days?: number }; Returns: Json }
       admin_fleet_expirations: { Args: never; Returns: Json }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
+      admin_list_managed_users: { Args: never; Returns: Json }
+      admin_provision_user_finalize: {
+        Args: {
+          _account_type: string
+          _driver?: Json
+          _is_test?: boolean
+          _profile: Json
+          _user_id: string
+        }
+        Returns: Json
+      }
       admin_referral_kpis: { Args: never; Returns: Json }
       admin_remove_assignment: {
         Args: { _assignment_id: string; _reason?: string }
@@ -1532,6 +1558,10 @@ export type Database = {
       }
       admin_set_driver_availability: {
         Args: { _availability: string; _driver_id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_set_user_suspension: {
+        Args: { _reason?: string; _suspend: boolean; _user_id: string }
         Returns: Json
       }
       admin_toggle_campaign: { Args: { _id: string }; Returns: Json }
