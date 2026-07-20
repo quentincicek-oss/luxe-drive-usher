@@ -113,6 +113,26 @@ function Auth() {
     toast.success(t("auth.welcome"));
   }
 
+  async function handleForgotPassword() {
+    const email = form.email.trim();
+    if (!email) {
+      toast.error("Enter your email above, then tap Forgot password?");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Never reveal whether the email exists. Always show the same message.
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } catch {
+      // Swallow provider errors — do not distinguish existence.
+    } finally {
+      setBusy(false);
+      toast.success("If an account exists for that email, a reset link has been sent.");
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
