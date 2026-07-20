@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -39,19 +40,52 @@ function Book() {
   const [dropoffAddr, setDropoffAddr] = useState<StructuredAddress | null>(null);
   const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<{ pickup?: string; dropoff?: string; time?: string }>({});
+
+  const pickupRef = useRef<HTMLDivElement>(null);
+  const dropoffRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
 
   const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
-  const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
 
   const createBookingFn = useServerFn(createBookingServer);
   const setAmenitiesFn = useServerFn(setBookingAmenities);
 
+  function validate() {
+    const next: typeof errors = {};
+    if (!form.pickup.trim()) next.pickup = t("book.pickup.required");
+    if (!form.dropoff.trim()) next.dropoff = t("book.dropoff.required");
+    if (!form.pickup_time) next.time = t("book.time.required");
+    else if (new Date(form.pickup_time).getTime() <= Date.now()) next.time = t("book.time.past");
+    return next;
+  }
+
+  function scrollToFirst(next: typeof errors) {
+    const order: Array<[keyof typeof errors, React.RefObject<HTMLDivElement | null>]> = [
+      ["pickup", pickupRef], ["dropoff", dropoffRef], ["time", timeRef],
+    ];
+    for (const [k, r] of order) {
+      if (next[k] && r.current) {
+        r.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = r.current.querySelector<HTMLInputElement>("input");
+        setTimeout(() => input?.focus({ preventScroll: true }), 250);
+        break;
+      }
+    }
+  }
+
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      scrollToFirst(next);
+      return;
+    }
     setSaving(true);
     try {
       const { id } = await createBookingFn({ data: {
@@ -84,6 +118,7 @@ function Book() {
     }
   }
 
+
   if (loading || !user) {
     return (
       <main className="min-h-dvh bg-obsidian">
@@ -105,42 +140,62 @@ function Book() {
           title={t("book.title")}
           description={t("book.subtitle")}
         >
-          <form id="book-form" onSubmit={reserve} className="space-y-5">
-            <AddressAutocomplete
-              label={t("book.pickup")}
-              required
-              value={form.pickup}
-              onTextChange={(v) => setForm({ ...form, pickup: v })}
-              onSelect={(a) => {
-                setPickupAddr(a);
-                setForm((f) => ({ ...f, pickup: a.formatted }));
-              }}
-              onClear={() => setPickupAddr(null)}
-              placeholder={t("book.pickup.example")}
-              autoComplete="off"
-            />
-            <AddressAutocomplete
-              label={t("book.dropoff")}
-              required
-              value={form.dropoff}
-              onTextChange={(v) => setForm({ ...form, dropoff: v })}
-              onSelect={(a) => {
-                setDropoffAddr(a);
-                setForm((f) => ({ ...f, dropoff: a.formatted }));
-              }}
-              onClear={() => setDropoffAddr(null)}
-              placeholder={t("book.dropoff.example")}
-              autoComplete="off"
-            />
+          <form id="book-form" onSubmit={reserve} noValidate className="space-y-5">
+            <div ref={pickupRef}>
+              <AddressAutocomplete
+                label={t("book.pickup")}
+                required
+                value={form.pickup}
+                error={errors.pickup ?? null}
+                onTextChange={(v) => {
+                  setForm({ ...form, pickup: v });
+                  if (errors.pickup) setErrors((e) => ({ ...e, pickup: undefined }));
+                }}
+                onSelect={(a) => {
+                  setPickupAddr(a);
+                  setForm((f) => ({ ...f, pickup: a.formatted }));
+                  setErrors((e) => ({ ...e, pickup: undefined }));
+                }}
+                onClear={() => setPickupAddr(null)}
+                placeholder={t("book.pickup.example")}
+                autoComplete="off"
+              />
+            </div>
+            <div ref={dropoffRef}>
+              <AddressAutocomplete
+                label={t("book.dropoff")}
+                required
+                value={form.dropoff}
+                error={errors.dropoff ?? null}
+                onTextChange={(v) => {
+                  setForm({ ...form, dropoff: v });
+                  if (errors.dropoff) setErrors((e) => ({ ...e, dropoff: undefined }));
+                }}
+                onSelect={(a) => {
+                  setDropoffAddr(a);
+                  setForm((f) => ({ ...f, dropoff: a.formatted }));
+                  setErrors((e) => ({ ...e, dropoff: undefined }));
+                }}
+                onClear={() => setDropoffAddr(null)}
+                placeholder={t("book.dropoff.example")}
+                autoComplete="off"
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field
-                label={t("book.time")}
-                required
-                type="datetime-local"
-                value={form.pickup_time}
-                onChange={(e) => setForm({ ...form, pickup_time: e.target.value })}
-              />
+              <div ref={timeRef}>
+                <Field
+                  label={t("book.time")}
+                  required
+                  type="datetime-local"
+                  value={form.pickup_time}
+                  error={errors.time ?? null}
+                  onChange={(e) => {
+                    setForm({ ...form, pickup_time: e.target.value });
+                    if (errors.time) setErrors((er) => ({ ...er, time: undefined }));
+                  }}
+                />
+              </div>
               <div>
                 <div className="label-luxe">{t("book.passengers")}</div>
                 <PassengerStepper
@@ -149,6 +204,7 @@ function Book() {
                 />
               </div>
             </div>
+
             <div>
               <div className="label-luxe">{t("book.ride")}</div>
               <VehicleShowroom
@@ -167,7 +223,7 @@ function Book() {
             {/* Desktop submit */}
             <div className="hidden sm:flex items-center justify-between gap-4 pt-2">
               <FareEstimate value={estimate} />
-              <button disabled={!canSubmit} className="btn-primary-luxe min-w-56">
+              <button disabled={saving} className="btn-primary-luxe min-w-56">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {saving ? t("book.saving") : t("book.submit")}
               </button>
@@ -183,7 +239,7 @@ function Book() {
           <button
             type="submit"
             form="book-form"
-            disabled={!canSubmit}
+            disabled={saving}
             className="btn-primary-luxe flex-1"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
