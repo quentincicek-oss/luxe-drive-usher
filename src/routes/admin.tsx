@@ -15,6 +15,7 @@ import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
 import { AuditTable } from "@/components/dispatch/AuditTable";
 import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
 import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
+import { UsersPanel } from "@/components/admin/UsersPanel";
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
