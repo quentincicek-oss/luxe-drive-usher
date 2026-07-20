@@ -9,9 +9,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { Field } from "@/components/ui/Field";
 import { AmenitiesSelector } from "@/components/booking/AmenitiesSelector";
+import { AddressAutocomplete, type StructuredAddress } from "@/components/booking/AddressAutocomplete";
 import { createBookingServer } from "@/lib/dispatch.functions";
 import { setBookingAmenities } from "@/lib/amenities.functions";
-import { MapPin, Navigation, Minus, Plus, Loader2 } from "lucide-react";
+import { Minus, Plus, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -34,6 +35,8 @@ function Book() {
     pickup_time: new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
     passengers: 1, ride_type: "escalade" as "escalade" | "suburban" | "denali",
   });
+  const [pickupAddr, setPickupAddr] = useState<StructuredAddress | null>(null);
+  const [dropoffAddr, setDropoffAddr] = useState<StructuredAddress | null>(null);
   const [amenityIds, setAmenityIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +60,14 @@ function Book() {
         pickupTime: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers,
         rideType: form.ride_type,
+        pickupLat: pickupAddr?.lat ?? null,
+        pickupLng: pickupAddr?.lng ?? null,
+        pickupPlaceId: pickupAddr?.placeId ?? null,
+        pickupComponents: (pickupAddr?.components ?? null) as Record<string, string> | null,
+        dropoffLat: dropoffAddr?.lat ?? null,
+        dropoffLng: dropoffAddr?.lng ?? null,
+        dropoffPlaceId: dropoffAddr?.placeId ?? null,
+        dropoffComponents: (dropoffAddr?.components ?? null) as Record<string, string> | null,
       }});
       if (amenityIds.length > 0 && id) {
         try {
@@ -95,23 +106,33 @@ function Book() {
           description={t("book.subtitle")}
         >
           <form id="book-form" onSubmit={reserve} className="space-y-5">
-            <Field
+            <AddressAutocomplete
               label={t("book.pickup")}
               required
-              autoComplete="street-address"
-              leading={<MapPin className="h-4 w-4" />}
               value={form.pickup}
-              onChange={(e) => setForm({ ...form, pickup: e.target.value })}
+              onTextChange={(v) => setForm({ ...form, pickup: v })}
+              onSelect={(a) => {
+                setPickupAddr(a);
+                setForm((f) => ({ ...f, pickup: a.formatted }));
+              }}
+              onClear={() => setPickupAddr(null)}
               placeholder={t("book.pickup.example")}
+              autoComplete="off"
             />
-            <Field
+            <AddressAutocomplete
               label={t("book.dropoff")}
               required
-              leading={<Navigation className="h-4 w-4" />}
               value={form.dropoff}
-              onChange={(e) => setForm({ ...form, dropoff: e.target.value })}
+              onTextChange={(v) => setForm({ ...form, dropoff: v })}
+              onSelect={(a) => {
+                setDropoffAddr(a);
+                setForm((f) => ({ ...f, dropoff: a.formatted }));
+              }}
+              onClear={() => setDropoffAddr(null)}
               placeholder={t("book.dropoff.example")}
+              autoComplete="off"
             />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field
                 label={t("book.time")}
