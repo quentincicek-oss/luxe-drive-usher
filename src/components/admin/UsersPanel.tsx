@@ -63,7 +63,14 @@ export function UsersPanel() {
       const { data: a } = await supabase
         .from("audit_log")
         .select("id, action, entity_id, actor_email, reason, created_at, next")
-        .in("action", ["user.provisioned", "user.suspended", "user.reactivated", "user.invitation_resent"])
+        .in("action", [
+          "user.provisioned",
+          "user.suspended",
+          "user.reactivated",
+          "user.invitation_resent",
+          "user.provisioning_failed",
+          "user.role_converted",
+        ])
         .order("created_at", { ascending: false })
         .limit(50);
       setAudit((a ?? []) as AuditRow[]);
@@ -76,15 +83,42 @@ export function UsersPanel() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // 1-second ticker only while any cooldown is active, for button countdowns.
+  useEffect(() => {
+    const hasActive = Object.values(cooldownUntil).some((t) => t > Date.now());
+    if (!hasActive) {
+      if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+      return;
+    }
+    if (tickRef.current) return;
+    tickRef.current = window.setInterval(() => setNowTick(Date.now()), 1000) as unknown as number;
+    return () => {
+      if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+    };
+  }, [cooldownUntil, nowTick]);
+
   const filtered = rows.filter((r) => {
     if (filter === "all") return true;
     if (filter === "suspended") return r.is_suspended;
     return r.role === filter;
   });
 
+  function remainingCooldown(userId: string): number {
+    const t = cooldownUntil[userId];
+    if (!t) return 0;
+    return Math.max(0, Math.ceil((t - nowTick) / 1000));
+  }
+
   async function handleResend(id: string) {
+    if (remainingCooldown(id) > 0) return;
     try {
-      await resend({ data: { userId: id } });
+      const res: any = await resend({ data: { userId: id } });
+      if (res?.cooldown) {
+        setCooldownUntil((m) => ({ ...m, [id]: Date.now() + (res.retryAfterSeconds ?? 300) * 1000 }));
+        toast.error(res.message ?? "Please wait before retrying.");
+        return;
+      }
+      setCooldownUntil((m) => ({ ...m, [id]: Date.now() + (res?.retryAfterSeconds ?? 300) * 1000 }));
       toast.success("Invitation resent");
       refresh();
     } catch (e: any) {
@@ -103,6 +137,47 @@ export function UsersPanel() {
       refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Action failed");
+    }
+  }
+
+  async function handleConvert(user: ManagedUser) {
+    if (!user.role) return;
+    const nextRoleRaw = window.prompt(
+      `Convert account ${user.email}\nCurrent role: ${user.role}\n\nEnter NEW role (admin / driver / passenger):`,
+    );
+    const nextRole = (nextRoleRaw ?? "").trim().toLowerCase();
+    if (!["admin", "driver", "passenger"].includes(nextRole)) return;
+    if (nextRole === user.role) { toast.error("Already has that role"); return; }
+    const reason = window.prompt("Reason for conversion (min 4 chars, visible in audit log):");
+    if (!reason || reason.trim().length < 4) return;
+    let driver: any = undefined;
+    if (nextRole === "driver") {
+      const employeeId = window.prompt("Employee ID for new driver profile (e.g. HL-D-002):");
+      if (!employeeId || !employeeId.trim()) return;
+      driver = {
+        employeeId: employeeId.trim().toUpperCase(),
+        fullName: user.full_name || user.email || "Driver",
+        email: user.email ?? undefined,
+      };
+    }
+    const confirmed = window.confirm(
+      `You are about to convert ${user.email} from "${user.role}" to "${nextRole}". This writes an atomic user.role_converted audit event and cannot be undone by simply provisioning again. Continue?`,
+    );
+    if (!confirmed) return;
+    try {
+      await convert({
+        data: {
+          userId: user.user_id,
+          newRole: nextRole as any,
+          reason: reason.trim(),
+          confirmed: true as const,
+          driver,
+        },
+      });
+      toast.success(`Converted to ${nextRole}`);
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Conversion failed");
     }
   }
 
