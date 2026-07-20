@@ -157,6 +157,7 @@ function Admin() {
     { key: "dispatch",  label: "Dispatch" },
     { key: "schedule",  label: "Schedule" },
     { key: "bookings",  label: t("admin.tabs.bookings") },
+    { key: "users",     label: "Users" },
     { key: "drivers",   label: "Drivers" },
     { key: "vehicles",  label: "Vehicles" },
     { key: "fleet",     label: "Fleet health" },
