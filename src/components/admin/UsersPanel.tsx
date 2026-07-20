@@ -101,11 +101,20 @@ export function UsersPanel() {
     };
   }, [cooldownUntil, nowTick]);
 
-  const filtered = rows.filter((r) => {
-    if (filter === "all") return true;
-    if (filter === "suspended") return r.is_suspended;
-    return r.role === filter;
-  });
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filter === "suspended" && !r.is_suspended) return false;
+      if (filter !== "all" && filter !== "suspended" && r.role !== filter) return false;
+      if (!q) return true;
+      return (
+        (r.full_name ?? "").toLowerCase().includes(q) ||
+        (r.email ?? "").toLowerCase().includes(q) ||
+        (r.driver_employee_id ?? "").toLowerCase().includes(q) ||
+        (r.role ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, filter, search]);
 
   function remainingCooldown(userId: string): number {
     const t = cooldownUntil[userId];
