@@ -218,6 +218,9 @@ function Admin() {
         {/* ============ USERS ============ */}
         {tab === "users" && <UsersPanel />}
 
+        {/* ============ ADMIN MFA RECOVERY ============ */}
+        {tab === "mfa" && <AdminMfaPanel />}
+
         {/* ============ AMENITIES ============ */}
         {tab === "amenities" && <AmenitiesPanel />}
 
