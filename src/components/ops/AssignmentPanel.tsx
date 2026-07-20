@@ -29,6 +29,10 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
   }
   useEffect(() => { load(); }, [bookingId]);
 
+  async function audit(action: string, prev: unknown, next: unknown, reason?: string) {
+    try { await (supabase as any).rpc("admin_audit_log", { _action: action, _entity_type: "booking_assignment", _entity_id: bookingId, _previous: prev, _next: next, _reason: reason ?? null }); } catch { /* noop */ }
+  }
+
   async function assign(driver_id: string, vehicle_id: string | null) {
     setBusy(true);
     const { data, error } = await (supabase as any).from("booking_assignments")
@@ -39,10 +43,12 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
     setCurrent(data as Assignment);
     const drv = drivers.find(x => x.id === driver_id);
     emit({ type: "driver.assigned", bookingId, driverName: drv?.full_name ?? "Driver" });
+    audit(current ? "assignment.reassigned" : "assignment.created", current, { driver_id, vehicle_id });
   }
 
   async function advance(next: DispatchStatus) {
     if (!current) return;
+    const prev = current.dispatch_status;
     setBusy(true);
     const { error } = await (supabase as any).from("booking_assignments")
       .update({ dispatch_status: next }).eq("id", current.id);
@@ -53,16 +59,19 @@ export function AssignmentPanel({ bookingId }: { bookingId: string }) {
     if (next === "arrived") emit({ type: "driver.arrived", bookingId });
     if (next === "in_progress") emit({ type: "trip.started", bookingId });
     if (next === "completed") emit({ type: "trip.completed", bookingId });
+    audit("assignment.advanced", { dispatch_status: prev }, { dispatch_status: next });
   }
 
   async function remove() {
     if (!current) return;
+    const prev = current;
     setBusy(true);
     const { error } = await (supabase as any).from("booking_assignments")
       .update({ is_current: false, dispatch_status: "cancelled" }).eq("id", current.id);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setCurrent(null);
+    audit("assignment.removed", prev, null);
   }
 
   if (current) {
