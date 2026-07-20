@@ -44,21 +44,27 @@ function Book() {
   const canSubmit = form.pickup.trim().length > 0 && form.dropoff.trim().length > 0 && !saving;
 
   const createBookingFn = useServerFn(createBookingServer);
+  const setAmenitiesFn = useServerFn(setBookingAmenities);
 
   async function reserve(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
     try {
-      // C4: pricing is derived server-side inside create_booking(); the
-      // browser no longer controls suggested_price.
-      await createBookingFn({ data: {
+      const { id } = await createBookingFn({ data: {
         pickup: form.pickup,
         dropoff: form.dropoff,
         pickupTime: new Date(form.pickup_time).toISOString(),
         passengers: form.passengers,
         rideType: form.ride_type,
       }});
+      if (amenityIds.length > 0 && id) {
+        try {
+          await setAmenitiesFn({ data: { bookingId: id, amenityIds } });
+        } catch (err) {
+          toast.error("Reservation saved, but preferences failed: " + (err as Error).message);
+        }
+      }
       toast.success(t("book.success"));
       nav({ to: "/history" });
     } catch (e: unknown) {
