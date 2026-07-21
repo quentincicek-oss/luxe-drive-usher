@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useDeferredValue, Fragment } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,6 +178,11 @@ function Admin() {
     <main className="min-h-dvh bg-obsidian">
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-4 flex justify-end">
+          <Link to="/admin/health" className="rounded-lg border border-border/60 px-3 py-1.5 text-sm hover:border-gold/60">
+            System Health →
+          </Link>
+        </div>
         <div className="-mx-4 sm:mx-0 mb-6 border-b border-border/60 overflow-x-auto">
           <div className="flex gap-1 px-4 sm:px-0 min-w-max">
             {TABS.map((v) => (

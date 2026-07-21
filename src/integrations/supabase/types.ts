@@ -136,6 +136,36 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          consent_version: string | null
+          created_at: string
+          id: string
+          name: string
+          props: Json
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          consent_version?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          props?: Json
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          consent_version?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          props?: Json
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -921,6 +951,36 @@ export type Database = {
           },
         ]
       }
+      integration_health: {
+        Row: {
+          checked_at: string
+          created_at: string
+          details: Json
+          id: string
+          integration: string
+          latency_ms: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          integration: string
+          latency_ms?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          integration?: string
+          latency_ms?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       invitation_cooldowns: {
         Row: {
           created_at: string
@@ -996,6 +1056,39 @@ export type Database = {
           kind?: string
           summary?: string
           version?: string
+        }
+        Relationships: []
+      }
+      monitoring_events: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          message: string
+          request_id: string | null
+          severity: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          message: string
+          request_id?: string | null
+          severity: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          message?: string
+          request_id?: string | null
+          severity?: string
+          source?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1524,6 +1617,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restore_drills: {
+        Row: {
+          created_at: string
+          dataset: string
+          id: string
+          method: string
+          notes: string | null
+          performed_at: string
+          performed_by: string | null
+          result: string
+        }
+        Insert: {
+          created_at?: string
+          dataset: string
+          id?: string
+          method: string
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          result: string
+        }
+        Update: {
+          created_at?: string
+          dataset?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          result?: string
+        }
+        Relationships: []
       }
       ride_reviews: {
         Row: {
@@ -2101,7 +2227,29 @@ export type Database = {
         }[]
       }
       admin_list_amenities: { Args: never; Returns: Json }
+      admin_list_integration_health: {
+        Args: never
+        Returns: {
+          checked_at: string
+          details: Json
+          integration: string
+          latency_ms: number
+          status: string
+        }[]
+      }
       admin_list_managed_users: { Args: never; Returns: Json }
+      admin_list_restore_drills: {
+        Args: { _limit?: number }
+        Returns: {
+          dataset: string
+          id: string
+          method: string
+          notes: string
+          performed_at: string
+          performed_by: string
+          result: string
+        }[]
+      }
       admin_provision_user_finalize: {
         Args: {
           _account_type: string
@@ -2111,6 +2259,37 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      admin_recent_monitoring_events: {
+        Args: { _limit?: number }
+        Returns: {
+          context: Json
+          created_at: string
+          id: string
+          message: string
+          request_id: string
+          severity: string
+          source: string
+          user_id: string
+        }[]
+      }
+      admin_record_integration_health: {
+        Args: {
+          _details?: Json
+          _integration: string
+          _latency_ms?: number
+          _status: string
+        }
+        Returns: string
+      }
+      admin_record_restore_drill: {
+        Args: {
+          _dataset: string
+          _method: string
+          _notes?: string
+          _result: string
+        }
+        Returns: string
       }
       admin_recovery_status: {
         Args: never
@@ -2162,6 +2341,7 @@ export type Database = {
         Args: { _conversation_id: string; _status: string }
         Returns: Json
       }
+      admin_system_health_snapshot: { Args: never; Returns: Json }
       admin_toggle_campaign: { Args: { _id: string }; Returns: Json }
       admin_update_support_settings: { Args: { _payload: Json }; Returns: Json }
       admin_update_user_profile: {
@@ -2258,6 +2438,16 @@ export type Database = {
       }
       is_current_user_admin: { Args: never; Returns: boolean }
       list_active_amenities: { Args: { _ride_type?: string }; Returns: Json }
+      monitoring_capture: {
+        Args: {
+          _context?: Json
+          _message: string
+          _request_id?: string
+          _severity: string
+          _source: string
+        }
+        Returns: string
+      }
       passenger_owns_booking: {
         Args: { _booking_id: string }
         Returns: boolean

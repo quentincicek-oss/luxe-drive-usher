@@ -31,7 +31,9 @@ import { Route as AdminSecurityRouteImport } from './routes/admin.security'
 import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminHealthRouteImport } from './routes/admin.health'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -144,10 +146,20 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHealthRoute = AdminHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DriverTripsIdRoute = DriverTripsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => DriverTripsRoute,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -164,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
@@ -179,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -188,6 +202,7 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
@@ -203,6 +218,7 @@ export interface FileRoutesByTo {
   '/r/$code': typeof RCodeRoute
   '/admin': typeof AdminIndexRoute
   '/driver': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -215,6 +231,7 @@ export interface FileRoutesById {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -243,6 +261,7 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/reset-password'
+    | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
@@ -258,6 +277,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -267,6 +287,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/reset-password'
+    | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
@@ -282,6 +303,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin'
     | '/driver'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   id:
@@ -293,6 +315,7 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/reset-password'
+    | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
@@ -308,6 +331,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -326,6 +350,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   RCodeRoute: typeof RCodeRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -485,12 +510,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/health': {
+      id: '/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/driver/trips/$id': {
       id: '/driver/trips/$id'
       path: '/$id'
       fullPath: '/driver/trips/$id'
       preLoaderRoute: typeof DriverTripsIdRouteImport
       parentRoute: typeof DriverTripsRoute
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -503,6 +542,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminHealthRoute: typeof AdminHealthRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMfaRoute: typeof AdminMfaRoute
   AdminRecoverRoute: typeof AdminRecoverRoute
@@ -511,6 +551,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminHealthRoute: AdminHealthRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMfaRoute: AdminMfaRoute,
   AdminRecoverRoute: AdminRecoverRoute,
@@ -563,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   RCodeRoute: RCodeRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
