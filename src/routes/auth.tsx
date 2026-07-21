@@ -19,36 +19,52 @@ export const Route = createFileRoute("/auth")({
   component: Auth,
 });
 
-type Mode = "passenger-signin" | "driver-signin";
+type Mode = "passenger-signin" | "driver-signin" | "phone-signin";
 
 // Generic error used by protected sign-in modes. Never reveals whether the
 // email exists, is a passenger, an admin, or has no account at all.
 const DRIVER_GENERIC_ERROR =
   "Driver access is available only to accounts provisioned by HarborLine. If you believe this is an error, contact your dispatcher.";
 
+const ADMIN_WRONG_PORTAL =
+  "Administrator accounts must sign in through the administrator portal.";
+
 function Auth() {
   const nav = useNavigate();
   const { t } = useI18n();
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
   const [mode, setMode] = useState<Mode>("passenger-signin");
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     const titles: Record<Mode, string> = {
       "passenger-signin": t("cta.signin"),
       "driver-signin": t("auth.driver.title"),
+      "phone-signin": t("cta.signin"),
     };
     document.title = `${titles[mode]} — ${t("brand.name")}`;
   }, [mode, t]);
 
+  // Admin accounts must never be authenticated through the passenger portal.
+  // If an admin session ends up here (e.g. via cross-tab session), sign them
+  // out immediately and hold them on /auth. Passengers → /book, drivers → /driver.
   useEffect(() => {
-    if (!loading && user) {
-      if (role === "admin") nav({ to: "/admin" });
-      else if (role === "driver") nav({ to: "/driver" });
-      else nav({ to: "/book" });
+    if (loading || roleLoading) return;
+    if (!user) return;
+    if (role === "admin") {
+      void (async () => {
+        await supabase.auth.signOut();
+        toast.error(ADMIN_WRONG_PORTAL);
+      })();
+      return;
     }
-  }, [user, role, loading, nav]);
+    if (role === "driver") nav({ to: "/driver" });
+    else if (role === "passenger") nav({ to: "/book" });
+  }, [user, role, loading, roleLoading, nav]);
 
   async function verifyDriverOrReject(_uid: string) {
     try {
