@@ -69,7 +69,6 @@ function Landing() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle className="hidden sm:inline-flex" />
             <LanguageMenu />
             {user ? (
               <Link to={role === "admin" ? "/admin" : "/book"} className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold tracking-wide text-primary-foreground shadow-gold">
