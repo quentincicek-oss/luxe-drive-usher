@@ -46,7 +46,12 @@ function Book() {
   const dropoffRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (loading || roleLoading) return;
+    if (!user) { nav({ to: "/auth" }); return; }
+    if (role === "admin") { nav({ to: "/admin" }); return; }
+    if (role === "driver") { nav({ to: "/driver" }); }
+  }, [user, role, loading, roleLoading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
 
   const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
