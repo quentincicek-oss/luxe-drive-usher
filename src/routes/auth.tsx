@@ -428,6 +428,8 @@ function Auth() {
             {t("auth.provisioning.notice")}
           </p>
         </div>
+        </>
+        )}
       </div>
     </main>
   );
