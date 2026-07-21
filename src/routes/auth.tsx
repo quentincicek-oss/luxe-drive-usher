@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, LogIn, Car, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldCheck, LogIn, Car } from "lucide-react";
 import { Field } from "@/components/ui/Field";
 
 export const Route = createFileRoute("/auth")({
