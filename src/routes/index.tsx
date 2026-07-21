@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { HarborLogo, Wordmark } from "@/components/HarborLogo";
 import { LanguageMenu } from "@/components/LanguageMenu";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { VehicleTurntable } from "@/components/VehicleTurntable";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
