@@ -354,7 +354,7 @@ function Admin() {
         )}
 
         {/* ============ REFERRALS ============ */}
-        {tab === "referrals" && <ReferralsPanel />}
+        {tab === "referrals" && <Suspense fallback={<PanelFallback />}><ReferralsPanel /></Suspense>}
 
         {/* ============ DISCOUNTS (existing) ============ */}
         {tab === "discounts" && !busy && (
