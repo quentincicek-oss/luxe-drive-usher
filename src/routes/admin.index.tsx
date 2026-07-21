@@ -175,7 +175,7 @@ function Admin() {
   ];
 
   return (
-    <main className="min-h-dvh bg-obsidian">
+    <main id="main-content" className="min-h-dvh bg-obsidian">
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-4 flex justify-end">

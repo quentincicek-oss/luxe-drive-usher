@@ -137,7 +137,7 @@ function Auth() {
   const isPassenger = mode === "passenger-signin";
 
   return (
-    <main className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
+    <main id="main-content" className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-6 flex justify-end">
           <LanguageMenu />
