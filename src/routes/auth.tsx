@@ -228,6 +228,7 @@ function Auth() {
   const isDriver = mode === "driver-signin";
   const isPassenger = mode === "passenger-signin";
   const isPhone = mode === "phone-signin";
+  const isAdminSession = !loading && !roleLoading && !!user && role === "admin";
 
   return (
     <main id="main-content" className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
