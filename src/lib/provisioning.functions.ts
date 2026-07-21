@@ -96,6 +96,21 @@ export const provisionUser = createServerFn({ method: "POST" })
     const ctx = context as any;
     const correlationId = newCorrelationId();
 
+    // Server-side rate limit per admin: 20 provisioning calls / hour.
+    try {
+      const { data: rl } = await ctx.supabase.rpc("check_and_bump_rate_limit", {
+        _action: "admin_provisioning", _key: ctx.userId, _limit: 20, _window_seconds: 3600,
+      });
+      const gate = Array.isArray(rl) ? rl[0] : rl;
+      if (gate && gate.allowed === false) {
+        await auditFailure(ctx, data.email, data.accountType, "unspecified", correlationId);
+        throw new Error(`rate_limited: retry in ${gate.retry_after}s`);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("rate_limited")) throw e;
+      // Non-fatal: continue if rate-limit call itself fails.
+    }
+
     // AuthZ.
     try {
       await assertAdmin(ctx);
