@@ -108,20 +108,20 @@ export async function sendTransactionalSms(input: SendSmsInput): Promise<SendSms
   };
 
   if (!E164.test(to)) {
-    await admin().from("sms_deliveries").insert({ ...insertBase, status: "invalid_number", error: "not_e164" });
+    await (admin() as any).from("sms_deliveries").insert({ ...insertBase, status: "invalid_number", error: "not_e164" });
     return { ok: false, status: "invalid_number", error: "not_e164" };
   }
 
   // Opt-out check
-  const { data: opt } = await admin().from("sms_opt_outs").select("phone").eq("phone", to).maybeSingle();
+  const { data: opt } = await (admin() as any).from("sms_opt_outs").select("phone").eq("phone", to).maybeSingle();
   if (opt) {
-    await admin().from("sms_deliveries").insert({ ...insertBase, status: "skipped_opt_out" });
+    await (admin() as any).from("sms_deliveries").insert({ ...insertBase, status: "skipped_opt_out" });
     return { ok: false, status: "skipped_opt_out" };
   }
 
   const hasProvider = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER);
   if (!hasProvider) {
-    await admin().from("sms_deliveries").insert({ ...insertBase, status: "skipped_no_provider" });
+    await (admin() as any).from("sms_deliveries").insert({ ...insertBase, status: "skipped_no_provider" });
     return { ok: false, status: "skipped_no_provider", error: "no_provider" };
   }
 
@@ -129,10 +129,10 @@ export async function sendTransactionalSms(input: SendSmsInput): Promise<SendSms
   insertBase.provider = "twilio";
   const providerRes = await sendViaTwilio({ to, body });
   if (!providerRes.ok) {
-    await admin().from("sms_deliveries").insert({ ...insertBase, status: "failed", error: providerRes.error?.slice(0, 500) });
+    await (admin() as any).from("sms_deliveries").insert({ ...insertBase, status: "failed", error: providerRes.error?.slice(0, 500) });
     return { ok: false, status: "failed", error: providerRes.error };
   }
-  await admin().from("sms_deliveries").insert({
+  await (admin() as any).from("sms_deliveries").insert({
     ...insertBase, status: "sent", provider_id: providerRes.id ?? null, sent_at: new Date().toISOString(),
   });
   return { ok: true, status: "sent", providerId: providerRes.id };

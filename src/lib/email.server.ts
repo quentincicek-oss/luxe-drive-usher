@@ -158,16 +158,16 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   };
 
   if (!hasProvider) {
-    await admin().from("email_deliveries").insert({ ...insertBase, status: "skipped_no_provider" });
+    await (admin() as any).from("email_deliveries").insert({ ...insertBase, status: "skipped_no_provider" });
     return { ok: false, status: "skipped_no_provider", error: "no_provider" };
   }
 
   const providerRes = await sendViaResend({ to, subject: rendered.subject, html: rendered.html, text: rendered.text });
   if (!providerRes.ok) {
-    await admin().from("email_deliveries").insert({ ...insertBase, status: "failed", error: providerRes.error?.slice(0, 500) });
+    await (admin() as any).from("email_deliveries").insert({ ...insertBase, status: "failed", error: providerRes.error?.slice(0, 500) });
     return { ok: false, status: "failed", error: providerRes.error };
   }
-  await admin().from("email_deliveries").insert({
+  await (admin() as any).from("email_deliveries").insert({
     ...insertBase, status: "sent", provider_id: providerRes.id ?? null, sent_at: new Date().toISOString(),
   });
   return { ok: true, status: "sent", providerId: providerRes.id };
