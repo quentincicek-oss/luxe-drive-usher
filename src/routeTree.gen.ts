@@ -27,6 +27,7 @@ import { Route as DriverTripsRouteImport } from './routes/driver.trips'
 import { Route as DriverProfileRouteImport } from './routes/driver.profile'
 import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as AdminSecurityRouteImport } from './routes/admin.security'
 import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -123,6 +124,11 @@ const ApiBlakeRoute = ApiBlakeRouteImport.update({
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSecurityRoute = AdminSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRecoverRoute = AdminRecoverRouteImport.update({
   id: '/recover',
   path: '/recover',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/recover': typeof AdminRecoverRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
+    | '/admin/security'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
+    | '/admin/security'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/recover'
+    | '/admin/security'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -445,6 +457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/security': {
+      id: '/admin/security'
+      path: '/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof AdminSecurityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/recover': {
       id: '/admin/recover'
       path: '/recover'
@@ -487,6 +506,7 @@ interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMfaRoute: typeof AdminMfaRoute
   AdminRecoverRoute: typeof AdminRecoverRoute
+  AdminSecurityRoute: typeof AdminSecurityRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -494,6 +514,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminMfaRoute: AdminMfaRoute,
   AdminRecoverRoute: AdminRecoverRoute,
+  AdminSecurityRoute: AdminSecurityRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
