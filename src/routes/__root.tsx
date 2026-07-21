@@ -99,7 +99,11 @@ function RootShell({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <HeadContent />
       </head>
-      <body className="bg-background text-foreground">{children}<Scripts /></body>
+      <body className="bg-background text-foreground">
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }
