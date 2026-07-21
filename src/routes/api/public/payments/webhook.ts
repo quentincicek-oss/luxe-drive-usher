@@ -133,6 +133,8 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           }
           if (event.type === "checkout.session.completed") {
             await handleCheckoutCompleted(event.data.object);
+          } else if (event.type === "charge.refunded" || event.type === "refund.updated" || event.type === "refund.created") {
+            await handleRefund(event.data.object as Record<string, unknown>, env);
           } else {
             console.log("Unhandled event:", event.type);
           }
