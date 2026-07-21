@@ -28,7 +28,7 @@ export const Route = createFileRoute("/book")({
 const RATES: Record<string, number> = { escalade: 4.5, suburban: 4.2, denali: 4.8 };
 
 function Book() {
-  const { user, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
   const [form, setForm] = useState({
