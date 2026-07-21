@@ -2,7 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Route as RouteIcon, Users, UserCog, Car, Activity, Settings, HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const NAV: NavItem[] = [
   { to: "/admin",            label: "Dashboard",  icon: LayoutDashboard, exact: true },
   { to: "/admin/trips",      label: "Trips",      icon: RouteIcon },
   { to: "/admin/drivers",    label: "Drivers",    icon: UserCog },
@@ -11,7 +12,7 @@ const NAV = [
   { to: "/admin/operations", label: "Operations", icon: Activity },
   { to: "/admin/settings",   label: "Settings",   icon: Settings },
   { to: "/admin/health",     label: "Health",     icon: HeartPulse },
-] as const;
+];
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
