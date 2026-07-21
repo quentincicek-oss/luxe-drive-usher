@@ -41,7 +41,7 @@ function Landing() {
   ];
 
   return (
-    <main className="relative min-h-dvh bg-obsidian">
+    <main id="main-content" className="relative min-h-dvh bg-obsidian">
       {/* HERO — cinematic video */}
       <section className="relative min-h-dvh w-full overflow-hidden">
 
