@@ -123,7 +123,10 @@ function Landing() {
             className="flex flex-wrap items-center justify-center gap-3 animate-fade-up"
             style={{ animationDelay: "1.4s", marginTop: "clamp(0.5rem, 1.5vh, 1.25rem)" }}
           >
-            <Link to={user ? "/book" : "/auth"} className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition">
+            <Link
+              to={user && (role === "passenger" || role === "driver") ? "/book" : "/auth"}
+              className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition"
+            >
               {t("cta.book")}
               <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </Link>
