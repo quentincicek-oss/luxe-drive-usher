@@ -27,13 +27,23 @@ import { Route as DriverTripsRouteImport } from './routes/driver.trips'
 import { Route as DriverProfileRouteImport } from './routes/driver.profile'
 import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
+import { Route as AdminTripsRouteImport } from './routes/admin.trips'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSecurityRouteImport } from './routes/admin.security'
 import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
+import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminHealthRouteImport } from './routes/admin.health'
+import { Route as AdminDriversRouteImport } from './routes/admin.drivers'
+import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as AdminVehiclesIdRouteImport } from './routes/admin.vehicles.$id'
+import { Route as AdminTripsIdRouteImport } from './routes/admin.trips.$id'
+import { Route as AdminDriversIdRouteImport } from './routes/admin.drivers.$id'
+import { Route as AdminCustomersIdRouteImport } from './routes/admin.customers.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -126,6 +136,21 @@ const ApiBlakeRoute = ApiBlakeRouteImport.update({
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
+  id: '/vehicles',
+  path: '/vehicles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTripsRoute = AdminTripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSecurityRoute = AdminSecurityRouteImport.update({
   id: '/security',
   path: '/security',
@@ -134,6 +159,11 @@ const AdminSecurityRoute = AdminSecurityRouteImport.update({
 const AdminRecoverRoute = AdminRecoverRouteImport.update({
   id: '/recover',
   path: '/recover',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMfaRoute = AdminMfaRouteImport.update({
@@ -151,6 +181,16 @@ const AdminHealthRoute = AdminHealthRouteImport.update({
   path: '/health',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDriversRoute = AdminDriversRouteImport.update({
+  id: '/drivers',
+  path: '/drivers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCustomersRoute = AdminCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DriverTripsIdRoute = DriverTripsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -160,6 +200,26 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVehiclesIdRoute = AdminVehiclesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminVehiclesRoute,
+} as any)
+const AdminTripsIdRoute = AdminTripsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminTripsRoute,
+} as any)
+const AdminDriversIdRoute = AdminDriversIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminDriversRoute,
+} as any)
+const AdminCustomersIdRoute = AdminCustomersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminCustomersRoute,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -176,11 +236,17 @@ export interface FileRoutesByFullPath {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/customers': typeof AdminCustomersRouteWithChildren
+  '/admin/drivers': typeof AdminDriversRouteWithChildren
   '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/trips': typeof AdminTripsRouteWithChildren
+  '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -192,6 +258,10 @@ export interface FileRoutesByFullPath {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/admin/customers/$id': typeof AdminCustomersIdRoute
+  '/admin/drivers/$id': typeof AdminDriversIdRoute
+  '/admin/trips/$id': typeof AdminTripsIdRoute
+  '/admin/vehicles/$id': typeof AdminVehiclesIdRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -202,11 +272,17 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/customers': typeof AdminCustomersRouteWithChildren
+  '/admin/drivers': typeof AdminDriversRouteWithChildren
   '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/trips': typeof AdminTripsRouteWithChildren
+  '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -218,6 +294,10 @@ export interface FileRoutesByTo {
   '/r/$code': typeof RCodeRoute
   '/admin': typeof AdminIndexRoute
   '/driver': typeof DriverIndexRoute
+  '/admin/customers/$id': typeof AdminCustomersIdRoute
+  '/admin/drivers/$id': typeof AdminDriversIdRoute
+  '/admin/trips/$id': typeof AdminTripsIdRoute
+  '/admin/vehicles/$id': typeof AdminVehiclesIdRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -231,11 +311,17 @@ export interface FileRoutesById {
   '/driver': typeof DriverRouteWithChildren
   '/history': typeof HistoryRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/customers': typeof AdminCustomersRouteWithChildren
+  '/admin/drivers': typeof AdminDriversRouteWithChildren
   '/admin/health': typeof AdminHealthRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/trips': typeof AdminTripsRouteWithChildren
+  '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
@@ -247,6 +333,10 @@ export interface FileRoutesById {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/admin/customers/$id': typeof AdminCustomersIdRoute
+  '/admin/drivers/$id': typeof AdminDriversIdRoute
+  '/admin/trips/$id': typeof AdminTripsIdRoute
+  '/admin/vehicles/$id': typeof AdminVehiclesIdRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -261,11 +351,17 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/reset-password'
+    | '/admin/customers'
+    | '/admin/drivers'
     | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/operations'
     | '/admin/recover'
     | '/admin/security'
+    | '/admin/settings'
+    | '/admin/trips'
+    | '/admin/vehicles'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -277,6 +373,10 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/admin/customers/$id'
+    | '/admin/drivers/$id'
+    | '/admin/trips/$id'
+    | '/admin/vehicles/$id'
     | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
@@ -287,11 +387,17 @@ export interface FileRouteTypes {
     | '/book'
     | '/history'
     | '/reset-password'
+    | '/admin/customers'
+    | '/admin/drivers'
     | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/operations'
     | '/admin/recover'
     | '/admin/security'
+    | '/admin/settings'
+    | '/admin/trips'
+    | '/admin/vehicles'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -303,6 +409,10 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin'
     | '/driver'
+    | '/admin/customers/$id'
+    | '/admin/drivers/$id'
+    | '/admin/trips/$id'
+    | '/admin/vehicles/$id'
     | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
@@ -315,11 +425,17 @@ export interface FileRouteTypes {
     | '/driver'
     | '/history'
     | '/reset-password'
+    | '/admin/customers'
+    | '/admin/drivers'
     | '/admin/health'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/operations'
     | '/admin/recover'
     | '/admin/security'
+    | '/admin/settings'
+    | '/admin/trips'
+    | '/admin/vehicles'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
@@ -331,6 +447,10 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/admin/customers/$id'
+    | '/admin/drivers/$id'
+    | '/admin/trips/$id'
+    | '/admin/vehicles/$id'
     | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
@@ -482,6 +602,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/vehicles': {
+      id: '/admin/vehicles'
+      path: '/vehicles'
+      fullPath: '/admin/vehicles'
+      preLoaderRoute: typeof AdminVehiclesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/trips': {
+      id: '/admin/trips'
+      path: '/trips'
+      fullPath: '/admin/trips'
+      preLoaderRoute: typeof AdminTripsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/security': {
       id: '/admin/security'
       path: '/security'
@@ -494,6 +635,13 @@ declare module '@tanstack/react-router' {
       path: '/recover'
       fullPath: '/admin/recover'
       preLoaderRoute: typeof AdminRecoverRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/mfa': {
@@ -517,6 +665,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHealthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/drivers': {
+      id: '/admin/drivers'
+      path: '/drivers'
+      fullPath: '/admin/drivers'
+      preLoaderRoute: typeof AdminDriversRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/customers': {
+      id: '/admin/customers'
+      path: '/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/driver/trips/$id': {
       id: '/driver/trips/$id'
       path: '/$id'
@@ -531,6 +693,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/vehicles/$id': {
+      id: '/admin/vehicles/$id'
+      path: '/$id'
+      fullPath: '/admin/vehicles/$id'
+      preLoaderRoute: typeof AdminVehiclesIdRouteImport
+      parentRoute: typeof AdminVehiclesRoute
+    }
+    '/admin/trips/$id': {
+      id: '/admin/trips/$id'
+      path: '/$id'
+      fullPath: '/admin/trips/$id'
+      preLoaderRoute: typeof AdminTripsIdRouteImport
+      parentRoute: typeof AdminTripsRoute
+    }
+    '/admin/drivers/$id': {
+      id: '/admin/drivers/$id'
+      path: '/$id'
+      fullPath: '/admin/drivers/$id'
+      preLoaderRoute: typeof AdminDriversIdRouteImport
+      parentRoute: typeof AdminDriversRoute
+    }
+    '/admin/customers/$id': {
+      id: '/admin/customers/$id'
+      path: '/$id'
+      fullPath: '/admin/customers/$id'
+      preLoaderRoute: typeof AdminCustomersIdRouteImport
+      parentRoute: typeof AdminCustomersRoute
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -541,21 +731,81 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminCustomersRouteChildren {
+  AdminCustomersIdRoute: typeof AdminCustomersIdRoute
+}
+
+const AdminCustomersRouteChildren: AdminCustomersRouteChildren = {
+  AdminCustomersIdRoute: AdminCustomersIdRoute,
+}
+
+const AdminCustomersRouteWithChildren = AdminCustomersRoute._addFileChildren(
+  AdminCustomersRouteChildren,
+)
+
+interface AdminDriversRouteChildren {
+  AdminDriversIdRoute: typeof AdminDriversIdRoute
+}
+
+const AdminDriversRouteChildren: AdminDriversRouteChildren = {
+  AdminDriversIdRoute: AdminDriversIdRoute,
+}
+
+const AdminDriversRouteWithChildren = AdminDriversRoute._addFileChildren(
+  AdminDriversRouteChildren,
+)
+
+interface AdminTripsRouteChildren {
+  AdminTripsIdRoute: typeof AdminTripsIdRoute
+}
+
+const AdminTripsRouteChildren: AdminTripsRouteChildren = {
+  AdminTripsIdRoute: AdminTripsIdRoute,
+}
+
+const AdminTripsRouteWithChildren = AdminTripsRoute._addFileChildren(
+  AdminTripsRouteChildren,
+)
+
+interface AdminVehiclesRouteChildren {
+  AdminVehiclesIdRoute: typeof AdminVehiclesIdRoute
+}
+
+const AdminVehiclesRouteChildren: AdminVehiclesRouteChildren = {
+  AdminVehiclesIdRoute: AdminVehiclesIdRoute,
+}
+
+const AdminVehiclesRouteWithChildren = AdminVehiclesRoute._addFileChildren(
+  AdminVehiclesRouteChildren,
+)
+
 interface AdminRouteChildren {
+  AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
+  AdminDriversRoute: typeof AdminDriversRouteWithChildren
   AdminHealthRoute: typeof AdminHealthRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMfaRoute: typeof AdminMfaRoute
+  AdminOperationsRoute: typeof AdminOperationsRoute
   AdminRecoverRoute: typeof AdminRecoverRoute
   AdminSecurityRoute: typeof AdminSecurityRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminTripsRoute: typeof AdminTripsRouteWithChildren
+  AdminVehiclesRoute: typeof AdminVehiclesRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCustomersRoute: AdminCustomersRouteWithChildren,
+  AdminDriversRoute: AdminDriversRouteWithChildren,
   AdminHealthRoute: AdminHealthRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMfaRoute: AdminMfaRoute,
+  AdminOperationsRoute: AdminOperationsRoute,
   AdminRecoverRoute: AdminRecoverRoute,
   AdminSecurityRoute: AdminSecurityRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminTripsRoute: AdminTripsRouteWithChildren,
+  AdminVehiclesRoute: AdminVehiclesRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
 
