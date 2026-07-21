@@ -43,7 +43,7 @@ function Landing() {
   return (
     <main className="relative min-h-dvh bg-obsidian">
       {/* HERO — cinematic video */}
-      <section className="relative h-dvh w-full overflow-hidden">
+      <section className="relative min-h-dvh w-full overflow-hidden">
 
         <video
           ref={videoRef}
@@ -82,28 +82,47 @@ function Landing() {
           </div>
         </header>
 
-        {/* Hero content */}
-        <div className="relative z-10 flex flex-col items-center justify-center px-6 text-center mt-[16vh] md:mt-[20vh]">
+        {/* Hero content — single flex column, responsive clamp gaps, no overlap */}
+        <div
+          className="relative z-10 flex flex-col items-center justify-start text-center px-6 pb-10"
+          style={{
+            paddingTop: "clamp(3rem, 12vh, 8rem)",
+            gap: "clamp(1rem, 2.5vh, 2rem)",
+          }}
+        >
           <div className="animate-scale-in">
-            <HarborLogo className="h-24 w-24 md:h-28 md:w-28" />
+            <HarborLogo className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28" />
           </div>
-          <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.4s" }}>
+          <div className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
             <Wordmark subtitle={t("brand.services")} />
           </div>
           <h1
-            className="mt-10 max-w-3xl font-display text-4xl md:text-6xl lg:text-7xl leading-[1.05] animate-fade-up"
-            style={{ animationDelay: "0.8s" }}
+            className="max-w-3xl font-display leading-[1.1] animate-fade-up"
+            style={{ animationDelay: "0.8s", fontSize: "clamp(1.9rem, 5.5vw, 4.5rem)" }}
           >
             <span className="text-foreground">{t("landing.hero.title1")} </span>
             <span className="text-gradient-gold italic">{t("landing.hero.title2")}</span>
           </h1>
+          <div
+            className="text-gold/90 font-medium animate-fade-in"
+            style={{
+              animationDelay: "1.0s",
+              fontSize: "clamp(0.7rem, 1.1vw, 0.9rem)",
+              letterSpacing: "0.45em",
+            }}
+          >
+            {t("brand.tagline")}
+          </div>
           <p
-            className="mt-6 max-w-xl text-sm md:text-base text-muted-foreground animate-fade-up"
-            style={{ animationDelay: "1.1s" }}
+            className="max-w-xl text-muted-foreground animate-fade-up"
+            style={{ animationDelay: "1.1s", fontSize: "clamp(0.85rem, 1.1vw, 1rem)" }}
           >
             {t("landing.hero.body")}
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "1.4s" }}>
+          <div
+            className="flex flex-wrap items-center justify-center gap-3 animate-fade-up"
+            style={{ animationDelay: "1.4s", marginTop: "clamp(0.5rem, 1.5vh, 1.25rem)" }}
+          >
             <Link to={user ? "/book" : "/auth"} className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-gold hover:brightness-110 transition">
               {t("cta.book")}
               <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -113,13 +132,6 @@ function Landing() {
                 {t("cta.signup")}
               </Link>
             )}
-          </div>
-        </div>
-
-        {/* Tagline */}
-        <div className="absolute bottom-6 inset-x-0 z-10 text-center animate-fade-in" style={{ animationDelay: "2.5s" }}>
-          <div className="text-[11px] md:text-sm tracking-[0.55em] text-gold/90 font-medium">
-            {t("brand.tagline")}
           </div>
         </div>
       </section>
