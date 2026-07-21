@@ -251,13 +251,22 @@ function Auth() {
 
           {isPassenger && (
             <>
-              <button
-                onClick={google}
-                disabled={busy}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60 min-h-11"
-              >
-                <GoogleGlyph /> {t("cta.google")}
-              </button>
+              <div className="grid gap-2">
+                <button
+                  onClick={google}
+                  disabled={busy}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60 min-h-11"
+                >
+                  <GoogleGlyph /> {t("cta.google")}
+                </button>
+                <button
+                  onClick={apple}
+                  disabled={busy}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60 min-h-11"
+                >
+                  <AppleGlyph /> Continue with Apple
+                </button>
+              </div>
               <div className="my-5 flex items-center gap-3 text-[11px] tracking-widest text-muted-foreground uppercase">
                 <div className="h-px flex-1 bg-border" />
                 <span>{t("auth.or")}</span>
@@ -266,41 +275,87 @@ function Auth() {
             </>
           )}
 
-          <form onSubmit={submit} className="space-y-4" noValidate>
-            <Field
-              label={t("auth.email")}
-              required
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-            <Field
-              label={t("auth.password")}
-              required
-              type="password"
-              autoComplete="current-password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-            <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
-              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isDriver ? t("auth.driver.submit") : t("cta.signin")}
-            </button>
-          </form>
-
-          {isPassenger && (
-            <div className="mt-4 text-center">
+          {isPhone ? (
+            <div className="space-y-4">
+              <Field
+                label="Phone number"
+                required
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+14155550123"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              {otpSent && (
+                <Field
+                  label="Verification code"
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+              )}
               <button
                 type="button"
-                onClick={handleForgotPassword}
                 disabled={busy}
-                className="text-xs text-muted-foreground hover:text-gold underline-offset-4 hover:underline"
+                onClick={otpSent ? verifyOtp : sendOtp}
+                className="btn-primary-luxe w-full"
               >
-                {t("auth.forgot.link")}
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {otpSent ? "Verify code" : "Send code"}
               </button>
+              {otpSent && (
+                <button
+                  type="button"
+                  onClick={() => { setOtpSent(false); setOtp(""); }}
+                  className="w-full text-xs text-muted-foreground hover:text-gold"
+                >
+                  Use a different number
+                </button>
+              )}
             </div>
+          ) : (
+            <>
+              <form onSubmit={submit} className="space-y-4" noValidate>
+                <Field
+                  label={t("auth.email")}
+                  required
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+                <Field
+                  label={t("auth.password")}
+                  required
+                  type="password"
+                  autoComplete="current-password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isDriver ? t("auth.driver.submit") : t("cta.signin")}
+                </button>
+              </form>
+
+              {isPassenger && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={busy}
+                    className="text-xs text-muted-foreground hover:text-gold underline-offset-4 hover:underline"
+                  >
+                    {t("auth.forgot.link")}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground border-t border-border/40 pt-4">
