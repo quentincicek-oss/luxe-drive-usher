@@ -6,12 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Props = Record<string, unknown>;
 
-const CONSENT_KEY = "harborline.cookie_consent.v1";
+// Matches the storage key written by src/components/CookieConsent.tsx
+const CONSENT_KEY = "harborline.cookieConsent.v1";
 const SESSION_KEY = "harborline.analytics.session";
 
 type StoredConsent = {
   version: string;
   categories: { essential: boolean; analytics: boolean; marketing: boolean };
+  grantedAt?: string;
 };
 
 function readConsent(): StoredConsent | null {
