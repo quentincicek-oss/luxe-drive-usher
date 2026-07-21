@@ -216,31 +216,31 @@ function Admin() {
         {busy && <div className="text-muted-foreground text-sm">{t("history.loading")}</div>}
 
         {/* ============ OVERVIEW ============ */}
-        {tab === "overview" && <DispatchOverview />}
+        {tab === "overview" && <Suspense fallback={<PanelFallback />}><DispatchOverview /></Suspense>}
 
         {/* ============ SCHEDULE ============ */}
-        {tab === "schedule" && <ScheduleGrid />}
+        {tab === "schedule" && <Suspense fallback={<PanelFallback />}><ScheduleGrid /></Suspense>}
 
         {/* ============ FLEET HEALTH ============ */}
-        {tab === "fleet" && <FleetExpirations />}
+        {tab === "fleet" && <Suspense fallback={<PanelFallback />}><FleetExpirations /></Suspense>}
 
         {/* ============ INCIDENTS ============ */}
-        {tab === "incidents" && <IncidentFeed />}
+        {tab === "incidents" && <Suspense fallback={<PanelFallback />}><IncidentFeed /></Suspense>}
 
         {/* ============ AUDIT ============ */}
-        {tab === "audit" && <AuditTable />}
+        {tab === "audit" && <Suspense fallback={<PanelFallback />}><AuditTable /></Suspense>}
 
         {/* ============ USERS ============ */}
-        {tab === "users" && <UsersPanel />}
+        {tab === "users" && <Suspense fallback={<PanelFallback />}><UsersPanel /></Suspense>}
 
         {/* ============ ADMIN MFA RECOVERY ============ */}
-        {tab === "mfa" && <AdminMfaPanel />}
+        {tab === "mfa" && <Suspense fallback={<PanelFallback />}><AdminMfaPanel /></Suspense>}
 
         {/* ============ AMENITIES ============ */}
-        {tab === "amenities" && <AmenitiesPanel />}
+        {tab === "amenities" && <Suspense fallback={<PanelFallback />}><AmenitiesPanel /></Suspense>}
 
         {/* ============ SUPPORT ============ */}
-        {tab === "support" && <SupportPanel />}
+        {tab === "support" && <Suspense fallback={<PanelFallback />}><SupportPanel /></Suspense>}
 
 
         {/* ============ DISPATCH ============ */}
