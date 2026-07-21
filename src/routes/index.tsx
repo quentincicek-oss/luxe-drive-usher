@@ -43,7 +43,7 @@ function Landing() {
   return (
     <main className="relative min-h-dvh bg-obsidian">
       {/* HERO — cinematic video */}
-      <section className="relative h-dvh w-full overflow-hidden">
+      <section className="relative min-h-dvh w-full overflow-hidden">
 
         <video
           ref={videoRef}
