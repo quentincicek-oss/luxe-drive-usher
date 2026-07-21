@@ -19,7 +19,7 @@ export const Route = createFileRoute("/auth")({
   component: Auth,
 });
 
-type Mode = "passenger-signin" | "driver-signin" | "admin-signin";
+type Mode = "passenger-signin" | "driver-signin";
 
 // Generic error used by protected sign-in modes. Never reveals whether the
 // email exists, is a passenger, an admin, or has no account at all.
@@ -38,7 +38,6 @@ function Auth() {
     const titles: Record<Mode, string> = {
       "passenger-signin": t("cta.signin"),
       "driver-signin": t("auth.driver.title"),
-      "admin-signin": t("auth.admin.title"),
     };
     document.title = `${titles[mode]} — ${t("brand.name")}`;
   }, [mode, t]);
@@ -107,11 +106,6 @@ function Auth() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (mode === "admin-signin") {
-      // Admin sign-in has its own dedicated screen with MFA gate.
-      nav({ to: "/admin/login" });
-      return;
-    }
     setBusy(true);
     try {
       if (mode === "passenger-signin") await handlePassengerSignIn();
@@ -140,7 +134,6 @@ function Auth() {
   }
 
   const isDriver = mode === "driver-signin";
-  const isAdmin = mode === "admin-signin";
   const isPassenger = mode === "passenger-signin";
 
   return (
@@ -163,7 +156,7 @@ function Auth() {
         <div
           role="tablist"
           aria-label="Sign-in method"
-          className="mb-5 grid grid-cols-3 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
+          className="mb-5 grid grid-cols-2 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
         >
           <TabBtn active={isPassenger} onClick={() => setMode("passenger-signin")} icon={<LogIn className="h-3.5 w-3.5" />}>
             {t("auth.tab.passenger")}
@@ -171,24 +164,17 @@ function Auth() {
           <TabBtn active={isDriver} onClick={() => setMode("driver-signin")} icon={<Car className="h-3.5 w-3.5" />}>
             {t("auth.tab.driver")}
           </TabBtn>
-          <TabBtn active={isAdmin} onClick={() => setMode("admin-signin")} icon={<ShieldAlert className="h-3.5 w-3.5" />}>
-            {t("auth.tab.admin")}
-          </TabBtn>
         </div>
 
         <div className="card-luxe p-6 sm:p-8">
           <h1 className="font-display text-2xl mb-1">
-            {isAdmin ? t("auth.admin.title") : isDriver ? t("auth.driver.title") : t("cta.signin")}
+            {isDriver ? t("auth.driver.title") : t("cta.signin")}
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
             <span className="flex items-start gap-2">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
               <span>
-                {isAdmin
-                  ? t("auth.admin.notice")
-                  : isDriver
-                    ? t("auth.driver.notice")
-                    : t("auth.passenger.notice")}
+                {isDriver ? t("auth.driver.notice") : t("auth.passenger.notice")}
               </span>
             </span>
           </p>
@@ -210,39 +196,29 @@ function Auth() {
             </>
           )}
 
-          {isAdmin ? (
-            <button
-              type="button"
-              onClick={() => nav({ to: "/admin/login" })}
-              className="btn-primary-luxe w-full"
-            >
-              {t("auth.admin.goToLogin")}
+          <form onSubmit={submit} className="space-y-4" noValidate>
+            <Field
+              label={t("auth.email")}
+              required
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+            <Field
+              label={t("auth.password")}
+              required
+              type="password"
+              autoComplete="current-password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isDriver ? t("auth.driver.submit") : t("cta.signin")}
             </button>
-          ) : (
-            <form onSubmit={submit} className="space-y-4" noValidate>
-              <Field
-                label={t("auth.email")}
-                required
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-              <Field
-                label={t("auth.password")}
-                required
-                type="password"
-                autoComplete="current-password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
-              <button disabled={busy} type="submit" className="btn-primary-luxe w-full">
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isDriver ? t("auth.driver.submit") : t("cta.signin")}
-              </button>
-            </form>
-          )}
+          </form>
 
           {isPassenger && (
             <div className="mt-4 text-center">
