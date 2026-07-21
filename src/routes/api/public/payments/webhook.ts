@@ -35,6 +35,9 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const amountTotal = typeof session.amount_total === "number" ? session.amount_total / 100 : null;
   const sessionId = typeof session.id === "string" ? session.id : null;
 
+  // Payment status and trip status are independent. Do NOT touch bookings.status
+  // or booking_assignments.dispatch_status here — trip completion flows only
+  // through advance_assignment() when the driver presses Complete Trip.
   const { data: updated, error } = await admin()
     .from("bookings")
     .update({
@@ -42,7 +45,6 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       paid_at: new Date().toISOString(),
       stripe_session_id: sessionId,
       ...(amountTotal !== null && { price: amountTotal }),
-      status: "completed",
     })
     .eq("id", bookingId)
     .select("id, pickup, dropoff, pickup_time, ride_type, passenger_id")
