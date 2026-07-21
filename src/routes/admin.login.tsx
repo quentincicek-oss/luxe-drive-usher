@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -159,6 +159,10 @@ function AdminLogin() {
             </>
           )}
         </p>
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          <Link to="/admin/recover" className="text-gold underline">Lost your authenticator?</Link>
+        </p>
+
       </div>
     </main>
   );

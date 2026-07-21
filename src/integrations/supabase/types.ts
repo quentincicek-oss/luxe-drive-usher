@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_recovery_codes: {
+        Row: {
+          batch_id: string
+          code_hash: string
+          created_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          batch_id: string
+          code_hash: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          batch_id?: string
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       amenity_categories: {
         Row: {
           code: string
@@ -524,6 +551,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cookie_consents: {
+        Row: {
+          categories: Json
+          granted_at: string
+          id: string
+          ip_hash: string | null
+          policy_ver: string
+          session_key: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          categories: Json
+          granted_at?: string
+          id?: string
+          ip_hash?: string | null
+          policy_ver: string
+          session_key: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          categories?: Json
+          granted_at?: string
+          id?: string
+          ip_hash?: string | null
+          policy_ver?: string
+          session_key?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       discount_rules: {
         Row: {
           active: boolean
@@ -888,6 +948,57 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          id: string
+          kind: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          id?: string
+          kind: string
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          id?: string
+          kind?: string
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      legal_documents: {
+        Row: {
+          created_at: string
+          effective_at: string
+          id: string
+          kind: string
+          summary: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          effective_at?: string
+          id?: string
+          kind: string
+          summary?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          effective_at?: string
+          id?: string
+          kind?: string
+          summary?: string
+          version?: string
+        }
+        Relationships: []
+      }
       nfc_tags: {
         Row: {
           active: boolean
@@ -1105,6 +1216,39 @@ export type Database = {
           suspended_by?: string | null
           suspended_reason?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          action: string
+          bucket_key: string
+          created_at: string
+          hit_count: number
+          id: string
+          last_hit_at: string
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          action: string
+          bucket_key: string
+          created_at?: string
+          hit_count?: number
+          id?: string
+          last_hit_at?: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          action?: string
+          bucket_key?: string
+          created_at?: string
+          hit_count?: number
+          id?: string
+          last_hit_at?: string
+          updated_at?: string
+          window_started_at?: string
         }
         Relationships: []
       }
@@ -1911,6 +2055,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_consume_recovery_code: { Args: { _code: string }; Returns: boolean }
       admin_convert_user_role: {
         Args: {
           _confirmed?: boolean
@@ -1937,6 +2082,12 @@ export type Database = {
       admin_dispatch_overview: { Args: never; Returns: Json }
       admin_fleet_compliance_alerts: { Args: { _days?: number }; Returns: Json }
       admin_fleet_expirations: { Args: never; Returns: Json }
+      admin_generate_recovery_codes: {
+        Args: never
+        Returns: {
+          code: string
+        }[]
+      }
       admin_get_invitation_cooldown: {
         Args: { _cooldown_seconds?: number; _email: string }
         Returns: Json
@@ -1960,6 +2111,15 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      admin_recovery_status: {
+        Args: never
+        Returns: {
+          last_generated_at: string
+          last_used_at: string
+          total_codes: number
+          unused_codes: number
+        }[]
       }
       admin_referral_kpis: { Args: never; Returns: Json }
       admin_remove_assignment: {
@@ -2044,6 +2204,19 @@ export type Database = {
         Args: { _booking_id: string }
         Returns: number
       }
+      check_and_bump_rate_limit: {
+        Args: {
+          _action: string
+          _key: string
+          _limit: number
+          _window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after: number
+        }[]
+      }
       create_booking:
         | {
             Args: {
@@ -2088,6 +2261,10 @@ export type Database = {
       passenger_owns_booking: {
         Args: { _booking_id: string }
         Returns: boolean
+      }
+      record_legal_acceptance: {
+        Args: { _kind: string; _version: string }
+        Returns: undefined
       }
       set_booking_amenities: {
         Args: { _amenity_ids: string[]; _booking_id: string }

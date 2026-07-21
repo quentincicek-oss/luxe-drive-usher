@@ -17,6 +17,8 @@ import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
 import { ConciergeWidget } from "@/components/ConciergeWidget";
 import { SupportWidget } from "@/components/support/SupportWidget";
+import { CookieConsent } from "@/components/CookieConsent";
+
 
 function NotFoundComponent() {
   return (
@@ -111,7 +113,9 @@ function RootComponent() {
             <Outlet />
             <ConciergeWidget />
             <SupportWidget />
+            <CookieConsent />
             <Toaster theme="dark" position="top-center" richColors />
+
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>
