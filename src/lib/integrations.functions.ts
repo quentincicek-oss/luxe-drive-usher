@@ -185,7 +185,7 @@ export const adminRefundBooking = createServerFn({ method: "POST" })
         status: refund.status ?? "pending",
         environment: data.environment,
         initiated_by: context.userId,
-        raw: refund as unknown as Record<string, unknown>,
+        raw: JSON.parse(JSON.stringify(refund)),
       });
       await supabaseAdmin.from("bookings").update({ status: "cancelled" }).eq("id", booking.id);
       return { ok: true, refundId: refund.id, status: refund.status };
