@@ -246,8 +246,47 @@ function Auth() {
           </div>
         </Link>
 
+        {isAdminSession ? (
+          <div className="card-luxe p-6 sm:p-8" role="alert" aria-live="polite">
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+              <div>
+                <h1 className="font-display text-xl mb-1">Administrator session detected</h1>
+                <p className="text-sm text-muted-foreground">
+                  {ADMIN_WRONG_PORTAL} You are currently signed in as{" "}
+                  <span className="text-foreground">{user?.email ?? "an administrator"}</span>.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={() => nav({ to: "/admin" })}
+                className="btn-primary-luxe w-full"
+              >
+                Go to Administrator Portal
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={switchPassengerAccount}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60 min-h-11"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleGlyph />}
+                Use a different passenger account
+              </button>
+            </div>
+            <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground border-t border-border/40 pt-4">
+              For security, administrator accounts cannot access passenger surfaces.
+              Choosing a different passenger account signs out the current session
+              and lets you pick another Google account.
+            </p>
+          </div>
+        ) : (
+        <>
         {/* Three sign-in entry points. No public self-registration. */}
         <div
+
           role="tablist"
           aria-label="Sign-in method"
           className="mb-5 grid grid-cols-3 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
