@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, LogIn, Car } from "lucide-react";
+import { Loader2, ShieldCheck, LogIn, Car, Phone } from "lucide-react";
 import { Field } from "@/components/ui/Field";
 
 export const Route = createFileRoute("/auth")({
@@ -223,10 +223,13 @@ function Auth() {
         <div
           role="tablist"
           aria-label="Sign-in method"
-          className="mb-5 grid grid-cols-2 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
+          className="mb-5 grid grid-cols-3 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
         >
           <TabBtn active={isPassenger} onClick={() => setMode("passenger-signin")} icon={<LogIn className="h-3.5 w-3.5" />}>
             {t("auth.tab.passenger")}
+          </TabBtn>
+          <TabBtn active={isPhone} onClick={() => setMode("phone-signin")} icon={<Phone className="h-3.5 w-3.5" />}>
+            Phone
           </TabBtn>
           <TabBtn active={isDriver} onClick={() => setMode("driver-signin")} icon={<Car className="h-3.5 w-3.5" />}>
             {t("auth.tab.driver")}
