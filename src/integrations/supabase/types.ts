@@ -884,6 +884,69 @@ export type Database = {
           },
         ]
       }
+      email_deliveries: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          locale: string
+          meta: Json
+          provider: string | null
+          provider_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template: string
+          to_email: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          locale?: string
+          meta?: Json
+          provider?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template: string
+          to_email: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          locale?: string
+          meta?: Json
+          provider?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template?: string
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_deliveries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           admin_notes: string | null
@@ -1696,6 +1759,84 @@ export type Database = {
           },
         ]
       }
+      sms_deliveries: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          locale: string
+          meta: Json
+          provider: string | null
+          provider_id: string | null
+          sent_at: string | null
+          status: string
+          template: string
+          to_phone: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          locale?: string
+          meta?: Json
+          provider?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template: string
+          to_phone: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          locale?: string
+          meta?: Json
+          provider?: string | null
+          provider_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template?: string
+          to_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_deliveries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_deliveries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
+      sms_opt_outs: {
+        Row: {
+          created_at: string
+          phone: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          phone: string
+          reason?: string
+        }
+        Update: {
+          created_at?: string
+          phone?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       stripe_events: {
         Row: {
           environment: string
@@ -1716,6 +1857,69 @@ export type Database = {
           received_at?: string
         }
         Relationships: []
+      }
+      stripe_refunds: {
+        Row: {
+          amount_cents: number
+          booking_id: string
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          initiated_by: string | null
+          raw: Json
+          reason: string | null
+          status: string
+          stripe_payment_intent: string | null
+          stripe_refund_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          booking_id: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          initiated_by?: string | null
+          raw?: Json
+          reason?: string | null
+          status: string
+          stripe_payment_intent?: string | null
+          stripe_refund_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          booking_id?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          initiated_by?: string | null
+          raw?: Json
+          reason?: string | null
+          status?: string
+          stripe_payment_intent?: string | null
+          stripe_refund_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_refunds_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_refunds_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
       }
       support_conversations: {
         Row: {
@@ -2219,6 +2423,16 @@ export type Database = {
         Returns: Json
       }
       admin_incident_feed: { Args: { _limit?: number }; Returns: Json }
+      admin_integration_health_summary: {
+        Args: never
+        Returns: {
+          checked_at: string
+          details: Json
+          integration: string
+          latency_ms: number
+          status: string
+        }[]
+      }
       admin_list_admins: {
         Args: never
         Returns: {
@@ -2460,6 +2674,7 @@ export type Database = {
         Args: { _amenity_ids: string[]; _booking_id: string }
         Returns: Json
       }
+      sms_opt_out: { Args: { _phone: string }; Returns: undefined }
       support_mark_read: {
         Args: { _conversation_id: string }
         Returns: undefined

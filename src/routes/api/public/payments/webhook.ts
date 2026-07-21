@@ -35,7 +35,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const amountTotal = typeof session.amount_total === "number" ? session.amount_total / 100 : null;
   const sessionId = typeof session.id === "string" ? session.id : null;
 
-  const { error } = await admin()
+  const { data: updated, error } = await admin()
     .from("bookings")
     .update({
       paid: true,
@@ -44,9 +44,68 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       ...(amountTotal !== null && { price: amountTotal }),
       status: "completed",
     })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .select("id, pickup, dropoff, pickup_time, ride_type, passenger_id")
+    .maybeSingle();
 
-  if (error) console.error("Failed to mark booking paid:", error.message);
+  if (error) { console.error("Failed to mark booking paid:", error.message); return; }
+  if (!updated) return;
+
+  // Fire-and-forget notifications. Never throw from webhook path.
+  try {
+    const { data: prof } = await admin()
+      .from("profiles")
+      .select("email, phone, preferred_language")
+      .eq("id", (updated as { passenger_id: string }).passenger_id)
+      .maybeSingle();
+    const locale = ((prof as { preferred_language?: string } | null)?.preferred_language === "tr" ? "tr" : "en") as "en" | "tr";
+    const u = updated as { id: string; pickup: string; dropoff: string; pickup_time: string; ride_type: string };
+    const rideLabel = u.ride_type === "escalade" ? "Cadillac Escalade" : u.ride_type === "suburban" ? "Chevrolet Suburban" : "GMC Denali";
+    const code = u.id.slice(0, 8).toUpperCase();
+    const email = (prof as { email?: string } | null)?.email;
+    const phone = (prof as { phone?: string } | null)?.phone;
+
+    if (email) {
+      const { sendTransactionalEmail } = await import("@/lib/email.server");
+      await sendTransactionalEmail({
+        to: email, template: "booking.confirmation", locale, bookingId: u.id,
+        data: { pickup: u.pickup, dropoff: u.dropoff, pickup_time: u.pickup_time, vehicle: rideLabel, code },
+      });
+    }
+    if (phone) {
+      const { sendTransactionalSms } = await import("@/lib/sms.server");
+      await sendTransactionalSms({
+        to: phone, template: "booking.confirmation", locale, bookingId: u.id,
+        data: { pickup: u.pickup, dropoff: u.dropoff, pickup_time: u.pickup_time, code },
+      });
+    }
+  } catch (e) {
+    console.error("Post-payment notification error:", e);
+  }
+}
+
+async function handleRefund(refund: Record<string, unknown>, env: StripeEnv) {
+  const metadata = (refund.metadata ?? {}) as Record<string, string>;
+  const bookingId = metadata.bookingId;
+  const refundId = typeof refund.id === "string" ? refund.id : null;
+  if (!bookingId || !refundId) return;
+  const amount = typeof refund.amount === "number" ? refund.amount : 0;
+  const status = typeof refund.status === "string" ? refund.status : "unknown";
+  const pi = typeof refund.payment_intent === "string" ? refund.payment_intent : null;
+  await admin().from("stripe_refunds").upsert(
+    {
+      booking_id: bookingId,
+      stripe_refund_id: refundId,
+      stripe_payment_intent: pi,
+      amount_cents: amount,
+      currency: typeof refund.currency === "string" ? refund.currency : "usd",
+      status,
+      environment: env,
+      raw: refund as never,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "stripe_refund_id" },
+  );
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
@@ -74,6 +133,8 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           }
           if (event.type === "checkout.session.completed") {
             await handleCheckoutCompleted(event.data.object);
+          } else if (event.type === "charge.refunded" || event.type === "refund.updated" || event.type === "refund.created") {
+            await handleRefund(event.data.object as Record<string, unknown>, env);
           } else {
             console.log("Unhandled event:", event.type);
           }

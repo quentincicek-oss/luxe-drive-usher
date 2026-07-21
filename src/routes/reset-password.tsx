@@ -60,6 +60,16 @@ function ResetPassword() {
     if (pwd !== pwd2) return toast.error("Passwords do not match.");
     setBusy(true);
     try {
+      // Server-side rate limit: 5 password updates per session user, per hour.
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id ?? "anon";
+      const { data: rl } = await (supabase as any).rpc("check_and_bump_rate_limit", {
+        _action: "password_reset", _key: uid, _limit: 5, _window_seconds: 3600,
+      });
+      const gate = Array.isArray(rl) ? rl[0] : rl;
+      if (gate && gate.allowed === false) {
+        throw new Error(`Too many attempts. Retry in ${gate.retry_after}s.`);
+      }
       const { error } = await supabase.auth.updateUser({ password: pwd });
       if (error) throw error;
       toast.success("Password updated. Please sign in.");
