@@ -29,7 +29,7 @@ export const Route = createFileRoute("/history")({
 });
 
 function History() {
-  const { user, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
   const [rows, setRows] = useState<Booking[]>([]);
@@ -40,7 +40,12 @@ function History() {
   const [payFor, setPayFor] = useState<string | null>(null);
 
   useEffect(() => { document.title = `${t("history.title")} — ${t("brand.name")}`; }, [t]);
-  useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (loading || roleLoading) return;
+    if (!user) { nav({ to: "/auth" }); return; }
+    if (role === "admin") { nav({ to: "/admin" }); return; }
+    if (role === "driver") { nav({ to: "/driver" }); }
+  }, [user, role, loading, roleLoading, nav]);
 
   async function refresh() {
     const [{ data: bs }, { data: rvs }] = await Promise.all([
@@ -69,7 +74,7 @@ function History() {
     return () => clearInterval(timer);
   }, []);
 
-  if (loading || !user) return <div className="min-h-dvh bg-obsidian" />;
+  if (loading || roleLoading || !user || role === "admin") return <div className="min-h-dvh bg-obsidian" />;
 
   return (
     <main id="main-content" className="min-h-dvh bg-obsidian">

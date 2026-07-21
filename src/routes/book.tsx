@@ -28,7 +28,7 @@ export const Route = createFileRoute("/book")({
 const RATES: Record<string, number> = { escalade: 4.5, suburban: 4.2, denali: 4.8 };
 
 function Book() {
-  const { user, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
   const { t } = useI18n();
   const nav = useNavigate();
   const [form, setForm] = useState({
@@ -46,7 +46,12 @@ function Book() {
   const dropoffRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (loading || roleLoading) return;
+    if (!user) { nav({ to: "/auth" }); return; }
+    if (role === "admin") { nav({ to: "/admin" }); return; }
+    if (role === "driver") { nav({ to: "/driver" }); }
+  }, [user, role, loading, roleLoading, nav]);
   useEffect(() => { document.title = `${t("book.title")} — ${t("brand.name")}`; }, [t]);
 
   const estimate = useMemo(() => Math.round(75 + RATES[form.ride_type] * 15), [form.ride_type]);
@@ -119,7 +124,7 @@ function Book() {
   }
 
 
-  if (loading || !user) {
+  if (loading || roleLoading || !user || role === "admin") {
     return (
       <main id="main-content" className="min-h-dvh bg-obsidian">
         <div className="mx-auto max-w-3xl px-6 py-12 space-y-4">
