@@ -74,7 +74,7 @@ function History() {
     return () => clearInterval(timer);
   }, []);
 
-  if (loading || !user) return <div className="min-h-dvh bg-obsidian" />;
+  if (loading || roleLoading || !user || role === "admin") return <div className="min-h-dvh bg-obsidian" />;
 
   return (
     <main id="main-content" className="min-h-dvh bg-obsidian">
