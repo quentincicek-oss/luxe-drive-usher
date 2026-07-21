@@ -187,7 +187,89 @@ const en: Dict = {
   "theme.auto": "Auto",
   "theme.day": "Day",
   "theme.night": "Night",
+
+  // Cookie consent
+  "cookies.banner.title": "Cookies & privacy",
+  "cookies.banner.body": "We use essential cookies to run HarborLine. With your permission we also use analytics and marketing cookies to improve the service.",
+  "cookies.banner.learn": "Cookie policy",
+  "cookies.accept_all": "Accept all",
+  "cookies.reject_optional": "Reject optional",
+  "cookies.customize": "Customize",
+  "cookies.save_prefs": "Save preferences",
+  "cookies.cat.essential": "Essential (always on)",
+  "cookies.cat.analytics": "Analytics",
+  "cookies.cat.marketing": "Marketing",
+
+  // Legal — chrome
+  "legal.back_home": "Back to home",
+  "legal.version": "Version",
+  "legal.owner_note": "Maintained by HarborLine Executive Services",
+
+  // Legal — Terms
+  "legal.terms.title": "Terms of Service",
+  "legal.terms.p1": "These Terms of Service govern your use of the HarborLine Executive Services platform, including the passenger, driver, and administrator applications.",
+  "legal.terms.h_service": "The service",
+  "legal.terms.p_service": "HarborLine coordinates premium concierge ground transportation between passengers and vetted independent drivers operating under HarborLine's operational standards.",
+  "legal.terms.h_conduct": "Acceptable use",
+  "legal.terms.p_conduct": "You agree not to misuse the service, harass staff or drivers, submit fraudulent bookings, or attempt to interfere with the security or availability of the platform.",
+  "legal.terms.h_payment": "Payments",
+  "legal.terms.p_payment": "Fares, surcharges, and driver gratuities are processed by our payment processor. Amenity selections are priced server-side and locked at checkout.",
+  "legal.terms.h_liability": "Liability",
+  "legal.terms.p_liability": "HarborLine is provided on an as-is basis during the controlled pilot. Where allowed by law, our aggregate liability is limited to the fees you paid for the disputed trip.",
+  "legal.terms.h_contact": "Contact",
+  "legal.terms.p_contact": "Questions about these terms: legal@harborline.services.",
+
+  // Legal — Privacy
+  "legal.privacy.title": "Privacy Policy",
+  "legal.privacy.p1": "This Privacy Policy explains how HarborLine Executive Services collects, uses, and protects information about passengers, drivers, and administrators.",
+  "legal.privacy.h_collect": "Information we collect",
+  "legal.privacy.p_collect": "Account details you provide (name, email, phone), booking data (pickup, drop-off, time, vehicle, amenities), payment metadata from our processor, and operational telemetry required to run the platform.",
+  "legal.privacy.h_use": "How we use information",
+  "legal.privacy.p_use": "To operate bookings, dispatch drivers, process payments, provide receipts, offer support, prevent abuse, and improve safety and quality.",
+  "legal.privacy.h_share": "How we share information",
+  "legal.privacy.p_share": "We share only what is required with the driver assigned to your trip, our payment processor, and our infrastructure providers acting as processors under contract. We never sell personal data.",
+  "legal.privacy.h_rights": "Your rights",
+  "legal.privacy.p_rights": "You may request access, correction, export, or deletion of your data by contacting privacy@harborline.services.",
+  "legal.privacy.h_retention": "Retention",
+  "legal.privacy.p_retention": "Booking, payment, and safety records are retained for the periods required by tax, safety, and consumer-protection law.",
+  "legal.privacy.h_contact": "Contact",
+  "legal.privacy.p_contact": "Privacy questions: privacy@harborline.services.",
+
+  // Legal — DPA
+  "legal.dpa.title": "Data Processing Addendum",
+  "legal.dpa.p1": "This Data Processing Addendum forms part of the HarborLine Executive Services agreement with enterprise customers who instruct HarborLine to process personal data on their behalf.",
+  "legal.dpa.h_roles": "Roles",
+  "legal.dpa.p_roles": "The customer is the controller of personal data submitted through the platform; HarborLine acts as processor and only processes personal data on documented instructions.",
+  "legal.dpa.h_sub": "Subprocessors",
+  "legal.dpa.p_sub": "HarborLine engages infrastructure, payment, and communication subprocessors under written contracts imposing equivalent data protection obligations.",
+  "legal.dpa.h_sec": "Security",
+  "legal.dpa.p_sec": "HarborLine maintains technical and organisational measures including access controls, encryption in transit, audit logging, and administrator two-factor authentication.",
+  "legal.dpa.h_intl": "International transfers",
+  "legal.dpa.p_intl": "Where personal data is transferred internationally, HarborLine relies on lawful transfer mechanisms recognised by applicable law.",
+  "legal.dpa.h_contact": "Contact",
+  "legal.dpa.p_contact": "DPA questions: dpo@harborline.services.",
+
+  // Legal — Cookies
+  "legal.cookies.title": "Cookie Policy",
+  "legal.cookies.p1": "This Cookie Policy explains how HarborLine Executive Services uses cookies and similar technologies.",
+  "legal.cookies.h_cats": "Categories",
+  "legal.cookies.p_cats": "Essential cookies (always on) keep you signed in and secure the platform. Analytics and marketing cookies are only used with your consent.",
+  "legal.cookies.h_choices": "Your choices",
+  "legal.cookies.p_choices": "You may change your consent at any time using the button below.",
+
+  // Admin — MFA recovery
+  "admin.recovery.title": "Recovery codes",
+  "admin.recovery.subtitle": "Generate 10 single-use codes to recover admin access if your authenticator is lost. Codes are shown once — save them somewhere safe.",
+  "admin.recovery.generate": "Generate new codes",
+  "admin.recovery.regenerate": "Regenerate (invalidates old)",
+  "admin.recovery.status": "{unused} of {total} unused",
+  "admin.recovery.copy": "Copy",
+  "admin.recovery.done": "I have saved these codes",
+  "admin.recovery.warning": "These codes will not be shown again.",
+  "admin.recovery.link": "Lost your authenticator?",
 };
+
+
 
 
 const tr: Dict = {
