@@ -121,7 +121,7 @@ function Book() {
 
   if (loading || !user) {
     return (
-      <main className="min-h-dvh bg-obsidian">
+      <main id="main-content" className="min-h-dvh bg-obsidian">
         <div className="mx-auto max-w-3xl px-6 py-12 space-y-4">
           <div className="skeleton h-8 w-48" />
           <div className="skeleton h-64 w-full" />
@@ -132,7 +132,7 @@ function Book() {
   }
 
   return (
-    <main className="min-h-dvh bg-obsidian pb-32 sm:pb-16">
+    <main id="main-content" className="min-h-dvh bg-obsidian pb-32 sm:pb-16">
       <AppHeader />
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-10">
         <SectionCard

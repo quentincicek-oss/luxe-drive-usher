@@ -82,6 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "preconnect", href: "https://rjuuzrwerwzoxssppimx.supabase.co", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&display=swap" },
     ],
   }),
@@ -98,7 +99,11 @@ function RootShell({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <HeadContent />
       </head>
-      <body className="bg-background text-foreground">{children}<Scripts /></body>
+      <body className="bg-background text-foreground">
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }

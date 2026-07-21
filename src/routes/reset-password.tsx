@@ -73,7 +73,7 @@ function ResetPassword() {
   }
 
   return (
-    <main className="min-h-dvh bg-obsidian flex items-center justify-center px-5 py-10">
+    <main id="main-content" className="min-h-dvh bg-obsidian flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
         <Link to="/" className="flex flex-col items-center gap-3 mb-8">
           <HarborLogo className="h-14 w-14" />

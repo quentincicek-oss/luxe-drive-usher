@@ -72,7 +72,7 @@ function History() {
   if (loading || !user) return <div className="min-h-dvh bg-obsidian" />;
 
   return (
-    <main className="min-h-dvh bg-obsidian">
+    <main id="main-content" className="min-h-dvh bg-obsidian">
       <AppHeader />
       <section className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
         <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">
