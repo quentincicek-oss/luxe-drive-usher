@@ -416,7 +416,88 @@ const tr: Dict = {
   "theme.auto": "Otomatik",
   "theme.day": "Gündüz",
   "theme.night": "Gece",
+
+  // Cookie consent
+  "cookies.banner.title": "Çerezler ve gizlilik",
+  "cookies.banner.body": "HarborLine'ı çalıştırmak için zorunlu çerezleri kullanıyoruz. İzin verirseniz hizmeti geliştirmek için analitik ve pazarlama çerezleri de kullanırız.",
+  "cookies.banner.learn": "Çerez politikası",
+  "cookies.accept_all": "Tümünü kabul et",
+  "cookies.reject_optional": "İsteğe bağlı olanları reddet",
+  "cookies.customize": "Özelleştir",
+  "cookies.save_prefs": "Tercihleri kaydet",
+  "cookies.cat.essential": "Zorunlu (her zaman açık)",
+  "cookies.cat.analytics": "Analitik",
+  "cookies.cat.marketing": "Pazarlama",
+
+  // Legal — chrome
+  "legal.back_home": "Ana sayfaya dön",
+  "legal.version": "Sürüm",
+  "legal.owner_note": "HarborLine Executive Services tarafından güncellenir",
+
+  // Terms
+  "legal.terms.title": "Hizmet Şartları",
+  "legal.terms.p1": "Bu Hizmet Şartları, HarborLine Executive Services platformunu (yolcu, sürücü ve yönetici uygulamaları dahil) kullanımınızı düzenler.",
+  "legal.terms.h_service": "Hizmet",
+  "legal.terms.p_service": "HarborLine, HarborLine'ın operasyonel standartları altında çalışan onaylı bağımsız sürücüler ile yolcular arasında premium concierge kara ulaşımını koordine eder.",
+  "legal.terms.h_conduct": "Kabul edilebilir kullanım",
+  "legal.terms.p_conduct": "Hizmeti kötüye kullanmamayı, personel veya sürücüleri taciz etmemeyi, sahte rezervasyon yapmamayı ve platformun güvenliğini bozmaya çalışmamayı kabul edersiniz.",
+  "legal.terms.h_payment": "Ödemeler",
+  "legal.terms.p_payment": "Ücretler, ek ücretler ve sürücü bahşişleri ödeme sağlayıcımız tarafından işlenir. İkram seçimleri sunucu tarafında fiyatlandırılır ve ödeme sırasında sabitlenir.",
+  "legal.terms.h_liability": "Sorumluluk",
+  "legal.terms.p_liability": "HarborLine, kontrollü pilot süresince olduğu gibi sunulmaktadır. Yasaların izin verdiği ölçüde toplam sorumluluğumuz ilgili yolculuk için ödediğiniz ücretle sınırlıdır.",
+  "legal.terms.h_contact": "İletişim",
+  "legal.terms.p_contact": "Şartlarla ilgili sorular: legal@harborline.services.",
+
+  // Privacy
+  "legal.privacy.title": "Gizlilik Politikası",
+  "legal.privacy.p1": "Bu Gizlilik Politikası, HarborLine Executive Services'in yolcular, sürücüler ve yöneticiler hakkındaki bilgileri nasıl topladığını, kullandığını ve koruduğunu açıklar.",
+  "legal.privacy.h_collect": "Topladığımız bilgiler",
+  "legal.privacy.p_collect": "Sağladığınız hesap bilgileri (ad, e-posta, telefon), rezervasyon verileri (kalkış, varış, saat, araç, ikramlar), ödeme sağlayıcımızdan gelen ödeme meta verileri ve platformu çalıştırmak için gereken operasyonel telemetri.",
+  "legal.privacy.h_use": "Bilgileri nasıl kullanırız",
+  "legal.privacy.p_use": "Rezervasyonları işletmek, sürücüleri sevk etmek, ödemeleri işlemek, makbuz sağlamak, destek sunmak, kötüye kullanımı önlemek ve güvenliği artırmak için.",
+  "legal.privacy.h_share": "Bilgileri nasıl paylaşırız",
+  "legal.privacy.p_share": "Yalnızca yolculuğunuza atanan sürücü, ödeme sağlayıcımız ve sözleşme kapsamında işleyici olarak hareket eden altyapı sağlayıcılarımızla gerekli olanı paylaşırız. Kişisel verileri asla satmayız.",
+  "legal.privacy.h_rights": "Haklarınız",
+  "legal.privacy.p_rights": "privacy@harborline.services adresine yazarak verilerinize erişim, düzeltme, dışa aktarma veya silme talep edebilirsiniz.",
+  "legal.privacy.h_retention": "Saklama",
+  "legal.privacy.p_retention": "Rezervasyon, ödeme ve güvenlik kayıtları vergi, güvenlik ve tüketici koruma yasalarının gerektirdiği süreler boyunca saklanır.",
+  "legal.privacy.h_contact": "İletişim",
+  "legal.privacy.p_contact": "Gizlilik soruları: privacy@harborline.services.",
+
+  // DPA
+  "legal.dpa.title": "Veri İşleme Ek Sözleşmesi",
+  "legal.dpa.p1": "Bu Veri İşleme Ek Sözleşmesi, HarborLine'a kişisel verileri kendi adlarına işlemesi talimatını veren kurumsal müşterilerle HarborLine Executive Services sözleşmesinin bir parçasını oluşturur.",
+  "legal.dpa.h_roles": "Roller",
+  "legal.dpa.p_roles": "Müşteri, platform üzerinden gönderilen kişisel verilerin veri sorumlusudur; HarborLine, kişisel verileri yalnızca belgelenmiş talimatlar doğrultusunda işleyen veri işleyicisi olarak hareket eder.",
+  "legal.dpa.h_sub": "Alt işleyiciler",
+  "legal.dpa.p_sub": "HarborLine, eşdeğer veri koruma yükümlülükleri getiren yazılı sözleşmeler kapsamında altyapı, ödeme ve iletişim alt işleyicileri ile çalışır.",
+  "legal.dpa.h_sec": "Güvenlik",
+  "legal.dpa.p_sec": "HarborLine, erişim kontrolleri, aktarım sırasında şifreleme, denetim günlüğü ve yönetici iki faktörlü kimlik doğrulama gibi teknik ve organizasyonel önlemleri sürdürür.",
+  "legal.dpa.h_intl": "Uluslararası aktarımlar",
+  "legal.dpa.p_intl": "Kişisel verilerin uluslararası aktarıldığı hallerde HarborLine, geçerli hukukun tanıdığı yasal aktarım mekanizmalarına dayanır.",
+  "legal.dpa.h_contact": "İletişim",
+  "legal.dpa.p_contact": "Veri işleme soruları: dpo@harborline.services.",
+
+  // Cookies
+  "legal.cookies.title": "Çerez Politikası",
+  "legal.cookies.p1": "Bu Çerez Politikası, HarborLine Executive Services'in çerezleri ve benzer teknolojileri nasıl kullandığını açıklar.",
+  "legal.cookies.h_cats": "Kategoriler",
+  "legal.cookies.p_cats": "Zorunlu çerezler (her zaman açık) sizi oturumda tutar ve platformu güvende kılar. Analitik ve pazarlama çerezleri yalnızca izniniz ile kullanılır.",
+  "legal.cookies.h_choices": "Seçenekleriniz",
+  "legal.cookies.p_choices": "İzninizi aşağıdaki düğmeyi kullanarak istediğiniz zaman değiştirebilirsiniz.",
+
+  // Admin recovery
+  "admin.recovery.title": "Kurtarma kodları",
+  "admin.recovery.subtitle": "Kimlik doğrulayıcınızı kaybederseniz yönetici erişimini kurtarmak için 10 tek kullanımlık kod oluşturun. Kodlar bir kez gösterilir — güvenli bir yerde saklayın.",
+  "admin.recovery.generate": "Yeni kodlar oluştur",
+  "admin.recovery.regenerate": "Yeniden oluştur (eskiler geçersiz olur)",
+  "admin.recovery.status": "{unused} / {total} kullanılmadı",
+  "admin.recovery.copy": "Kopyala",
+  "admin.recovery.done": "Bu kodları kaydettim",
+  "admin.recovery.warning": "Bu kodlar bir daha gösterilmeyecek.",
+  "admin.recovery.link": "Kimlik doğrulayıcınızı mı kaybettiniz?",
 };
+
 
 const es: Dict = {
   ...en,
