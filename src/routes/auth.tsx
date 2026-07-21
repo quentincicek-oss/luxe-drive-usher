@@ -50,21 +50,44 @@ function Auth() {
   }, [mode, t]);
 
   // Admin accounts must never be authenticated through the passenger portal.
-  // If an admin session ends up here (e.g. via cross-tab session), sign them
-  // out immediately and hold them on /auth. Passengers → /book, drivers → /driver.
+  // Instead of silently signing out, we render a dedicated recovery panel
+  // (see below) with clear paths to /admin or to switch accounts.
+  // Passengers → /book, drivers → /driver.
   useEffect(() => {
     if (loading || roleLoading) return;
     if (!user) return;
-    if (role === "admin") {
-      void (async () => {
-        await supabase.auth.signOut();
-        toast.error(ADMIN_WRONG_PORTAL);
-      })();
-      return;
-    }
     if (role === "driver") nav({ to: "/driver" });
     else if (role === "passenger") nav({ to: "/book" });
+    // role === "admin" → handled below in the JSX.
   }, [user, role, loading, roleLoading, nav]);
+
+  async function switchPassengerAccount() {
+    setBusy(true);
+    try {
+      // Clear the current Supabase session and any stale local auth state so
+      // the next OAuth round-trip starts from a clean slate.
+      await supabase.auth.signOut({ scope: "global" }).catch(() => {});
+      try {
+        for (let i = window.localStorage.length - 1; i >= 0; i--) {
+          const k = window.localStorage.key(i);
+          if (k && (k.startsWith("sb-") || k.startsWith("supabase."))) {
+            window.localStorage.removeItem(k);
+          }
+        }
+        window.sessionStorage.clear();
+      } catch { /* storage may be unavailable */ }
+      const { lovable } = await import("@/integrations/lovable/index");
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
+      });
+      if (result.error) throw new Error((result.error as Error).message || t("auth.googleFailed"));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : t("auth.googleFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function verifyDriverOrReject(_uid: string) {
     try {
@@ -134,12 +157,15 @@ function Auth() {
   }
 
   async function google() {
-    // Passenger-only social sign-in.
+    // Passenger-only social sign-in. Force account selection so a stale
+    // Google session (e.g. an administrator's Google account still signed in
+    // at accounts.google.com) does not silently reauthenticate.
     setBusy(true);
     try {
       const { lovable } = await import("@/integrations/lovable/index");
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
       });
       if (result.error) throw new Error((result.error as Error).message || t("auth.googleFailed"));
     } catch (e: unknown) {
@@ -202,6 +228,7 @@ function Auth() {
   const isDriver = mode === "driver-signin";
   const isPassenger = mode === "passenger-signin";
   const isPhone = mode === "phone-signin";
+  const isAdminSession = !loading && !roleLoading && !!user && role === "admin";
 
   return (
     <main id="main-content" className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
@@ -219,8 +246,47 @@ function Auth() {
           </div>
         </Link>
 
+        {isAdminSession ? (
+          <div className="card-luxe p-6 sm:p-8" role="alert" aria-live="polite">
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+              <div>
+                <h1 className="font-display text-xl mb-1">Administrator session detected</h1>
+                <p className="text-sm text-muted-foreground">
+                  {ADMIN_WRONG_PORTAL} You are currently signed in as{" "}
+                  <span className="text-foreground">{user?.email ?? "an administrator"}</span>.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={() => nav({ to: "/admin" })}
+                className="btn-primary-luxe w-full"
+              >
+                Go to Administrator Portal
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={switchPassengerAccount}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/60 bg-background hover:border-gold py-3 text-sm font-medium disabled:opacity-60 min-h-11"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleGlyph />}
+                Use a different passenger account
+              </button>
+            </div>
+            <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground border-t border-border/40 pt-4">
+              For security, administrator accounts cannot access passenger surfaces.
+              Choosing a different passenger account signs out the current session
+              and lets you pick another Google account.
+            </p>
+          </div>
+        ) : (
+        <>
         {/* Three sign-in entry points. No public self-registration. */}
         <div
+
           role="tablist"
           aria-label="Sign-in method"
           className="mb-5 grid grid-cols-3 gap-1 rounded-full border border-border/60 bg-surface/50 p-1 text-xs"
@@ -362,6 +428,8 @@ function Auth() {
             {t("auth.provisioning.notice")}
           </p>
         </div>
+        </>
+        )}
       </div>
     </main>
   );
