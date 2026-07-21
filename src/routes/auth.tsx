@@ -147,10 +147,59 @@ function Auth() {
     } finally {
       setBusy(false);
     }
+  async function apple() {
+    setBusy(true);
+    try {
+      const { lovable } = await import("@/integrations/lovable/index");
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw new Error((result.error as Error).message || "Apple sign-in unavailable.");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Apple sign-in unavailable.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendOtp() {
+    const p = phone.trim();
+    if (!/^\+[1-9]\d{7,14}$/.test(p)) {
+      toast.error("Enter a valid phone number in international format (e.g. +14155550123).");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone: p });
+      if (error) throw error;
+      setOtpSent(true);
+      toast.success("Verification code sent.");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Could not send code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyOtp() {
+    const p = phone.trim();
+    const code = otp.trim();
+    if (!code) { toast.error("Enter the verification code."); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ phone: p, token: code, type: "sms" });
+      if (error) throw error;
+      toast.success(t("auth.welcome"));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Invalid code.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const isDriver = mode === "driver-signin";
   const isPassenger = mode === "passenger-signin";
+  const isPhone = mode === "phone-signin";
 
   return (
     <main id="main-content" className="min-h-dvh bg-obsidian flex items-center justify-center px-4 py-8 sm:py-16">
