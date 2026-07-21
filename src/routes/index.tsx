@@ -70,8 +70,8 @@ function Landing() {
           </div>
           <div className="flex items-center gap-2">
             <LanguageMenu />
-            {user ? (
-              <Link to={role === "admin" ? "/admin" : "/book"} className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold tracking-wide text-primary-foreground shadow-gold">
+            {user && (role === "passenger" || role === "driver") ? (
+              <Link to={role === "driver" ? "/driver" : "/book"} className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold tracking-wide text-primary-foreground shadow-gold">
                 {t("cta.continue")}
               </Link>
             ) : (
