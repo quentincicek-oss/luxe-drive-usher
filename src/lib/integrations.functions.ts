@@ -109,9 +109,9 @@ export const opsIntegrationHealthSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);
-    const { data, error } = await context.supabase.rpc("admin_integration_health_summary");
+    const { data, error } = await (context.supabase as any).rpc("admin_integration_health_summary");
     if (error) throw new Error(error.message);
-    return data as Array<{ integration: string; status: string; latency_ms: number | null; checked_at: string; details: Record<string, unknown> }>;
+    return (data ?? []) as unknown as Array<{ integration: string; status: string; latency_ms: number | null; checked_at: string; details: string }>;
   });
 
 export const opsRecentEmails = createServerFn({ method: "GET" })
