@@ -147,6 +147,8 @@ function Auth() {
     } finally {
       setBusy(false);
     }
+  }
+
   async function apple() {
     setBusy(true);
     try {
