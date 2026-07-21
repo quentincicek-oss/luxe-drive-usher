@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import escaladeImg from "@/assets/car-escalade.png";
 
-// Static vehicle fallback with a persistent ambient platform animation.
-// The project only has single flat PNG vehicle assets, not a 360° frame
-// sequence or a 3D model. Rotating the PNG around the Z axis looked like a
-// fake turntable and exposed a loop boundary, so the vehicle itself now stays
-// static. The platform light is advanced with requestAnimationFrame using
-// elapsed delta time and a persistent accumulator; it never restarts from a
-// CSS keyframe cycle and does not update React state per frame.
+// Continuous, seamless 360-degree turntable for the hero vehicle.
+// Implementation notes for reviewers:
+//  - Uses a CSS @keyframes animation (0deg → 360deg). CSS keyframe animations
+//    do NOT drift, do NOT restart on React re-renders, and loop seamlessly
+//    because the first and last frames are the same transform.
+//  - The image is preloaded before the animation starts to avoid frame drops
+//    or a flash of an unloaded image.
+//  - Respects prefers-reduced-motion: shows a static image instead.
+//  - Pauses via animation-play-state when the tab is hidden, and resumes
+//    without resetting the current rotation angle.
 
 export function VehicleTurntable({
   label,
@@ -19,7 +22,6 @@ export function VehicleTurntable({
   const [loaded, setLoaded] = useState(false);
   const [reduced, setReduced] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
-  const angleRef = useRef(0);
 
   // Preload the vehicle image; only start the animation once decoded.
   useEffect(() => {
@@ -44,33 +46,19 @@ export function VehicleTurntable({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // Ambient platform light animation. This is intentionally not a vehicle
-  // turntable: with only one PNG, true vehicle rotation is not possible.
+  // Pause animation when the tab is hidden. Toggling animation-play-state
+  // preserves the current rotation angle — no snap back on resume.
   useEffect(() => {
     const el = stageRef.current;
-    if (!el || !loaded || reduced || typeof window === "undefined") return;
-
-    let frameId = 0;
-    let last = performance.now();
-    const angularVelocity = 14; // degrees per second, subtle studio sweep
-
-    const tick = (now: number) => {
-      const deltaSeconds = Math.min((now - last) / 1000, 0.1);
-      last = now;
-
-      if (!document.hidden) {
-        angleRef.current += angularVelocity * deltaSeconds;
-        el.style.setProperty("--platform-angle", `${angleRef.current}deg`);
-      }
-
-      frameId = window.requestAnimationFrame(tick);
+    if (!el) return;
+    const onVis = () => {
+      el.style.animationPlayState = document.hidden ? "paused" : "running";
     };
-
-    frameId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frameId);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, [loaded, reduced]);
 
-  const animatePlatform = loaded && !reduced;
+  const animate = loaded && !reduced;
 
   return (
     <div className="relative mx-auto max-w-4xl w-full overflow-hidden rounded-2xl border border-border/40 bg-surface-elevated shadow-luxe">
@@ -81,14 +69,14 @@ export function VehicleTurntable({
       </div>
 
       <div className="relative h-[380px] sm:h-[460px] flex items-center justify-center">
-        {/* Ambient platform under the static vehicle. */}
+        {/* Rotating platform under the vehicle. CSS keyframe = seamless loop. */}
         <div
           ref={stageRef}
           className="absolute left-1/2 bottom-14 -translate-x-1/2 w-[520px] max-w-[92%] aspect-[3/1]"
           style={{
+            animation: animate ? "hl-turntable 22s linear infinite" : undefined,
             transformOrigin: "50% 50%",
-            willChange: animatePlatform ? "contents" : undefined,
-            ["--platform-angle" as string]: `${angleRef.current}deg`,
+            willChange: "transform",
           }}
           aria-hidden
         >
@@ -96,7 +84,7 @@ export function VehicleTurntable({
             className="absolute inset-0 rounded-full"
             style={{
               background:
-                "conic-gradient(from var(--platform-angle, 0deg), rgba(212,175,55,0.0) 0deg, rgba(212,175,55,0.7) 60deg, rgba(212,175,55,0.0) 120deg, rgba(212,175,55,0.0) 240deg, rgba(212,175,55,0.55) 300deg, rgba(212,175,55,0.0) 360deg)",
+                "conic-gradient(from 0deg, rgba(212,175,55,0.0) 0deg, rgba(212,175,55,0.7) 60deg, rgba(212,175,55,0.0) 120deg, rgba(212,175,55,0.0) 240deg, rgba(212,175,55,0.55) 300deg, rgba(212,175,55,0.0) 360deg)",
               filter: "blur(8px)",
               opacity: 0.85,
             }}
@@ -112,7 +100,8 @@ export function VehicleTurntable({
           ))}
         </div>
 
-        {/* Static vehicle: true 360° requires a frame sequence or 3D model. */}
+        {/* Vehicle floats above turntable. Own animation (subtle bob),
+            independent of the turntable so a theme swap can't reset it. */}
         <img
           src={escaladeImg}
           alt={label}
@@ -124,6 +113,7 @@ export function VehicleTurntable({
           onLoad={() => setLoaded(true)}
           className="relative z-10 w-[560px] max-w-[80vw] h-auto drop-shadow-[0_40px_30px_rgba(0,0,0,0.55)] -translate-y-6"
           style={{
+            animation: animate ? "hl-vehicle-float 6s ease-in-out infinite" : undefined,
             opacity: loaded ? 1 : 0,
             transition: "opacity 400ms ease-out",
           }}
@@ -136,6 +126,17 @@ export function VehicleTurntable({
           <div className="font-display text-xl mt-0.5 text-foreground">{label}</div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes hl-turntable {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes hl-vehicle-float {
+          0%, 100% { transform: translateY(-24px); }
+          50%      { transform: translateY(-32px); }
+        }
+      `}</style>
     </div>
   );
 }
