@@ -32,6 +32,7 @@ import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -149,6 +150,11 @@ const DriverTripsIdRoute = DriverTripsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DriverTripsRoute,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/r/$code': typeof RCodeRoute
   '/admin': typeof AdminIndexRoute
   '/driver': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/driver/trips/$id': typeof DriverTripsIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin'
     | '/driver'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   id:
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/admin/'
     | '/driver/'
+    | '/api/public/health'
     | '/driver/trips/$id'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   RCodeRoute: typeof RCodeRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DriverTripsIdRouteImport
       parentRoute: typeof DriverTripsRoute
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -563,6 +583,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   RCodeRoute: RCodeRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
