@@ -157,12 +157,15 @@ function Auth() {
   }
 
   async function google() {
-    // Passenger-only social sign-in.
+    // Passenger-only social sign-in. Force account selection so a stale
+    // Google session (e.g. an administrator's Google account still signed in
+    // at accounts.google.com) does not silently reauthenticate.
     setBusy(true);
     try {
       const { lovable } = await import("@/integrations/lovable/index");
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
       });
       if (result.error) throw new Error((result.error as Error).message || t("auth.googleFailed"));
     } catch (e: unknown) {
