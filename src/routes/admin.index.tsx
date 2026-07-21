@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useDeferredValue, Fragment } from "react";
+import { useEffect, useMemo, useState, useDeferredValue, Fragment, lazy, Suspense } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -9,16 +9,23 @@ import { toast } from "sonner";
 import { StatusPill } from "@/components/ops/StatusPill";
 import { DispatchKpi } from "@/components/ops/DispatchKpi";
 import { AssignmentPanel } from "@/components/ops/AssignmentPanel";
-import { ReferralsPanel } from "@/components/admin/ReferralsPanel";
-import { DispatchOverview } from "@/components/dispatch/DispatchOverview";
-import { IncidentFeed } from "@/components/dispatch/IncidentFeed";
-import { AuditTable } from "@/components/dispatch/AuditTable";
-import { FleetExpirations } from "@/components/dispatch/FleetExpirations";
-import { ScheduleGrid } from "@/components/dispatch/ScheduleGrid";
-import { UsersPanel } from "@/components/admin/UsersPanel";
-import { SupportPanel } from "@/components/admin/SupportPanel";
-import { AmenitiesPanel } from "@/components/admin/AmenitiesPanel";
-import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
+import { SkeletonLines } from "@/components/ui/loading";
+// Batch C completion — lazy-load the largest admin panels so the initial
+// admin bundle only pays for what the current tab needs.
+const ReferralsPanel   = lazy(() => import("@/components/admin/ReferralsPanel").then(m => ({ default: m.ReferralsPanel })));
+const DispatchOverview = lazy(() => import("@/components/dispatch/DispatchOverview").then(m => ({ default: m.DispatchOverview })));
+const IncidentFeed     = lazy(() => import("@/components/dispatch/IncidentFeed").then(m => ({ default: m.IncidentFeed })));
+const AuditTable       = lazy(() => import("@/components/dispatch/AuditTable").then(m => ({ default: m.AuditTable })));
+const FleetExpirations = lazy(() => import("@/components/dispatch/FleetExpirations").then(m => ({ default: m.FleetExpirations })));
+const ScheduleGrid     = lazy(() => import("@/components/dispatch/ScheduleGrid").then(m => ({ default: m.ScheduleGrid })));
+const UsersPanel       = lazy(() => import("@/components/admin/UsersPanel").then(m => ({ default: m.UsersPanel })));
+const SupportPanel     = lazy(() => import("@/components/admin/SupportPanel").then(m => ({ default: m.SupportPanel })));
+const AmenitiesPanel   = lazy(() => import("@/components/admin/AmenitiesPanel").then(m => ({ default: m.AmenitiesPanel })));
+const AdminMfaPanel    = lazy(() => import("@/components/admin/AdminMfaPanel").then(m => ({ default: m.AdminMfaPanel })));
+
+function PanelFallback() {
+  return <div className="rounded-lg border border-border/60 bg-surface/40 p-6"><SkeletonLines count={6} /></div>;
+}
 import {
   adminSetBookingStatus,
   adminUpsertDriver, adminDeleteDriver,
