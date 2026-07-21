@@ -19,10 +19,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverIndexRouteImport } from './routes/driver.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalDpaRouteImport } from './routes/legal.dpa'
+import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as DriverTripsRouteImport } from './routes/driver.trips'
 import { Route as DriverProfileRouteImport } from './routes/driver.profile'
 import { Route as DriverDocumentsRouteImport } from './routes/driver.documents'
 import { Route as ApiBlakeRouteImport } from './routes/api/blake'
+import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as DriverTripsIdRouteImport } from './routes/driver.trips.$id'
@@ -78,6 +83,26 @@ const RCodeRoute = RCodeRouteImport.update({
   path: '/r/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalDpaRoute = LegalDpaRouteImport.update({
+  id: '/legal/dpa',
+  path: '/legal/dpa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalCookiesRoute = LegalCookiesRouteImport.update({
+  id: '/legal/cookies',
+  path: '/legal/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DriverTripsRoute = DriverTripsRouteImport.update({
   id: '/trips',
   path: '/trips',
@@ -97,6 +122,11 @@ const ApiBlakeRoute = ApiBlakeRouteImport.update({
   id: '/api/blake',
   path: '/api/blake',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRecoverRoute = AdminRecoverRouteImport.update({
+  id: '/recover',
+  path: '/recover',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminMfaRoute = AdminMfaRouteImport.update({
   id: '/mfa',
@@ -130,10 +160,15 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/recover': typeof AdminRecoverRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/dpa': typeof LegalDpaRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
@@ -148,10 +183,15 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/recover': typeof AdminRecoverRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/dpa': typeof LegalDpaRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/r/$code': typeof RCodeRoute
   '/admin': typeof AdminIndexRoute
   '/driver': typeof DriverIndexRoute
@@ -169,10 +209,15 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
+  '/admin/recover': typeof AdminRecoverRoute
   '/api/blake': typeof ApiBlakeRoute
   '/driver/documents': typeof DriverDocumentsRoute
   '/driver/profile': typeof DriverProfileRoute
   '/driver/trips': typeof DriverTripsRouteWithChildren
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/dpa': typeof LegalDpaRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/driver/': typeof DriverIndexRoute
@@ -191,10 +236,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/recover'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
+    | '/legal/cookies'
+    | '/legal/dpa'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/r/$code'
     | '/admin/'
     | '/driver/'
@@ -209,10 +259,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/recover'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
+    | '/legal/cookies'
+    | '/legal/dpa'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/r/$code'
     | '/admin'
     | '/driver'
@@ -229,10 +284,15 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin/login'
     | '/admin/mfa'
+    | '/admin/recover'
     | '/api/blake'
     | '/driver/documents'
     | '/driver/profile'
     | '/driver/trips'
+    | '/legal/cookies'
+    | '/legal/dpa'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/r/$code'
     | '/admin/'
     | '/driver/'
@@ -249,6 +309,10 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiBlakeRoute: typeof ApiBlakeRoute
+  LegalCookiesRoute: typeof LegalCookiesRoute
+  LegalDpaRoute: typeof LegalDpaRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalTermsRoute: typeof LegalTermsRoute
   RCodeRoute: typeof RCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -325,6 +389,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/dpa': {
+      id: '/legal/dpa'
+      path: '/legal/dpa'
+      fullPath: '/legal/dpa'
+      preLoaderRoute: typeof LegalDpaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/cookies': {
+      id: '/legal/cookies'
+      path: '/legal/cookies'
+      fullPath: '/legal/cookies'
+      preLoaderRoute: typeof LegalCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/driver/trips': {
       id: '/driver/trips'
       path: '/trips'
@@ -352,6 +444,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/blake'
       preLoaderRoute: typeof ApiBlakeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/recover': {
+      id: '/admin/recover'
+      path: '/recover'
+      fullPath: '/admin/recover'
+      preLoaderRoute: typeof AdminRecoverRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/mfa': {
       id: '/admin/mfa'
@@ -387,12 +486,14 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMfaRoute: typeof AdminMfaRoute
+  AdminRecoverRoute: typeof AdminRecoverRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminMfaRoute: AdminMfaRoute,
+  AdminRecoverRoute: AdminRecoverRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -436,6 +537,10 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiBlakeRoute: ApiBlakeRoute,
+  LegalCookiesRoute: LegalCookiesRoute,
+  LegalDpaRoute: LegalDpaRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalTermsRoute: LegalTermsRoute,
   RCodeRoute: RCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
