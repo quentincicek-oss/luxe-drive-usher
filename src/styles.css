@@ -169,14 +169,9 @@
     linear-gradient(to bottom, oklch(0 0 0 / 0.4), transparent 20%, transparent 75%, oklch(0 0 0 / 0.7));
 }
 
-/* Hero vehicle video: fit full vehicle on iPhone/PWA, keep desktop cover framing. */
+/* Hero vehicle video: portrait mobile asset fills seamlessly; desktop uses cover framing. */
 .hero-vehicle-video {
-  object-fit: contain;
-}
-@media (min-width: 768px) {
-  .hero-vehicle-video {
-    object-fit: cover;
-  }
+  object-fit: cover;
 }
 
 /* ── Siri-style orb ─────────────────────────────────────────── */

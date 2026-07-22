@@ -4,8 +4,9 @@ import { LanguageMenu } from "@/components/LanguageMenu";
 import { VehicleTurntable } from "@/components/VehicleTurntable";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import introVideo from "@/assets/intro-hero.mp4.asset.json";
+import introVideoMobile from "@/assets/intro-hero-mobile.mp4.asset.json";
 import { Award, CalendarCheck, ShieldCheck, Sparkles, Globe2, ChevronRight, Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -22,8 +23,19 @@ function Landing() {
   const { t } = useI18n();
   const { user, role } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => { videoRef.current?.play().catch(() => {}); }, []);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    setMounted(true);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => { videoRef.current?.load(); videoRef.current?.play().catch(() => {}); }, [isMobile, mounted]);
   useEffect(() => { document.title = `${t("brand.name")} ${t("brand.services")}`; }, [t]);
 
   const features = [
@@ -43,17 +55,20 @@ function Landing() {
   return (
     <main id="main-content" className="relative min-h-dvh bg-obsidian">
       {/* HERO — cinematic video */}
-      <section className="relative min-h-dvh w-full overflow-hidden">
+      <section className="relative min-h-dvh w-full overflow-hidden bg-black">
 
-        <video
-          ref={videoRef}
-          src={introVideo.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="hero-vehicle-video absolute inset-0 h-full w-full bg-black"
-        />
+        {mounted && (
+          <video
+            ref={videoRef}
+            key={isMobile ? "m" : "d"}
+            src={isMobile ? introVideoMobile.url : introVideo.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="hero-vehicle-video absolute inset-0 h-full w-full bg-black"
+          />
+        )}
         {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/70 via-background/10 to-background" />
