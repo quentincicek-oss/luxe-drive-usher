@@ -52,7 +52,7 @@ function Landing() {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full bg-black object-contain md:object-cover"
         />
         {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
