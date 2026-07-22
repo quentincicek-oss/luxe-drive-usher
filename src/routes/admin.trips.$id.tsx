@@ -111,7 +111,7 @@ function TripDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <StatusPill tone={(trip.status as any) ?? "muted"}>{trip.status.replace("_", " ")}</StatusPill>
+          <StatusPill tone={((assignment?.dispatch_status ?? trip.status) as any) ?? "muted"}>{String(assignment?.dispatch_status ?? trip.status).replace("_", " ")}</StatusPill>
           <StatusPill tone={trip.paid ? "paid" : "unpaid"}>{trip.paid ? "Paid" : "Unpaid"}</StatusPill>
         </div>
       </div>
