@@ -52,8 +52,7 @@ function Landing() {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full bg-black object-cover"
-          style={{ objectFit: "contain" }}
+          className="hero-vehicle-video absolute inset-0 h-full w-full bg-black"
         />
         {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
