@@ -29,6 +29,7 @@ function Landing() {
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
