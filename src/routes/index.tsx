@@ -57,16 +57,18 @@ function Landing() {
       {/* HERO — cinematic video */}
       <section className="relative min-h-dvh w-full overflow-hidden bg-black">
 
-        <video
-          ref={videoRef}
-          key={isMobile ? "m" : "d"}
-          src={isMobile ? introVideoMobile.url : introVideo.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="hero-vehicle-video absolute inset-0 h-full w-full bg-black"
-        />
+        {mounted && (
+          <video
+            ref={videoRef}
+            key={isMobile ? "m" : "d"}
+            src={isMobile ? introVideoMobile.url : introVideo.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="hero-vehicle-video absolute inset-0 h-full w-full bg-black"
+          />
+        )}
         {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/70 via-background/10 to-background" />
