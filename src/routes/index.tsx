@@ -23,19 +23,19 @@ function Landing() {
   const { t } = useI18n();
   const { user, role } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
-  );
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     setIsMobile(mq.matches);
+    setMounted(true);
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  useEffect(() => { videoRef.current?.load(); videoRef.current?.play().catch(() => {}); }, [isMobile]);
+  useEffect(() => { videoRef.current?.load(); videoRef.current?.play().catch(() => {}); }, [isMobile, mounted]);
   useEffect(() => { document.title = `${t("brand.name")} ${t("brand.services")}`; }, [t]);
 
   const features = [
