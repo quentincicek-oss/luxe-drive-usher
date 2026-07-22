@@ -23,8 +23,18 @@ function Landing() {
   const { t } = useI18n();
   const { user, role } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
+  );
 
-  useEffect(() => { videoRef.current?.play().catch(() => {}); }, []);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => { videoRef.current?.load(); videoRef.current?.play().catch(() => {}); }, [isMobile]);
   useEffect(() => { document.title = `${t("brand.name")} ${t("brand.services")}`; }, [t]);
 
   const features = [
@@ -44,11 +54,12 @@ function Landing() {
   return (
     <main id="main-content" className="relative min-h-dvh bg-obsidian">
       {/* HERO — cinematic video */}
-      <section className="relative min-h-dvh w-full overflow-hidden">
+      <section className="relative min-h-dvh w-full overflow-hidden bg-black">
 
         <video
           ref={videoRef}
-          src={introVideo.url}
+          key={isMobile ? "m" : "d"}
+          src={isMobile ? introVideoMobile.url : introVideo.url}
           autoPlay
           muted
           loop
