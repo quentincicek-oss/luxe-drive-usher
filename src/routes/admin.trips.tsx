@@ -169,6 +169,7 @@ function TripsList() {
                 const passengerName = r.passenger
                   ? `${r.passenger.name ?? ""} ${r.passenger.surname ?? ""}`.trim() || (r.passenger.email ?? "—")
                   : "—";
+                const effectiveStatus = r.assignment?.dispatch_status ?? r.status;
                 return (
                   <tr key={r.id} className="border-t border-border/40 hover:bg-white/[0.03]">
                     <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">#{r.id.slice(0, 8)}</td>
@@ -184,7 +185,7 @@ function TripsList() {
                       <div className="truncate text-xs text-muted-foreground"><span className="text-gold mr-1">↓</span>{r.dropoff}</div>
                     </td>
                     <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(r.pickup_time).toLocaleString()}</td>
-                    <td className="px-4 py-3"><StatusPill tone={(r.status as any) ?? "muted"}>{r.status.replace("_", " ")}</StatusPill></td>
+                    <td className="px-4 py-3"><StatusPill tone={(effectiveStatus as any) ?? "muted"}>{String(effectiveStatus).replace("_", " ")}</StatusPill></td>
                     <td className="px-4 py-3">
                       <StatusPill tone={r.paid ? "paid" : "unpaid"}>{r.paid ? "Yes" : "No"}</StatusPill>
                     </td>
