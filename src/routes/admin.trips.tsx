@@ -31,7 +31,7 @@ interface Row {
 }
 
 const STATUS_FILTERS = [
-  "all", "requested", "assigned", "in_progress", "completed", "cancelled",
+  "all", "requested", "assigned", "accepted", "en_route", "arrived", "in_progress", "completed", "cancelled",
 ] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
 
