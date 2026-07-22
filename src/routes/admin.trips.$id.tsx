@@ -42,8 +42,10 @@ function TripDetail() {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      setBusy(true);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const load = async (initial: boolean) => {
+      if (initial) setBusy(true);
       const [b, a] = await Promise.all([
         supabase.from("bookings").select("*").eq("id", id).maybeSingle(),
         (supabase as any)
@@ -59,9 +61,18 @@ function TripDetail() {
         const { data: p } = await supabase.from("profiles").select("*").eq("id", t.passenger_id).maybeSingle();
         if (alive) setPassenger(p ?? null);
       }
-      setBusy(false);
-    })();
-    return () => { alive = false; };
+      if (initial) setBusy(false);
+
+      // Poll only while trip is active
+      const effective = (a.data as any)?.dispatch_status ?? t?.status;
+      const terminal = effective === "completed" || effective === "cancelled" || t?.status === "completed" || t?.status === "cancelled";
+      if (alive && !terminal) {
+        timer = setTimeout(() => { void load(false); }, 10_000);
+      }
+    };
+
+    void load(true);
+    return () => { alive = false; if (timer) clearTimeout(timer); };
   }, [id]);
 
   if (busy) return <div className="text-muted-foreground text-sm">Loading trip…</div>;
