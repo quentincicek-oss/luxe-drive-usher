@@ -57,9 +57,10 @@ export function VehicleTurntable({
 
   const animate = loaded && !reduced;
 
-  // Scale factor derived from the card's own inline width via container queries.
-  // At >= COMP_W we render 1:1 (desktop unchanged). Below that we scale down.
-  const scaleExpr = `min(1, 100cqi / ${COMP_W})`;
+  // Uniform scale factor: length / length = unitless number in modern CSS calc.
+  // At card widths >= COMP_W we render 1:1 (desktop unchanged); below that
+  // the whole composition is scaled down as a single unit.
+  const scaleVar = `calc(min(100cqi, ${COMP_W}px) / ${COMP_W}px)`;
 
   return (
     <div
@@ -72,19 +73,22 @@ export function VehicleTurntable({
         <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/40 to-transparent dark:from-black/70" />
       </div>
 
-      {/* Stage viewport — height tracks the uniformly scaled composition. */}
+      {/* Stage viewport — height scales uniformly with width, capped at COMP_H. */}
       <div
-        className="relative w-full"
-        style={{ height: `calc(${COMP_H}px * ${scaleExpr})` }}
+        className="relative mx-auto"
+        style={{
+          width: `min(100%, ${COMP_W}px)`,
+          height: `min(${COMP_H}px, calc(100cqi * ${COMP_H} / ${COMP_W}))`,
+        }}
       >
-        {/* Fixed-size composition, uniformly scaled and centered. */}
+        {/* Fixed-size composition, uniformly scaled from the top-left. */}
         <div
-          className="absolute left-1/2 top-0"
+          className="absolute left-0 top-0"
           style={{
             width: COMP_W,
             height: COMP_H,
-            transform: `translateX(-50%) scale(${scaleExpr})`,
-            transformOrigin: "top center",
+            transform: `scale(${scaleVar})`,
+            transformOrigin: "top left",
           }}
         >
           <div className="relative w-full h-full flex items-center justify-center">
