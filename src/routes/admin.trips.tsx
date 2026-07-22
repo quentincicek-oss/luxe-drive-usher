@@ -31,7 +31,7 @@ interface Row {
 }
 
 const STATUS_FILTERS = [
-  "all", "requested", "assigned", "in_progress", "completed", "cancelled",
+  "all", "requested", "assigned", "accepted", "en_route", "arrived", "in_progress", "completed", "cancelled",
 ] as const;
 type StatusFilter = typeof STATUS_FILTERS[number];
 
@@ -96,7 +96,8 @@ function TripsList() {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay.getTime() + 24 * 3600 * 1000);
     return rows.filter(r => {
-      if (statusF !== "all" && r.status !== statusF) return false;
+      const effectiveStatus = r.assignment?.dispatch_status ?? r.status;
+      if (statusF !== "all" && effectiveStatus !== statusF) return false;
       if (dateF !== "all") {
         const t = new Date(r.pickup_time).getTime();
         if (dateF === "today" && (t < startOfDay.getTime() || t >= endOfDay.getTime())) return false;
@@ -111,7 +112,7 @@ function TripsList() {
         passengerName, r.passenger?.email ?? "",
         r.assignment?.driver?.full_name ?? "", r.assignment?.driver?.employee_id ?? "",
         r.assignment?.vehicle?.name ?? "", r.assignment?.vehicle?.license_plate ?? "",
-        r.status,
+        effectiveStatus,
       ].join(" ").toLowerCase();
       return hay.includes(s);
     });
@@ -169,6 +170,7 @@ function TripsList() {
                 const passengerName = r.passenger
                   ? `${r.passenger.name ?? ""} ${r.passenger.surname ?? ""}`.trim() || (r.passenger.email ?? "—")
                   : "—";
+                const effectiveStatus = r.assignment?.dispatch_status ?? r.status;
                 return (
                   <tr key={r.id} className="border-t border-border/40 hover:bg-white/[0.03]">
                     <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">#{r.id.slice(0, 8)}</td>
@@ -184,7 +186,7 @@ function TripsList() {
                       <div className="truncate text-xs text-muted-foreground"><span className="text-gold mr-1">↓</span>{r.dropoff}</div>
                     </td>
                     <td className="px-4 py-3 text-xs tabular-nums whitespace-nowrap">{new Date(r.pickup_time).toLocaleString()}</td>
-                    <td className="px-4 py-3"><StatusPill tone={(r.status as any) ?? "muted"}>{r.status.replace("_", " ")}</StatusPill></td>
+                    <td className="px-4 py-3"><StatusPill tone={(effectiveStatus as any) ?? "muted"}>{String(effectiveStatus).replace("_", " ")}</StatusPill></td>
                     <td className="px-4 py-3">
                       <StatusPill tone={r.paid ? "paid" : "unpaid"}>{r.paid ? "Yes" : "No"}</StatusPill>
                     </td>
