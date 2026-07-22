@@ -52,7 +52,8 @@ function Landing() {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full bg-black object-contain md:object-cover"
+          className="absolute inset-0 h-full w-full bg-black object-cover"
+          style={{ objectFit: "contain" }}
         />
         {/* Feathered edges — 4 diagonal corner gradients + heavy vignette */}
         <div className="absolute inset-0 vignette" />
