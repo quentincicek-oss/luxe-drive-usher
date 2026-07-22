@@ -4,8 +4,9 @@ import { LanguageMenu } from "@/components/LanguageMenu";
 import { VehicleTurntable } from "@/components/VehicleTurntable";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import introVideo from "@/assets/intro-hero.mp4.asset.json";
+import introVideoMobile from "@/assets/intro-hero-mobile.mp4.asset.json";
 import { Award, CalendarCheck, ShieldCheck, Sparkles, Globe2, ChevronRight, Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/")({
