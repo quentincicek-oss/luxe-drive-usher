@@ -96,7 +96,8 @@ function TripsList() {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay.getTime() + 24 * 3600 * 1000);
     return rows.filter(r => {
-      if (statusF !== "all" && r.status !== statusF) return false;
+      const effectiveStatus = r.assignment?.dispatch_status ?? r.status;
+      if (statusF !== "all" && effectiveStatus !== statusF) return false;
       if (dateF !== "all") {
         const t = new Date(r.pickup_time).getTime();
         if (dateF === "today" && (t < startOfDay.getTime() || t >= endOfDay.getTime())) return false;
@@ -111,7 +112,7 @@ function TripsList() {
         passengerName, r.passenger?.email ?? "",
         r.assignment?.driver?.full_name ?? "", r.assignment?.driver?.employee_id ?? "",
         r.assignment?.vehicle?.name ?? "", r.assignment?.vehicle?.license_plate ?? "",
-        r.status,
+        effectiveStatus,
       ].join(" ").toLowerCase();
       return hay.includes(s);
     });
