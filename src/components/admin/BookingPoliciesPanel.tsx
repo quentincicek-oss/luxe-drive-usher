@@ -140,7 +140,7 @@ function ConfirmDialog({
           <button onClick={onCancel} className="btn-ghost-luxe">Cancel</button>
           <button
             onClick={() => onConfirm(reason.trim())}
-            className={destructive ? "btn-luxe-outline text-red-300 border-red-500/40" : "btn-luxe"}
+            className={destructive ? "btn-primary-luxe" : "btn-primary-luxe"}
           >
             {confirmLabel}
           </button>
