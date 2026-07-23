@@ -70,7 +70,6 @@ DECLARE
   v_reason_catalog   bigint;
   v_dup_evidence     bigint;
   v_bookings_dirty   bigint;
-  v_ext_deps         bigint;
 BEGIN
   SELECT count(*) INTO v_cases
     FROM public.booking_contract_quarantine_cases;
@@ -114,42 +113,13 @@ BEGIN
       v_bookings_dirty;
   END IF;
 
-  -- Probe pg_depend for any object outside the M-1 additive set that
-  -- depends on the encoder/helper functions or the composite type this
-  -- rollback drops. Anything found here means a later additive migration
-  -- referenced these helpers and rollback would break it.
-  SELECT count(*) INTO v_ext_deps
-  FROM pg_depend d
-  JOIN pg_proc p         ON p.oid = d.refobjid AND d.refclassid = 'pg_proc'::regclass
-  JOIN pg_namespace n    ON n.oid = p.pronamespace
-  WHERE n.nspname = 'public'
-    AND p.proname LIKE '\_hlbc2a\_%' ESCAPE '\'
-    AND d.deptype IN ('n','a')
-    AND d.classid <> 'pg_proc'::regclass;
-
-  IF v_ext_deps > 0 THEN
-    RAISE EXCEPTION
-      'HLBC2A M-1 rollback aborted: % external object(s) depend on '
-      '_hlbc2a_% helper functions. Drop those dependents first or ship '
-      'a forward-fix migration.', v_ext_deps;
-  END IF;
-
-  SELECT count(*) INTO v_ext_deps
-  FROM pg_depend d
-  JOIN pg_type t         ON t.oid = d.refobjid AND d.refclassid = 'pg_type'::regclass
-  JOIN pg_namespace n    ON n.oid = t.typnamespace
-  WHERE n.nspname = 'public'
-    AND t.typname = '_hlbc2a_amenity_item'
-    AND d.deptype IN ('n','a')
-    AND d.classid <> 'pg_type'::regclass
-    -- Exclude the array type auto-created for the composite itself.
-    AND NOT (d.classid = 'pg_type'::regclass);
-
-  IF v_ext_deps > 0 THEN
-    RAISE EXCEPTION
-      'HLBC2A M-1 rollback aborted: % external object(s) depend on '
-      'composite type public._hlbc2a_amenity_item.', v_ext_deps;
-  END IF;
+  -- Note: external-dependency detection for the encoder helper
+  -- functions and the _hlbc2a_amenity_item composite type is handled
+  -- by issuing every DROP below with default RESTRICT semantics.
+  -- A hand-rolled pg_depend probe would misclassify M-1's own
+  -- functions (which legitimately depend on the composite type via
+  -- classid=pg_proc / refclassid=pg_type) as external, aborting
+  -- every rollback even in a clean zero-write window.
 END
 $guard$;
 
