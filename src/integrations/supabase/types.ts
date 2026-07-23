@@ -266,6 +266,79 @@ export type Database = {
           },
         ]
       }
+      booking_amenity_duplicate_evidence: {
+        Row: {
+          amenity_code: string | null
+          amenity_name: string | null
+          amenity_option_id: string
+          archived_at: string
+          archived_by: string | null
+          booking_id: string
+          case_id: string | null
+          complimentary: boolean | null
+          currency: string | null
+          id: string
+          original_row_id: string
+          price_delta_cents: number | null
+          quantity: number | null
+          snapshot: Json
+        }
+        Insert: {
+          amenity_code?: string | null
+          amenity_name?: string | null
+          amenity_option_id: string
+          archived_at?: string
+          archived_by?: string | null
+          booking_id: string
+          case_id?: string | null
+          complimentary?: boolean | null
+          currency?: string | null
+          id?: string
+          original_row_id: string
+          price_delta_cents?: number | null
+          quantity?: number | null
+          snapshot: Json
+        }
+        Update: {
+          amenity_code?: string | null
+          amenity_name?: string | null
+          amenity_option_id?: string
+          archived_at?: string
+          archived_by?: string | null
+          booking_id?: string
+          case_id?: string | null
+          complimentary?: boolean | null
+          currency?: string | null
+          id?: string
+          original_row_id?: string
+          price_delta_cents?: number | null
+          quantity?: number | null
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_amenity_duplicate_evidence_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_amenity_duplicate_evidence_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "booking_amenity_duplicate_evidence_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "booking_contract_quarantine_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_assignments: {
         Row: {
           assigned_at: string
@@ -334,6 +407,123 @@ export type Database = {
           },
         ]
       }
+      booking_contract_quarantine_case_reasons: {
+        Row: {
+          actor: string | null
+          case_id: string
+          created_at: string
+          evidence: Json
+          reason_code: string
+        }
+        Insert: {
+          actor?: string | null
+          case_id: string
+          created_at?: string
+          evidence: Json
+          reason_code: string
+        }
+        Update: {
+          actor?: string | null
+          case_id?: string
+          created_at?: string
+          evidence?: Json
+          reason_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_contract_quarantine_case_reasons_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "booking_contract_quarantine_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_contract_quarantine_case_reasons_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "booking_contract_quarantine_reason_catalog"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      booking_contract_quarantine_cases: {
+        Row: {
+          booking_id: string
+          id: string
+          opened_at: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          state: string
+        }
+        Insert: {
+          booking_id: string
+          id?: string
+          opened_at?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          state: string
+        }
+        Update: {
+          booking_id?: string
+          id?: string
+          opened_at?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_contract_quarantine_cases_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_contract_quarantine_cases_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "trip_evidence_v"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
+      booking_contract_quarantine_reason_catalog: {
+        Row: {
+          active: boolean
+          blocks_activation: boolean
+          blocks_checkout: boolean
+          blocks_digest: boolean
+          code: string
+          created_at: string
+          description: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          blocks_activation: boolean
+          blocks_checkout: boolean
+          blocks_digest: boolean
+          code: string
+          created_at?: string
+          description: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          blocks_activation?: boolean
+          blocks_checkout?: boolean
+          blocks_digest?: boolean
+          code?: string
+          created_at?: string
+          description?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       booking_pins: {
         Row: {
           attempts: number
@@ -381,10 +571,20 @@ export type Database = {
       }
       bookings: {
         Row: {
+          amenity_set_digest: string | null
+          amenity_total_cents: number | null
+          base_price_cents: number | null
+          classifier_digest: string | null
+          content_digest: string | null
+          content_digest_updated_at: string | null
+          contract_state: string | null
+          contract_version: number | null
           created_at: string
+          currency: string | null
           distance_km: number | null
           driver_id: string | null
           dropoff: string
+          dropoff_addr_digest: string | null
           dropoff_components: Json | null
           dropoff_lat: number | null
           dropoff_lng: number | null
@@ -396,6 +596,7 @@ export type Database = {
           passenger_id: string
           passengers: number
           pickup: string
+          pickup_addr_digest: string | null
           pickup_components: Json | null
           pickup_lat: number | null
           pickup_lng: number | null
@@ -404,16 +605,28 @@ export type Database = {
           price: number | null
           receipt_url: string | null
           ride_type: Database["public"]["Enums"]["ride_type"]
+          service_context: string | null
           status: Database["public"]["Enums"]["booking_status"]
           stripe_session_id: string | null
           suggested_price: number | null
+          total_price_cents: number | null
           updated_at: string
         }
         Insert: {
+          amenity_set_digest?: string | null
+          amenity_total_cents?: number | null
+          base_price_cents?: number | null
+          classifier_digest?: string | null
+          content_digest?: string | null
+          content_digest_updated_at?: string | null
+          contract_state?: string | null
+          contract_version?: number | null
           created_at?: string
+          currency?: string | null
           distance_km?: number | null
           driver_id?: string | null
           dropoff: string
+          dropoff_addr_digest?: string | null
           dropoff_components?: Json | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -425,6 +638,7 @@ export type Database = {
           passenger_id: string
           passengers?: number
           pickup: string
+          pickup_addr_digest?: string | null
           pickup_components?: Json | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -433,16 +647,28 @@ export type Database = {
           price?: number | null
           receipt_url?: string | null
           ride_type?: Database["public"]["Enums"]["ride_type"]
+          service_context?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_session_id?: string | null
           suggested_price?: number | null
+          total_price_cents?: number | null
           updated_at?: string
         }
         Update: {
+          amenity_set_digest?: string | null
+          amenity_total_cents?: number | null
+          base_price_cents?: number | null
+          classifier_digest?: string | null
+          content_digest?: string | null
+          content_digest_updated_at?: string | null
+          contract_state?: string | null
+          contract_version?: number | null
           created_at?: string
+          currency?: string | null
           distance_km?: number | null
           driver_id?: string | null
           dropoff?: string
+          dropoff_addr_digest?: string | null
           dropoff_components?: Json | null
           dropoff_lat?: number | null
           dropoff_lng?: number | null
@@ -454,6 +680,7 @@ export type Database = {
           passenger_id?: string
           passengers?: number
           pickup?: string
+          pickup_addr_digest?: string | null
           pickup_components?: Json | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -462,9 +689,11 @@ export type Database = {
           price?: number | null
           receipt_url?: string | null
           ride_type?: Database["public"]["Enums"]["ride_type"]
+          service_context?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_session_id?: string | null
           suggested_price?: number | null
+          total_price_cents?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -2602,6 +2831,54 @@ export type Database = {
         Returns: undefined
       }
       _email_fingerprint: { Args: { _email: string }; Returns: string }
+      _hlbc2a_addr_digest: {
+        Args: {
+          label: string
+          lat_e7: number
+          lon_e7: number
+          place_id: string
+        }
+        Returns: string
+      }
+      _hlbc2a_amenity_set_digest: {
+        Args: { items: unknown[][] }
+        Returns: string
+      }
+      _hlbc2a_booking_digest: {
+        Args: {
+          amenity_set_digest: string
+          amenity_total_cents: number
+          base_price_cents: number
+          booking_id: string
+          classifier_digest: string
+          currency: string
+          distance_km: number
+          dropoff_addr_digest: string
+          passenger_id: string
+          pickup_addr_digest: string
+          pickup_time: string
+          ride_type: string
+          service_context: string
+          total_price_cents: number
+        }
+        Returns: string
+      }
+      _hlbc2a_classifier_digest: {
+        Args: {
+          dropoff_airport: boolean
+          dropoff_h: string
+          pickup_airport: boolean
+          pickup_h: string
+        }
+        Returns: string
+      }
+      _hlbc2a_field: { Args: { k: string; v: string }; Returns: string }
+      _hlbc2a_header: { Args: { domain: string }; Returns: string }
+      _hlbc2a_v_bool: { Args: { v: boolean }; Returns: string }
+      _hlbc2a_v_hex: { Args: { v: string }; Returns: string }
+      _hlbc2a_v_int: { Args: { v: number }; Returns: string }
+      _hlbc2a_v_text: { Args: { v: string }; Returns: string }
+      _hlbc2a_v_uuid: { Args: { v: string }; Returns: string }
       _validate_cancellation_payload: {
         Args: { _payload: Json }
         Returns: undefined
@@ -3162,7 +3439,15 @@ export type Database = {
       verification_method: "pin" | "qr" | "nfc"
     }
     CompositeTypes: {
-      [_ in never]: never
+      _hlbc2a_amenity_item: {
+        amenity_option_id: string | null
+        amenity_code: string | null
+        amenity_name: string | null
+        quantity: number | null
+        price_delta_cents: number | null
+        currency: string | null
+        complimentary: boolean | null
+      }
     }
   }
 }
