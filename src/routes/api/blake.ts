@@ -143,9 +143,10 @@ export const Route = createFileRoute("/api/blake")({
             _limit: 40,
             _window_seconds: 600,
           });
-          const allowed = (rl as { allowed?: boolean } | null)?.allowed !== false;
-          if (!allowed) {
-            const retry = (rl as { retry_after?: number } | null)?.retry_after ?? 60;
+          // TABLE-returning RPC → array of rows.
+          const row = Array.isArray(rl) ? (rl[0] as { allowed?: boolean; retry_after?: number } | undefined) : (rl as { allowed?: boolean; retry_after?: number } | null);
+          if (row?.allowed === false) {
+            const retry = row.retry_after ?? 60;
             return new Response("Rate limited. Please wait a moment.", {
               status: 429,
               headers: { "Retry-After": String(retry) },
