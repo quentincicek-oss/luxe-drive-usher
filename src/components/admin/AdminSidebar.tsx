@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Route as RouteIcon, Users, UserCog, Car, Activity, Settings, HeartPulse } from "lucide-react";
+import { LayoutDashboard, Route as RouteIcon, Users, UserCog, Car, Activity, ScrollText, Settings, HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { to: "/admin/customers",  label: "Customers",  icon: Users },
   { to: "/admin/vehicles",   label: "Vehicles",   icon: Car },
   { to: "/admin/operations", label: "Operations", icon: Activity },
+  { to: "/admin/policies",   label: "Policies",   icon: ScrollText },
   { to: "/admin/settings",   label: "Settings",   icon: Settings },
   { to: "/admin/health",     label: "Health",     icon: HeartPulse },
 ];
