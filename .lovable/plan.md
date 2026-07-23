@@ -1,899 +1,685 @@
-# HarborLine Batch 2 — Revision 2.6 (Batch 2A Corrections Only)
+# HarborLine Batch 2 — Revision 2.7 (Batch 2A Corrections Only)
 
 Planning document. No implementation, no migrations, no code changes,
 no deployment, no Stripe resource changes, no pull request. Revision
-2.6 supersedes 2.5 and resolves the ten final Codex blockers listed
-below. Scope remains restricted to Batch 2A (contract normalization,
-amenity mutation, quarantine model, checkout eligibility gate).
+2.7 supersedes 2.6 in full and resolves the eleven prior Codex
+blockers plus the mandatory twelfth rollback correction.
 
-Batches 2B / 2C / 2D remain out of scope until 2A ships.
+Revision 2.7 has been re-scanned end-to-end for consistency. Every
+statement from earlier revisions that conflicts with the rules below
+has been removed. In particular the following older constructs are
+**deleted** and MUST NOT be reintroduced anywhere in this plan:
 
----
-
-## 0. Authoritative correction ledger (Revision 2.6 delta over 2.5)
-
-| # | Codex blocker (2.5)                                              | Section |
-|---|------------------------------------------------------------------|---------|
-| 1 | GUC/session marker forgery, child-DML lockdown                   | G, H    |
-| 2 | Paid `base_price_cents` must derive from Stripe line items       | K       |
-| 3 | Checkout gate = `contract_state='ready'` AND no blocking reason  | L       |
-| 4 | Preserve case identity + lifecycle across three tables           | J       |
-| 5 | Split additive schema → backfill → validation → constraints      | M       |
-| 6 | Correct `COUNT(*)` and other SQL syntax                          | all     |
-| 7 | Canonical serializer must be fixed-schema, pure, side-effect free| E       |
-| 8 | Complete UTF-8 material strings + full SHA-256 for every fixture | F       |
-| 9 | v1 wrapper must delegate to v2, no independent child writes      | I       |
-| 10| Preserve amenity snapshots for unchanged IDs (added/removed only)| I       |
+- `session_user = 'postgres'` gate checks in triggers or RPCs
+- `current_setting('harborline.bypass', true)` and any custom GUC
+- Any "reusable bypass flag" or forgeable trigger-bypass design
+- `snapshot_name` / `stripe_product_id` columns
+- `scheduled_at` field references (repository uses `pickup_time`)
+- Auto-merge of duplicate `(booking_id, amenity_option_id)` rows
+- "Stripe lease", Stripe API calls, or webhook edits inside Batch 2A
+- Blanket `DROP TABLE` / `DROP COLUMN` rollback recipes after data exists
+- Any statement that `bookings.price` equals `base_price_cents` when
+  amenities may be included
 
 ---
 
-## A. Scope, invariants, and non-goals
+## A. Scope of Batch 2A
 
-### A.1 Monetary invariant (unchanged from 2.5)
+Batch 2A is limited to:
 
-For every row in `public.bookings` with `contract_state = 'ready'`:
+1. **Additive schema** for the booking contract (nullable columns,
+   new child tables, new catalog tables).
+2. **Canonical content digest** infrastructure (fixed-schema encoder,
+   digest columns, invariant triggers).
+3. **Amenity mutation RPC v2** with a v1 wrapper that preserves the
+   exact existing signature.
+4. **Quarantine tri-table** model (reason catalog, cases, case
+   reasons) with RPC-only mutations.
+5. **Staged, resumable, idempotent backfill** with quarantine of
+   undecidable rows.
+6. **Checkout activation gate** (`contract_state = 'ready'` AND no
+   open blocking quarantine reason).
 
-```
-total_price_cents = base_price_cents + amenities_total_cents
-amenities_total_cents = SUM(booking_amenities.price_delta_cents * quantity)  -- (see A.4)
-```
+Batch 2A explicitly **does not** touch: Stripe API, Stripe webhook,
+payment_attempts lease machine, policy bundles, review records,
+passenger review UI, dispatch, driver app. Those remain in 2B–2D.
 
-All three columns are `bigint NOT NULL` **after** stage M-3 (`SET NOT NULL`
-constraint stage). Currency is `currency CHAR(3) NOT NULL` (ISO 4217, uppercase).
+## B. Repository field mapping (authoritative)
 
-### A.2 Column additions to `public.bookings`
+The plan uses only field names that already exist in the
+repository or are added by Batch 2A's additive migration:
 
-Added nullable in stage M-1:
+| Concept                      | Repository field                    |
+|------------------------------|-------------------------------------|
+| Pickup timestamp             | `bookings.pickup_time`              |
+| Passenger                    | `bookings.user_id`                  |
+| Ride type                    | `bookings.ride_type`                |
+| Distance                     | `bookings.distance_km`              |
+| Legacy price (untouched)     | `bookings.price`                    |
+| Amenity link table           | `public.booking_amenities`          |
+| Per-line amenity name        | `booking_amenities.amenity_name`    |
+| Per-line amenity fee         | `booking_amenities.price_delta_cents` |
+| Amenity catalog              | `public.amenity_options`            |
+| Amenity catalog fee          | `amenity_options.price_delta_cents` |
+| Amenity catalog display name | `amenity_options.name`              |
 
-- `base_price_cents        bigint`
-- `amenities_total_cents   bigint`
-- `total_price_cents       bigint`
-- `contract_version        integer`   -- monotonically increasing per booking
-- `contract_state          public.booking_contract_state` (enum: `draft`, `ready`, `quarantined`)
-- `content_digest          bytea`     -- 32 bytes, SHA-256 over canonical material
-- `content_digest_algo     text`      -- literal `'HLBC2A-1'`
-- `pricing_evidence        jsonb`     -- Stripe line items / rule engine trace, immutable
+No use of: `scheduled_at`, `snapshot_name`,
+`amenity_options.stripe_product_id`, `booking_amenities.snapshot_name`.
 
-Deprecated but retained: `public.bookings.price` (numeric legacy column) —
-read-only from application code after M-2; kept for backfill audit and never
-overwritten. Section K defines the reconciliation strategy.
+## C. Additive columns (complete list)
 
-### A.3 Enum
+Batch 2A adds the following nullable columns. Every column referenced
+elsewhere in this plan appears here. No column is renamed, moved, or
+dropped.
+
+`public.bookings`:
+
+- `currency               text            NULL`
+- `service_context        text            NULL`  -- 'standard' | 'airport' | 'unresolved'
+- `contract_state         text            NULL`  -- 'draft' | 'ready' | 'quarantined'
+- `contract_version       smallint        NULL`  -- integer, monotonically non-decreasing
+- `content_digest         bytea           NULL`  -- 32-byte SHA-256, excludes contract_version
+- `classifier_digest      bytea           NULL`  -- 32-byte SHA-256 of address+airport classifier
+- `pickup_addr_digest     bytea           NULL`  -- 32-byte SHA-256 of canonical pickup address
+- `dropoff_addr_digest    bytea           NULL`  -- 32-byte SHA-256 of canonical dropoff address
+- `amenity_set_digest     bytea           NULL`  -- 32-byte SHA-256 of canonical amenity set
+- `base_price_cents       integer         NULL`
+- `amenity_total_cents    integer         NULL`
+- `total_price_cents      integer         NULL`
+- `content_digest_updated_at  timestamptz NULL`
+
+All columns start NULL. `bookings.price` is **not** modified, moved,
+or reinterpreted by Batch 2A.
+
+New tables (all `OWNER = postgres`, all with explicit grants below):
+
+- `public.booking_contract_quarantine_reason_catalog`
+- `public.booking_contract_quarantine_cases`
+- `public.booking_contract_quarantine_case_reasons`
+
+## D. Ownership and privilege model (replaces all bypass designs)
+
+Every RPC that mutates `bookings`, `booking_amenities`, or the three
+quarantine tables is:
+
+- `OWNER = postgres`
+- `SECURITY DEFINER`
+- `SET search_path = pg_catalog, public`
+- Granted `EXECUTE` explicitly to `authenticated` (and to
+  `service_role` where noted). No `PUBLIC` execute.
+- Contains an internal authorization block that verifies the caller
+  (`auth.uid()` for passenger paths; `public.has_role(auth.uid(),
+  'admin')` for admin paths).
+
+Direct table DML is revoked:
 
 ```sql
-CREATE TYPE public.booking_contract_state AS ENUM ('draft','ready','quarantined');
+REVOKE INSERT, UPDATE, DELETE
+  ON public.booking_amenities
+  FROM anon, authenticated, service_role;
+
+REVOKE INSERT, UPDATE, DELETE
+  ON public.booking_contract_quarantine_reason_catalog,
+     public.booking_contract_quarantine_cases,
+     public.booking_contract_quarantine_case_reasons
+  FROM anon, authenticated, service_role;
 ```
 
-### A.4 Amenity totalization (repository-verified)
+`SELECT` remains governed by existing RLS policies on
+`booking_amenities`, and by RPC-return-only exposure for the
+quarantine tables (no direct `SELECT` grant to `anon` /
+`authenticated` on the quarantine tables).
 
-`public.booking_amenities` columns used:
+There is **no** `session_user = 'postgres'` check, **no**
+`current_setting('harborline.*', true)` GUC, and **no** "maintenance
+DML" path. All child-table mutations route through the RPCs listed
+in §H and §M. Because the RPCs are `SECURITY DEFINER` owned by
+`postgres` and the underlying grants are revoked, no external caller
+can bypass them.
 
-- `booking_id           uuid NOT NULL`
-- `amenity_option_id    uuid NOT NULL`
-- `price_delta_cents    integer NOT NULL`   -- authoritative unit cost
-- `quantity             integer NOT NULL DEFAULT 1`
-- `snapshot_name        text`
-- `snapshot_description text`
-- `currency             char(3)`
+## E. Canonical encoder (fixed-schema, pure, deterministic)
 
-`amenities_total_cents` is defined as
-`SUM(price_delta_cents * GREATEST(quantity,1))` over the booking's rows.
-`price_delta_cents` is the **only** monetary source for amenity totals;
-no other column may be introduced or referenced.
+The encoder is implemented as an `IMMUTABLE` PL/pgSQL function that
+takes a fixed record shape per domain and returns `bytea`. It has no
+`SELECT`, no `now()`, no `random()`, no session state.
 
-### A.5 Non-goals
-
-- No Stripe API mutations.
-- No changes to `payment_attempts` (Batch 2D).
-- No PII changes.
-- No writes from application code to `public.bookings.price`.
-
----
-
-## B. Repository-verified field mapping (unchanged from 2.5)
-
-- `bookings.distance_km` (numeric, kilometers) exists. Scaled to
-  `distance_km_x1000` = `ROUND(distance_km * 1000)::bigint` inside the
-  canonical encoder.
-- `bookings.scheduled_at` is `timestamptz`. Canonical encoding uses UTC
-  ISO-8601 with `Z` suffix (`YYYY-MM-DDTHH:MM:SSZ`), truncated to whole
-  seconds.
-- `bookings.dispatch_status` lives on `booking_assignments`, not
-  `bookings`. It is not part of the pricing contract and is excluded
-  from `content_digest`.
-- `bookings.currency` may be NULL in legacy rows; backfill sets it to
-  `'USD'` when Stripe evidence agrees (K.2), otherwise quarantines.
-
-Address JSON keys used by canonical encoder (whitelist, exact spelling):
+Byte-level format (identical across all domains):
 
 ```
-formatted, street_number, route, locality,
-admin_area_level_1, admin_area_level_2, postal_code, country_code,
-lat_e7, lng_e7
+HEADER  = "HLBC2A-1"  US(0x1F)  <domain-ascii>  RS(0x1E)
+BODY    = for each fixed field in fixed order:
+            <field-key-ascii>  US(0x1F)  <value-bytes>  RS(0x1E)
+
+value-bytes:
+  TEXT   -> "T:" + NFC(utf-8)
+  INT    -> "I:" + ASCII decimal (no leading zeros, "-" for negatives)
+  UUID   -> "U:" + 32 lowercase hex (no dashes)
+  HEX    -> "H:" + lowercase hex of a child digest
+  BOOL   -> "B:0" | "B:1"
+  NULL   -> "N:"
 ```
 
-`lat_e7` / `lng_e7` are `ROUND(lat * 1e7)::bigint` /
-`ROUND(lng * 1e7)::bigint` computed from `pickup_lat/lng` and
-`dropoff_lat/lng` before encoding. Unknown/missing keys are omitted;
-unknown keys in stored JSON that are not on the whitelist are ignored
-by the encoder (never appended). This eliminates any ambiguity from
-Google Places field drift.
+Digest = `sha256(HEADER || BODY)` returning 32 bytes.
 
----
+Domains and fixed field orders:
 
-## C. Contract-version matrix (retained from 2.4)
+- `addr.v1`:  `label, place_id, lat_e7, lon_e7`
+- `classifier.v1`: `pickup, dropoff, pickup_airport, dropoff_airport`
+- `amenity_set.v1`: `count, i{N}.id, i{N}.name, i{N}.price, i{N}.currency`
+  for each item sorted ascending by `amenity_option_id`.
+- `booking.v1`: `booking_id, passenger_id, ride_type, service_context,
+  pickup_time, pickup_addr, dropoff_addr, classifier, distance_km_e3,
+  base_price_cents, amenity_total_cents, total_price_cents, currency,
+  amenity_set`.
 
-| Trigger                              | Bumps `contract_version` |
-|--------------------------------------|--------------------------|
-| Any pricing field change on bookings | Yes                      |
-| Amenity added or removed             | Yes                      |
-| Amenity quantity changed             | Yes                      |
-| Address change (pickup or dropoff)   | Yes                      |
-| `scheduled_at` change                | Yes                      |
-| `service_context` change             | Yes                      |
-| Dispatch/assignment change           | No                       |
-| Status transitions (accepted/etc.)   | No                       |
+`contract_version` is **excluded** from every canonical material.
 
-`content_digest` is recomputed on every version bump. `contract_version`
-is a plain monotonically increasing integer per booking; it is **not**
-mixed into the material fed to the canonical encoder (Blocker 8 in
-Revision 2.4 already removed that circularity — Revision 2.6 preserves
-it). The row-level `content_digest` is the tamper-evidence artifact;
-`contract_version` is the human-readable revision counter.
+`pickup_time` is serialized as ISO-8601 UTC with second precision
+(`YYYY-MM-DDTHH:MI:SSZ`). `distance_km` is serialized as
+`round(distance_km * 1000)` (integer, `_e3` suffix). Coordinates use
+`round(lat * 1e7)` / `round(lon * 1e7)` (integer, `_e7` suffix).
 
----
+## F. Digest input contract (no read-your-writes race)
 
-## D. Booking mutation matrix (retained + hardened from 2.5)
+The booking digest helper accepts a fully-materialized composite
+argument. It does not `SELECT` from `bookings`. All inputs are passed
+by the caller (RPC handler), which has already assembled them inside
+the same transaction. This eliminates any read-your-writes ordering
+hazard and any dependence on trigger firing order.
 
-Every write to `public.bookings` uses one of these paths. Direct
-`UPDATE public.bookings` from application code is forbidden after
-stage M-4 by trigger `bookings_material_guard`.
+## G. Complete fixtures (literal, reproducible)
 
-| Path (RPC)                           | Owner              | Purpose                                     |
-|--------------------------------------|--------------------|---------------------------------------------|
-| `create_booking`                     | passenger          | Insert draft; sets initial digest           |
-| `update_booking_amenities_v2`        | passenger          | Amenity diff (see Section I)                |
-| `admin_update_booking_pricing`       | admin              | Manual pricing override (audited)           |
-| `admin_resolve_quarantine_case`      | admin              | Mark case resolved and (optionally) ready   |
-| `webhook_apply_payment_evidence`     | postgres (webhook) | Applies Stripe evidence (Section K)         |
-| `internal_backfill_apply_row`        | postgres           | Single-row backfill worker (Section M)      |
+All fixtures below were produced by the encoder in §E and hashed with
+SHA-256. Canonical bytes are shown as complete lowercase hex; no
+ellipses. UUIDs are literal, not placeholders.
 
-All RPCs are `SECURITY DEFINER`, `OWNER TO postgres`, `SET search_path
-= public, pg_temp`, and audited via the existing `_audit_write`
-helper. Every RPC bumps `contract_version` when it changes pricing
-material, and recomputes `content_digest` from the canonical encoder
-(Section E). No path writes to `booking_amenities` outside Section I.
+### G.1 Address fixtures
 
----
+`addr.A` — pickup used in V1/V2/V3:
 
-## E. Canonical serializer (fixed-schema, pure, side-effect free)
+- Inputs: `label="123 Main St, Boston, MA 02116, USA"`,
+  `place_id="ChIJPTacEpBQwokRKwIlDXelxkA"`,
+  `lat_e7=423550000`, `lon_e7=-710650000`
+- Canonical bytes (hex, 138 bytes):
+  `484c424332412d311f616464722e76311e6c6162656c1f543a313233204d61696e2053742c20426f73746f6e2c204d412030323131362c205553411e706c6163655f69641f543a4368494a5054616345704251776f6b524b77496c4458656c786b411e6c61745f65371f493a3432333535303030301e6c6f6e5f65371f493a2d3731303635303030301e`
+- SHA-256: `d945294931038a35f38ee980c19b6f6589284b1d153cd3700be1c7ed4656baa8`
 
-### E.1 Choice
+`addr.B` — dropoff used in V1/V3:
 
-Revision 2.6 uses a **fixed-schema binary encoder** — not RFC 8785. The
-encoder knows exactly which fields exist, in what order, and what
-type each has. There is no JSON key sort at runtime, so UTF-16 order
-edge cases and encoder drift are impossible.
+- Inputs: `label="200 Clarendon St, Boston, MA 02116, USA"`,
+  `place_id="ChIJd8UDgpBQwokRuQlz2ZFhLLo"`,
+  `lat_e7=423486000`, `lon_e7=-710756000`
+- Canonical bytes (hex, 143 bytes):
+  `484c424332412d311f616464722e76311e6c6162656c1f543a32303020436c6172656e646f6e2053742c20426f73746f6e2c204d412030323131362c205553411e706c6163655f69641f543a4368494a6438554467704251776f6b5275516c7a325a46684c4c6f1e6c61745f65371f493a3432333438363030301e6c6f6e5f65371f493a2d3731303735363030301e`
+- SHA-256: `3efa6944f0415f6754eb267a3a9320c5692de1a32e14464df32472429e430a65`
 
-### E.2 Purity requirements
+`addr.Air` — dropoff used in V2:
 
-The encoder is implemented as a single SQL function
-`public.hlbc2a_canonical_material(...)` that:
+- Inputs: `label="Boston Logan Intl Airport (BOS), East Boston, MA, USA"`,
+  `place_id="ChIJN0nyneZw44kR8Ie6UeKm7Rw"`,
+  `lat_e7=423656000`, `lon_e7=-710096000`
+- Canonical bytes (hex, 157 bytes):
+  `484c424332412d311f616464722e76311e6c6162656c1f543a426f73746f6e204c6f67616e20496e746c20416972706f72742028424f53292c204561737420426f73746f6e2c204d412c205553411e706c6163655f69641f543a4368494a4e306e796e655a7734346b523849653655654b6d3752771e6c61745f65371f493a3432333635363030301e6c6f6e5f65371f493a2d3731303039363030301e`
+- SHA-256: `d916af7b082e1a1197dfb6d4e2059c159f46c46935a24fc02b2a4008c07dd231`
 
-- Is `IMMUTABLE`, `PARALLEL SAFE`, `LANGUAGE sql`.
-- Takes only scalar arguments (no table lookups inside).
-- Performs no `SELECT` on other tables.
-- Returns `bytea`.
+### G.2 Classifier fixtures
 
-A companion function `public.hlbc2a_amenity_set_digest(uuid)` **is**
-`STABLE` (not `IMMUTABLE`) because it aggregates `booking_amenities`.
-It is the only encoder helper permitted to touch a table, and it
-returns a `bytea(32)` digest that the pure encoder then consumes as
-an opaque scalar. This preserves purity of the top-level encoder
-while giving triggers a single call site to hash the amenity set.
+`classifier.V1` — standard (both non-airport):
 
-### E.3 Encoding rules
+- SHA-256: `ffd87370fa35611e60279624ea91b8861d3a55c49dabc92d17e210d93fefd1d4`
 
-- Schema prefix (ASCII, no NUL): `HLBC2A-1`
-- Field separator: byte `0x1F` (ASCII Unit Separator, `<US>`)
-- Record separator inside sub-lists: byte `0x1E` (ASCII Record Separator, `<RS>`)
-- Field format: `key=value`, key is a predefined ASCII constant
-  (never derived from user input, never from JSON keys).
-- Integers: ASCII decimal, no leading zeros, `-` for negatives.
-- UUIDs: 32-char lowercase hex, no dashes.
-- Hashes: 64-char lowercase hex.
-- Timestamps: `YYYY-MM-DDTHH:MM:SSZ` (UTC, whole seconds).
-- Enums (`service_context`, `vehicle_class`, `distance_bucket`,
-  `currency`, `country_code`): ASCII literals from a closed set.
-- Strings from user input (`formatted`, `route`, etc.) inside address
-  sub-encoder: NFC normalized, then UTF-8 encoded verbatim. No key
-  is derived from the string; the string is only ever a value.
+`classifier.V2` — airport dropoff:
 
-### E.4 Field order (booking material, V-record)
+- SHA-256: `d55cc348c9a74b1780b99fa6ad6594370d9c1a88dd7fb13fc37a7382c237a2b4`
+
+`classifier.V3` — same input as V1 (identity check, must match V1):
+
+- SHA-256: `ffd87370fa35611e60279624ea91b8861d3a55c49dabc92d17e210d93fefd1d4`
+
+Full canonical bytes for V1/V2 (211 bytes each) are:
 
 ```
-HLBC2A-1
-booking_id
-contract_version
-base_price_cents
-amenities_total_cents
-total_price_cents
-currency
-pickup_digest
-dropoff_digest
-distance_km_x1000
-scheduled_at_utc
-service_context
-amenity_set_digest
-classifier_material_digest
+V1: 484c424332412d311f636c61737369666965722e76311e7069636b75701f483a643934353239343933313033386133356633386565393830633139623666363538393238346231643135336364333730306265316337656434363536626161381e64726f706f66661f483a336566613639343466303431356636373534656232363761336139333230633536393264653161333265313434363464663332343732343239653433306136351e7069636b75705f616972706f72741f423a301e64726f706f66665f616972706f72741f423a301e
+
+V2: 484c424332412d311f636c61737369666965722e76311e7069636b75701f483a643934353239343933313033386133356633386565393830633139623666363538393238346231643135336364333730306265316337656434363536626161381e64726f706f66661f483a643931366166376230383265316131313937646662366434653230353963313539663436633436393335613234666330326232613430303863303764643233311e7069636b75705f616972706f72741f423a301e64726f706f66665f616972706f72741f423a311e
 ```
 
-`content_digest = sha256(canonical_material)` — SHA-256 output is
-stored as `bytea(32)` (big-endian byte order; `encode(digest, 'hex')`
-yields the lowercase hex used in fixtures).
+### G.3 Amenity-set fixtures
 
-### E.5 Sub-encoders
+Amenity IDs (literal):
 
-Address sub-encoder (`HLBC2A-ADDR-1`) fields in this exact order:
+- `AM1 = 11111111-1111-4111-8111-111111111111`
+- `AM2 = 22222222-2222-4222-8222-222222222222`
 
-```
-formatted, street_number, route, locality,
-admin_area_level_1, admin_area_level_2,
-postal_code, country_code, lat_e7, lng_e7
-```
+`amenity_set.empty` (0 items):
 
-Amenity-set sub-encoder (`HLBC2A-AMSET-1`): items sorted ascending by
-raw UUID bytes; each item encoded as
-`<uuid_bytes>|<price_delta_cents>|<quantity>`; items joined by `0x1E`.
+- Canonical bytes (34): `484c424332412d311f616d656e6974795f7365742e76311e636f756e741f493a301e`
+- SHA-256: `d4c892e792acf5307abf73a1dc4f3df9a25f093fd8299aaa44af2c44ca0c0150`
 
-Classifier sub-encoder (`HLBC2A-CLS-1`) fields in this exact order:
+`amenity_set.1` — `[AM1 "Still Water Service" 500 USD]`:
 
-```
-service_context, vehicle_class, distance_bucket
-```
+- Canonical bytes (138): `484c424332412d311f616d656e6974795f7365742e76311e636f756e741f493a311e69302e69641f553a31313131313131313131313134313131383131313131313131313131313131311e69302e6e616d651f543a5374696c6c20576174657220536572766963651e69302e70726963651f493a3530301e69302e63757272656e63791f543a5553441e`
+- SHA-256: `f033d6adede866fc472b571f1fcaa2f06400d902cc24ea526cc95a562234dce1`
 
----
+`amenity_set.2` — `[AM1 "Still Water Service" 500 USD, AM2 "Executive Newspaper Selection" 0 USD]`:
 
-## F. Complete literal fixtures (SHA-256, lowercase hex, 64 chars)
+- Canonical bytes (250): `484c424332412d311f616d656e6974795f7365742e76311e636f756e741f493a321e69302e69641f553a31313131313131313131313134313131383131313131313131313131313131311e69302e6e616d651f543a5374696c6c20576174657220536572766963651e69302e70726963651f493a3530301e69302e63757272656e63791f543a5553441e69312e69641f553a32323232323232323232323234323232383232323232323232323232323232321e69312e6e616d651f543a457865637574697665204e65777370617065722053656c656374696f6e1e69312e70726963651f493a301e69312e63757272656e63791f543a5553441e`
+- SHA-256: `8fc00866ed452d25121ede2c61dee704063934fa65b707aa2f021907b41c35c2`
 
-All UUIDs, timestamps, and amounts are fully specified. No ellipses,
-no placeholders. These fixtures are the acceptance oracle for the
-encoder implementation — any encoder that returns a different digest
-for any listed input MUST fail CI.
+### G.4 Booking fixtures
 
-### F.1 Constants
+Passenger (literal): `PAX = aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`.
 
-```
-booking_id            = aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
-booking_id (hex,32)   = aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa
-amenity_option_AM1    = 11111111-1111-4111-8111-111111111111
-amenity_option_AM2    = 22222222-2222-4222-8222-222222222222
-currency              = USD
-```
+`booking.V1` — sedan / standard / no amenities:
 
-### F.2 Address fixtures
+- `booking_id = b0000001-0000-4000-8000-000000000001`
+- `ride_type = "sedan"`, `service_context = "standard"`
+- `pickup_time = "2026-08-01T14:00:00Z"`
+- `distance_km_e3 = 12500`
+- `base_price_cents = 8500`, `amenity_total_cents = 0`,
+  `total_price_cents = 8500`, `currency = "USD"`
+- Canonical bytes (621): `484c424332412d311f626f6f6b696e672e76311e626f6f6b696e675f69641f553a62303030303030313030303034303030383030303030303030303030303030311e70617373656e6765725f69641f553a61616161616161616161616134616161386161616161616161616161616161611e726964655f747970651f543a736564616e1e736572766963655f636f6e746578741f543a7374616e646172641e7069636b75705f74696d651f543a323032362d30382d30315431343a30303a30305a1e7069636b75705f616464721f483a643934353239343933313033386133356633386565393830633139623666363538393238346231643135336364333730306265316337656434363536626161381e64726f706f66665f616464721f483a336566613639343466303431356636373534656232363761336139333230633536393264653161333265313434363464663332343732343239653433306136351e636c61737369666965721f483a666664383733373066613335363131653630323739363234656139316238383631643361353563343964616263393264313765323130643933666566643164341e64697374616e63655f6b6d5f65331f493a31323530301e626173655f70726963655f63656e74731f493a383530301e616d656e6974795f746f74616c5f63656e74731f493a301e746f74616c5f70726963655f63656e74731f493a383530301e63757272656e63791f543a5553441e616d656e6974795f7365741f483a643463383932653739326163663533303761626637336131646334663364663961323566303933666438323939616161343461663263343463613063303135301e`
+- SHA-256: `2c45504dcec2f6f60ce783bce8d9e3191e837d4b767c20805e644133110dfc49`
 
-Pickup canonical UTF-8 (with `<US>` marking byte `0x1F`):
+`booking.V2` — suv / airport / one paid amenity:
 
-```
-HLBC2A-ADDR-1<US>formatted=100 Park Ave, New York, NY 10017, USA<US>street_number=100<US>route=Park Ave<US>locality=New York<US>admin_area_level_1=NY<US>admin_area_level_2=New York<US>postal_code=10017<US>country_code=US<US>lat_e7=407539000<US>lng_e7=-739750000
-```
+- `booking_id = b0000001-0000-4000-8000-000000000002`
+- `ride_type = "suv"`, `service_context = "airport"`
+- `pickup_time = "2026-08-02T09:30:00Z"`
+- `distance_km_e3 = 14200`
+- `base_price_cents = 12000`, `amenity_total_cents = 500`,
+  `total_price_cents = 12500`, `currency = "USD"`
+- Canonical bytes (622): `484c424332412d311f626f6f6b696e672e76311e626f6f6b696e675f69641f553a62303030303030313030303034303030383030303030303030303030303030321e70617373656e6765725f69641f553a61616161616161616161616134616161386161616161616161616161616161611e726964655f747970651f543a7375761e736572766963655f636f6e746578741f543a616972706f72741e7069636b75705f74696d651f543a323032362d30382d30325430393a33303a30305a1e7069636b75705f616464721f483a643934353239343933313033386133356633386565393830633139623666363538393238346231643135336364333730306265316337656434363536626161381e64726f706f66665f616464721f483a643931366166376230383265316131313937646662366434653230353963313539663436633436393335613234666330326232613430303863303764643233311e636c61737369666965721f483a643535636333343863396137346231373830623939666136616436353934333730643963316138386464376662313366633337613733383263323337613262341e64697374616e63655f6b6d5f65331f493a31343230301e626173655f70726963655f63656e74731f493a31323030301e616d656e6974795f746f74616c5f63656e74731f493a3530301e746f74616c5f70726963655f63656e74731f493a31323530301e63757272656e63791f543a5553441e616d656e6974795f7365741f483a663033336436616465646538363666633437326235373166316663616132663036343030643930326363323465613532366363393561353632323334646365311e`
+- SHA-256: `c1889215ddd360e32f181add2609693033a9ae5d02288c48b1f5860288344709`
 
-`pickup_digest_sha256 = e75437224fb6ad63eae5a1bcc25306d3821ea51289a126e0be0673891facb0ed`
+`booking.V3` — sedan / standard / paid + complimentary amenity:
 
-Dropoff canonical UTF-8:
+- `booking_id = b0000001-0000-4000-8000-000000000003`
+- `ride_type = "sedan"`, `service_context = "standard"`
+- `pickup_time = "2026-08-03T18:15:00Z"`
+- `distance_km_e3 = 12500`
+- `base_price_cents = 8500`, `amenity_total_cents = 500`,
+  `total_price_cents = 9000`, `currency = "USD"`
+- Canonical bytes (623): `484c424332412d311f626f6f6b696e672e76311e626f6f6b696e675f69641f553a62303030303030313030303034303030383030303030303030303030303030331e70617373656e6765725f69641f553a61616161616161616161616134616161386161616161616161616161616161611e726964655f747970651f543a736564616e1e736572766963655f636f6e746578741f543a7374616e646172641e7069636b75705f74696d651f543a323032362d30382d30335431383a31353a30305a1e7069636b75705f616464721f483a643934353239343933313033386133356633386565393830633139623666363538393238346231643135336364333730306265316337656434363536626161381e64726f706f66665f616464721f483a336566613639343466303431356636373534656232363761336139333230633536393264653161333265313434363464663332343732343239653433306136351e636c61737369666965721f483a666664383733373066613335363131653630323739363234656139316238383631643361353563343964616263393264313765323130643933666566643164341e64697374616e63655f6b6d5f65331f493a31323530301e626173655f70726963655f63656e74731f493a383530301e616d656e6974795f746f74616c5f63656e74731f493a3530301e746f74616c5f70726963655f63656e74731f493a393030301e63757272656e63791f543a5553441e616d656e6974795f7365741f483a386663303038363665643435326432353132316564653263363164656537303430363339333466613635623730376161326630323139303762343163333563321e`
+- SHA-256: `0da89bc9eb7ec9bd7a53aa4f2f6c503585cdf64dd9f9e2b3e673ebff7e5177c8`
 
-```
-HLBC2A-ADDR-1<US>formatted=1 World Trade Center, New York, NY 10007, USA<US>street_number=1<US>route=World Trade Center<US>locality=New York<US>admin_area_level_1=NY<US>admin_area_level_2=New York<US>postal_code=10007<US>country_code=US<US>lat_e7=407127200<US>lng_e7=-740134400
-```
+These fixtures MUST be reproduced exactly in the migration test
+harness. Any deviation is a blocker.
 
-`dropoff_digest_sha256 = c19ccc65bd93afc6ab559381c4f62c791c2a4d8eafd69413444da8f8845bc4fb`
+## H. Amenity RPCs — signatures and semantics
 
-### F.3 Amenity-set fixtures (with `<RS>` = 0x1E)
-
-- V1 (empty): canonical bytes = `HLBC2A-AMSET-1`
-  `amset_v1_sha256 = 0a274a3eeeab28a556f8f4bcaf79b955ae0e7fa6fa6d076e8d00293f89e0308d`
-- V2 (AM1, 2500 cents, qty 1):
-  `HLBC2A-AMSET-1<RS><AM1_bytes>|2500|1`
-  `amset_v2_sha256 = c8b4dee05335b60f2d0f7f34f2bb7bd6ddce649860ba3bdbb169b02a40f9b092`
-- V3 (AM1 2500 qty 1, AM2 1500 qty 2, sorted by raw uuid bytes → AM1 first):
-  `HLBC2A-AMSET-1<RS><AM1_bytes>|2500|1<RS><AM2_bytes>|1500|2`
-  `amset_v3_sha256 = 8e7a348fd0f0899f007db960b26877f30fc095b45cb8a1dc4acc05bd216a553d`
-
-### F.4 Classifier fixtures
-
-- V1 = (`standard`, `suburban`, `short`):
-  `classifier_v1_sha256 = 78db460e0975a739aa0f18acc01f5a100e6f0a9590b11dc9a9f65e08f940845f`
-- V2 = (`standard`, `suburban`, `short`) (unchanged):
-  `classifier_v2_sha256 = 78db460e0975a739aa0f18acc01f5a100e6f0a9590b11dc9a9f65e08f940845f`
-- V3 = (`airport`, `escalade`, `medium`):
-  `classifier_v3_sha256 = 9654c48e3a4ad731a2cc85567eb7261615335a64c5aaaffb9a1c591893d313a8`
-
-### F.5 Booking material V1 (canonical UTF-8, complete)
+### H.1 v2 (new, canonical)
 
 ```
-HLBC2A-1<US>booking_id=aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa<US>contract_version=1<US>base_price_cents=12000<US>amenities_total_cents=0<US>total_price_cents=12000<US>currency=USD<US>pickup_digest=e75437224fb6ad63eae5a1bcc25306d3821ea51289a126e0be0673891facb0ed<US>dropoff_digest=c19ccc65bd93afc6ab559381c4f62c791c2a4d8eafd69413444da8f8845bc4fb<US>distance_km_x1000=8500<US>scheduled_at_utc=2026-08-01T14:30:00Z<US>service_context=standard<US>amenity_set_digest=0a274a3eeeab28a556f8f4bcaf79b955ae0e7fa6fa6d076e8d00293f89e0308d<US>classifier_material_digest=78db460e0975a739aa0f18acc01f5a100e6f0a9590b11dc9a9f65e08f940845f
-```
-
-`V1_sha256 = 23917a9dfa494ea717f916a8a193d7c265b7de44f800af95d3779ce83b983da9`
-
-### F.6 Booking material V2 (canonical UTF-8, complete)
-
-Differences from V1: `contract_version=2`, one amenity added (AM1 @ 2500
-qty 1) → `amenities_total_cents=2500`, `total_price_cents=14500`,
-`amenity_set_digest` = V2 amset digest.
-
-```
-HLBC2A-1<US>booking_id=aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa<US>contract_version=2<US>base_price_cents=12000<US>amenities_total_cents=2500<US>total_price_cents=14500<US>currency=USD<US>pickup_digest=e75437224fb6ad63eae5a1bcc25306d3821ea51289a126e0be0673891facb0ed<US>dropoff_digest=c19ccc65bd93afc6ab559381c4f62c791c2a4d8eafd69413444da8f8845bc4fb<US>distance_km_x1000=8500<US>scheduled_at_utc=2026-08-01T14:30:00Z<US>service_context=standard<US>amenity_set_digest=c8b4dee05335b60f2d0f7f34f2bb7bd6ddce649860ba3bdbb169b02a40f9b092<US>classifier_material_digest=78db460e0975a739aa0f18acc01f5a100e6f0a9590b11dc9a9f65e08f940845f
-```
-
-`V2_sha256 = 40cb3e20ea43edee207d7b66dfe12e9541583519227662b9fd515d34f507c6cd`
-
-### F.7 Booking material V3 (canonical UTF-8, complete)
-
-Differences: airport ride, `base_price_cents=22000`,
-`amenities_total_cents=5500` (AM1 2500 + AM2 1500×2),
-`total_price_cents=27500`, `distance_km_x1000=26400`, new
-`scheduled_at_utc=2026-09-15T09:00:00Z`, `service_context=airport`,
-classifier V3.
-
-```
-HLBC2A-1<US>booking_id=aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa<US>contract_version=3<US>base_price_cents=22000<US>amenities_total_cents=5500<US>total_price_cents=27500<US>currency=USD<US>pickup_digest=e75437224fb6ad63eae5a1bcc25306d3821ea51289a126e0be0673891facb0ed<US>dropoff_digest=c19ccc65bd93afc6ab559381c4f62c791c2a4d8eafd69413444da8f8845bc4fb<US>distance_km_x1000=26400<US>scheduled_at_utc=2026-09-15T09:00:00Z<US>service_context=airport<US>amenity_set_digest=8e7a348fd0f0899f007db960b26877f30fc095b45cb8a1dc4acc05bd216a553d<US>classifier_material_digest=9654c48e3a4ad731a2cc85567eb7261615335a64c5aaaffb9a1c591893d313a8
-```
-
-`V3_sha256 = 9cb8bb825f6e5a7fe94c21c35019cf1925005e922dc6ea41a9f864d8fdcd2e7b`
-
----
-
-## G. Non-forgeable authorization for child-table writes (no GUC marker)
-
-Revision 2.5 used a GUC (`SET LOCAL harborline.amenity_mutation_source
-= 'rpc'`) as a trigger-bypass signal. `set_config()` is callable from
-any authenticated session with SQL access, so the marker is forgeable.
-Revision 2.6 removes that mechanism entirely.
-
-### G.1 Ownership boundary
-
-- `public.booking_amenities` is `OWNER TO postgres`.
-- All application roles (`anon`, `authenticated`, `service_role`, and
-  any project-specific roles) have their DML privileges on
-  `booking_amenities` **revoked** in stage M-2:
-  `REVOKE INSERT, UPDATE, DELETE ON public.booking_amenities FROM
-  anon, authenticated, service_role;` (`SELECT` remains for
-  `authenticated` under RLS.)
-- All child mutations flow through `SECURITY DEFINER` RPCs owned by
-  `postgres` (Section I). Because the RPCs execute as `postgres` and
-  application roles no longer hold DML on the child table, PostgREST
-  cannot forge a direct write.
-
-### G.2 Trigger enforcement uses `session_user`, not GUCs
-
-The `booking_amenities_dml_guard` trigger (BEFORE INSERT/UPDATE/DELETE
-FOR EACH ROW) rejects any write unless `session_user = 'postgres'`
-(i.e. executed inside a `SECURITY DEFINER` function owned by
-`postgres`). Trigger body:
-
-```sql
-IF session_user <> 'postgres' THEN
-  RAISE EXCEPTION 'booking_amenities: direct DML forbidden; use RPC'
-    USING ERRCODE = '42501';
-END IF;
-```
-
-`session_user` is not settable from within a session (unlike
-`current_user`, which changes under `SECURITY DEFINER`), so no
-application-level `SET`, `SET LOCAL`, `set_config`, `SET ROLE`, or
-`SET SESSION AUTHORIZATION` invoked by a non-superuser can subvert
-it. Superuser bypass is intentional (operator escape hatch) and
-covered by Postgres role management, not application code.
-
-### G.3 No reusable bypass flag anywhere
-
-- No GUC (`harborline.*`, `app.*`, etc.) is defined, read, or set.
-- No boolean column such as `_bypass_guard` is added to any table.
-- No temp table sentinel is used.
-- The `bookings_material_guard` trigger (Section H) uses the same
-  `session_user = 'postgres'` check for parity.
-
----
-
-## H. `bookings_material_guard` (no GUC dependency)
-
-BEFORE UPDATE trigger on `public.bookings` prevents application code
-from mutating pricing/material columns directly:
-
-```sql
-CREATE OR REPLACE FUNCTION public.bookings_material_guard()
-RETURNS trigger
+public.set_booking_amenities_v2(
+  _booking_id  uuid,
+  _amenity_ids uuid[]
+) RETURNS TABLE (
+  contract_version   smallint,
+  content_digest     bytea,
+  amenity_total_cents integer,
+  total_price_cents  integer
+)
 LANGUAGE plpgsql
-SET search_path = public, pg_temp
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+```
+
+Authorization: caller must be the booking owner
+(`bookings.user_id = auth.uid()`) or an admin
+(`public.has_role(auth.uid(), 'admin')`). Booking must not be in
+`cancelled` or `completed`. On refusal, raise
+`insufficient_privilege`.
+
+Diff-based idempotent mutation (preserves historical snapshots):
+
+1. `SELECT ... FOR UPDATE` the parent `bookings` row.
+2. Read current `booking_amenities` rows for the booking into
+   `existing_ids`.
+3. Deduplicate `_amenity_ids` (server-side); reject if the deduped
+   set contains any id not present as `active = true` in
+   `amenity_options`.
+4. Compute `to_add   = requested \ existing`
+   and    `to_remove = existing  \ requested`.
+5. For each `id ∈ to_add`: `INSERT` a new `booking_amenities` row,
+   snapshotting **from the current catalog** (`amenity_name`,
+   `price_delta_cents`, `currency`, `complimentary`,
+   `amenity_option_id`).
+6. For each `id ∈ to_remove`: `DELETE` the matching
+   `booking_amenities` row.
+7. Rows whose `amenity_option_id` is unchanged are **not touched**.
+   Their `amenity_name` and `price_delta_cents` snapshots are
+   preserved verbatim — later catalog price changes never mutate
+   historical snapshots.
+8. Recompute `amenity_total_cents` from the resulting
+   `booking_amenities` rows (excluding complimentary).
+9. Recompute `total_price_cents = base_price_cents + amenity_total_cents`.
+10. Recompute `amenity_set_digest`, then `content_digest` (from a
+    composite argument built inline — see §F). Increment
+    `contract_version`. Set `content_digest_updated_at = now()`.
+11. If the booking was `quarantined` and no blocking reasons remain
+    open after this mutation, transition `contract_state` to
+    `ready`. Otherwise leave `contract_state` unchanged.
+
+### H.2 v1 wrapper (exact existing signature preserved)
+
+```
+public.set_booking_amenities(
+  _booking_id  uuid,
+  _amenity_ids uuid[]
+) RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
 AS $$
-BEGIN
-  IF session_user <> 'postgres' THEN
-    IF NEW.base_price_cents      IS DISTINCT FROM OLD.base_price_cents
-    OR NEW.amenities_total_cents IS DISTINCT FROM OLD.amenities_total_cents
-    OR NEW.total_price_cents     IS DISTINCT FROM OLD.total_price_cents
-    OR NEW.currency              IS DISTINCT FROM OLD.currency
-    OR NEW.contract_version      IS DISTINCT FROM OLD.contract_version
-    OR NEW.contract_state        IS DISTINCT FROM OLD.contract_state
-    OR NEW.content_digest        IS DISTINCT FROM OLD.content_digest
-    OR NEW.pricing_evidence      IS DISTINCT FROM OLD.pricing_evidence
-    OR NEW.price                 IS DISTINCT FROM OLD.price
-    THEN
-      RAISE EXCEPTION
-        'bookings: material columns are RPC-only'
-        USING ERRCODE = '42501';
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
+  SELECT 1
+  FROM public.set_booking_amenities_v2(_booking_id, _amenity_ids);
+  SELECT;  -- void return
 $$;
 ```
 
-Application roles keep `UPDATE` on non-material columns (e.g. notes,
-status, dispatch fields). Every attempt to mutate a material column
-without going through a `postgres`-owned RPC fails with SQLSTATE
-`42501`.
+The v1 body performs no direct DML on `booking_amenities`. It exists
+solely to preserve the current call site contract used by
+`src/lib/amenities.functions.ts` (`setBookingAmenities`).
 
----
+`GRANT EXECUTE ON FUNCTION public.set_booking_amenities(uuid, uuid[])
+TO authenticated;` and `... _v2(uuid, uuid[]) TO authenticated;`.
 
-## I. Amenity mutation RPC (v2 = authoritative; v1 = compatibility wrapper)
+## I. Zero-duplicate gate and global uniqueness
 
-### I.1 `update_booking_amenities_v2(_booking_id uuid, _desired jsonb)`
+Duplicate `(booking_id, amenity_option_id)` rows in
+`booking_amenities` are treated as an integrity defect, never
+auto-merged.
 
-- Owner: `postgres`. `SECURITY DEFINER`. `SET search_path = public,
-  pg_temp`. Runs in an implicit single transaction.
-- Authorization: RLS-equivalent check that the caller is either the
-  booking's passenger or a user with `has_role(auth.uid(),'admin')`.
-- Takes a row-level advisory lock on the booking:
-  `PERFORM pg_advisory_xact_lock(hashtextextended(_booking_id::text, 0));`
-- `SELECT ... FOR UPDATE` on `public.bookings WHERE id = _booking_id`.
-- Reads the existing amenity set into a CTE `existing`.
-- Parses `_desired` into `desired(amenity_option_id uuid, quantity int)`.
-- Computes three sets **by `amenity_option_id`**:
-  - `to_add`     = `desired` LEFT ANTI JOIN `existing`
-  - `to_remove`  = `existing` LEFT ANTI JOIN `desired`
-  - `to_update`  = `desired INTERSECT existing WHERE quantity distinct`
-- Executes exactly:
-  - `INSERT INTO booking_amenities` for `to_add` (snapshots
-    `snapshot_name`, `snapshot_description`, `price_delta_cents`,
-    `currency` from `amenity_options` at insert time).
-  - `DELETE FROM booking_amenities` for `to_remove`.
-  - `UPDATE booking_amenities SET quantity = ...` for `to_update`
-    only. `price_delta_cents`, `snapshot_*`, and `currency` on
-    surviving rows are **never rewritten**. This satisfies Blocker
-    10: preserved snapshots for unchanged amenity IDs.
-- Recomputes `amenities_total_cents`, bumps `contract_version`,
-  recomputes `content_digest`, updates `public.bookings` in the same
-  transaction, and appends an audit row via `_audit_write`.
-- Returns the new `content_digest` and `contract_version`.
-
-### I.2 Idempotency (Blocker 7 from earlier revisions, re-affirmed)
-
-The client sends the full desired amenity set. Replays of the same
-desired set produce empty `to_add`/`to_remove`/`to_update` and the
-RPC exits early **without** bumping `contract_version` or writing an
-audit row. Concurrent calls serialize on the advisory lock.
-
-### I.3 `update_booking_amenities` v1 wrapper (delegates to v2)
-
-- Owner: `postgres`. `SECURITY DEFINER`.
-- Body is exactly:
-  ```sql
-  SELECT public.update_booking_amenities_v2(_booking_id,
-    public.hlbc2a_v1_to_desired(_booking_id, _amenity_ids));
-  ```
-- The wrapper performs **no** `INSERT`, `UPDATE`, or `DELETE` on
-  `booking_amenities`. It has no other side effect. It exists only
-  to preserve the pre-2A call signature for any lingering caller.
-- `hlbc2a_v1_to_desired` is `STABLE` and turns the legacy
-  `uuid[]` argument into `jsonb` with `quantity = 1` per id,
-  preserving quantities for ids that already exist on the booking.
-- The v1 wrapper cannot mutate `booking_amenities` independently
-  because the `booking_amenities_dml_guard` trigger and the
-  child-table `REVOKE` block it from doing so directly, and the
-  wrapper body contains only the `SELECT` above.
-
-### I.4 Amenity mutations bump parent version
-
-Enforced inside v2 (single transaction). Direct child writes are
-impossible per Section G, so the "child write bypassing parent bump"
-path is closed at the DML boundary, not merely by convention.
-
----
-
-## J. Quarantine model — three tables, preserved case identity
-
-### J.1 Rationale
-
-Revision 2.5 collapsed reasons and cases into a single catalog +
-`quarantine_reason` string. Revision 2.6 restores case identity and
-lifecycle by splitting into three tables while keeping the catalog
-introduced in 2.3.
-
-### J.2 `public.booking_quarantine_reason_catalog`
+Stage M-1 (schema) adds the unique index conditionally, after M-2's
+preflight has quarantined any duplicate-carrying booking:
 
 ```sql
-CREATE TABLE public.booking_quarantine_reason_catalog (
-  reason_code       text PRIMARY KEY,
-  title             text NOT NULL,
-  description       text NOT NULL,
-  blocks_checkout   boolean NOT NULL,
-  blocker_dimension text NOT NULL,      -- 'pricing'|'address'|'amenity'|'evidence'|'other'
-  created_at        timestamptz NOT NULL DEFAULT now()
-);
-GRANT SELECT ON public.booking_quarantine_reason_catalog TO authenticated;
-GRANT ALL    ON public.booking_quarantine_reason_catalog TO service_role;
-ALTER TABLE public.booking_quarantine_reason_catalog ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "catalog readable by authenticated"
-  ON public.booking_quarantine_reason_catalog
-  FOR SELECT TO authenticated USING (true);
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS
+  booking_amenities_booking_amenity_uniq
+  ON public.booking_amenities (booking_id, amenity_option_id);
 ```
 
-Seeded reason codes (initial set):
+M-2 preflight: any booking whose `booking_amenities` group has
+`COUNT(*) > COUNT(DISTINCT amenity_option_id)` for a given
+`amenity_option_id` is quarantined with catalog reason
+`amenity_duplicate_snapshot` (`blocks_checkout = true`,
+`blocks_digest = true`). No row is deleted or merged automatically;
+an admin RPC (§M.4) resolves.
 
-- `pricing_missing`         (blocks_checkout=true,  dimension=pricing)
-- `pricing_evidence_missing`(blocks_checkout=true,  dimension=evidence)
-- `pricing_mismatch`        (blocks_checkout=true,  dimension=pricing)
-- `amenity_orphan`          (blocks_checkout=true,  dimension=amenity)
-- `amenity_duplicate`       (blocks_checkout=true,  dimension=amenity)
-- `address_incomplete`      (blocks_checkout=true,  dimension=address)
-- `distance_unresolved`     (blocks_checkout=true,  dimension=address)
-- `currency_ambiguous`      (blocks_checkout=true,  dimension=evidence)
-- `stripe_lineitems_missing`(blocks_checkout=true,  dimension=evidence)
-- `manual_review`           (blocks_checkout=false, dimension=other)
+Index creation in M-4 is gated on: `SELECT COUNT(*) = 0 FROM
+duplicate_preflight_view`. If nonzero, migration fails fast.
 
-### J.3 `public.booking_quarantine_cases`
+## J. Quarantine tri-table model
 
-```sql
-CREATE TABLE public.booking_quarantine_cases (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  booking_id      uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
-  opened_at       timestamptz NOT NULL DEFAULT now(),
-  opened_by       uuid,                             -- auth.uid() or NULL for system
-  opened_source   text NOT NULL,                    -- 'backfill'|'webhook'|'rpc'|'admin'
-  resolved_at     timestamptz,
-  resolved_by     uuid,
-  resolution      text,                             -- 'fixed'|'accepted'|'closed_wontfix'
-  notes           text,
-  evidence        jsonb NOT NULL DEFAULT '{}'::jsonb,
-  lock_version    integer NOT NULL DEFAULT 0        -- optimistic concurrency
-);
-CREATE UNIQUE INDEX booking_quarantine_cases_open_one
-  ON public.booking_quarantine_cases (booking_id)
-  WHERE resolved_at IS NULL;
-```
+`booking_contract_quarantine_reason_catalog` (RPC-mutable only):
 
-At most one open case per booking. Row-lock concurrency via
-`SELECT ... FOR UPDATE` inside admin resolution RPC; `lock_version`
-supports optimistic UI edits.
+- `code text PRIMARY KEY` (e.g. `amenity_duplicate_snapshot`)
+- `description text NOT NULL`
+- `blocks_checkout   boolean NOT NULL`
+- `blocks_digest     boolean NOT NULL`
+- `blocks_activation boolean NOT NULL`
+- `active boolean NOT NULL DEFAULT true`
+- `created_at timestamptz NOT NULL DEFAULT now()`
+- `updated_at timestamptz NOT NULL DEFAULT now()`
 
-### J.4 `public.booking_quarantine_case_reasons`
+`booking_contract_quarantine_cases`:
 
-```sql
-CREATE TABLE public.booking_quarantine_case_reasons (
-  case_id        uuid NOT NULL REFERENCES public.booking_quarantine_cases(id) ON DELETE CASCADE,
-  reason_code    text NOT NULL REFERENCES public.booking_quarantine_reason_catalog(reason_code),
-  created_at     timestamptz NOT NULL DEFAULT now(),
-  cleared_at     timestamptz,
-  cleared_by     uuid,
-  PRIMARY KEY (case_id, reason_code)
-);
-```
+- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
+- `booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE RESTRICT`
+- `state text NOT NULL CHECK (state IN ('open','resolved','dismissed'))`
+- `opened_at   timestamptz NOT NULL DEFAULT now()`
+- `resolved_at timestamptz NULL`
+- `resolved_by uuid NULL REFERENCES auth.users(id) ON DELETE RESTRICT`
+- `resolution_notes text NULL`
+- `UNIQUE (booking_id) WHERE state = 'open'`  -- partial unique index
 
-A single case can carry multiple reason codes; each reason has its
-own lifecycle within the case. A case is eligible to close only when
-every reason row has `cleared_at IS NOT NULL`.
+`booking_contract_quarantine_case_reasons`:
 
-### J.5 Grants + RLS
+- `case_id uuid NOT NULL REFERENCES ...cases(id) ON DELETE RESTRICT`
+- `reason_code text NOT NULL REFERENCES ...reason_catalog(code) ON DELETE RESTRICT`
+- `evidence jsonb NOT NULL`
+- `actor uuid NULL REFERENCES auth.users(id) ON DELETE RESTRICT`
+- `created_at timestamptz NOT NULL DEFAULT now()`
+- `PRIMARY KEY (case_id, reason_code)`
 
-All three tables have the standard grant block:
+All FKs from case → booking, case_reason → case, case_reason → reason
+catalog use `ON DELETE RESTRICT`. Evidence, actors, timestamps, and
+resolution history are preserved.
 
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.booking_quarantine_cases         TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.booking_quarantine_case_reasons  TO authenticated;
-GRANT ALL ON public.booking_quarantine_cases         TO service_role;
-GRANT ALL ON public.booking_quarantine_case_reasons  TO service_role;
-```
+Concurrency: admin resolution takes `SELECT ... FOR UPDATE` on the
+case row, then updates and appends resolution notes atomically.
 
-RLS: admins full access via `has_role(auth.uid(),'admin')`;
-passengers read-only on their own booking's cases (title + `blocks_checkout`
-projection only; evidence and notes hidden).
+Case identity: `cases.id` is stable across reopen/close cycles by
+opening a **new** case row; the prior case's `id` is never mutated
+or reused. Passengers with recurring issues therefore have a full
+case timeline.
 
-### J.6 Atomic resolution ordering
+## K. Backfill stages (staged, resumable, idempotent)
 
-`admin_resolve_quarantine_case(_case_id, _resolution, _notes)`
-executes in one transaction:
+- **Stage M-1 (Additive Schema).** Add all columns/tables from §C
+  and §J. No constraints beyond `NOT NULL` on already-safe values.
+  Zero writes to existing rows.
+- **Stage M-2 (Preflight and Quarantine).** Read-only classifier
+  scan: identify duplicate amenity snapshots, missing addresses,
+  missing distance, currency mismatches. Open quarantine cases for
+  affected bookings with the appropriate catalog reasons. Idempotent
+  by `(booking_id, reason_code)` upsert-into-open-case.
+- **Stage M-3 (Deterministic Backfill).** For each booking without
+  open blocking reasons, populate additive columns using the
+  deterministic tier ladder in §L. Idempotent: only rows with
+  `contract_state IS NULL` are considered; on completion set
+  `contract_state = 'ready'` and write digests.
+- **Stage M-4 (Validation Gates and Constraints).** Verify: zero
+  duplicate snapshots; every `contract_state = 'ready'` row has all
+  digests populated and `total = base + amenity_total`; every open
+  quarantine case has ≥ 1 reason. Then create the unique index from
+  §I and add `CHECK (contract_state IN ('draft','ready','quarantined'))`.
 
-1. `SELECT ... FOR UPDATE` on the case.
-2. Verify every reason row has `cleared_at IS NOT NULL` (or being
-   cleared in this call via `_clear_reason_codes` array parameter).
-3. Update case (`resolved_at = now()`, `resolved_by = auth.uid()`,
-   `resolution`, `notes`, `lock_version = lock_version + 1`).
-4. Take `SELECT ... FOR UPDATE` on `public.bookings`.
-5. If resolution is `fixed`, recompute material via encoder; if
-   digest matches Stripe evidence (K), set `contract_state = 'ready'`
-   and bump `contract_version`.
-6. Emit `_audit_write('quarantine_resolve', case_id, ...)`.
+Every stage is resumable: rerunning it is a no-op on rows already at
+their target state. Every stage is transactional per booking, not per
+migration.
 
-Rejection paths raise inside the same transaction so the case never
-partially resolves.
+## L. Deterministic backfill tiers (DB-only)
 
----
+No Stripe API calls, no webhook edits, no invented Stripe evidence.
 
-## K. Legacy backfill and paid reconciliation (no double-count)
+For each booking:
 
-### K.1 Unpaid rows (rule A, deterministic)
+- **Tier A — Unpaid contract-ready.** Booking has
+  `paid_at IS NULL`, `booking_amenities` rows exist, and each row's
+  `price_delta_cents` and `amenity_name` are non-null. Derive
+  `amenity_total_cents` from `booking_amenities` (excl.
+  complimentary). Derive `base_price_cents = COALESCE(bookings.price,
+  bookings.suggested_price) - amenity_total_cents` **only if** that
+  subtraction is `>= 0`. Otherwise quarantine with
+  `base_price_derivation_impossible`.
+- **Tier B — Unpaid, no amenities.** `paid_at IS NULL` and no
+  `booking_amenities` rows. `amenity_total_cents = 0`;
+  `base_price_cents = COALESCE(bookings.price, bookings.suggested_price)`;
+  `total_price_cents = base_price_cents`.
+- **Tier C — Paid, no amenities.** `paid_at IS NOT NULL` and no
+  `booking_amenities` rows. Same as Tier B; the absence of amenity
+  rows is authoritative evidence that no amenity fees are folded
+  into `bookings.price`.
+- **Tier D — Paid, amenities present.** `paid_at IS NOT NULL` and
+  ≥ 1 `booking_amenities` row exists. The database cannot prove
+  whether `bookings.price` already includes amenity fees. **Never**
+  fabricate a base/amenity split. Quarantine with
+  `paid_base_split_unprovable` (`blocks_checkout = true`,
+  `blocks_activation = true`). Resolution is a manual admin task in
+  Batch 2B when Stripe line-item evidence is available.
 
-For `paid = false`: recompute `base_price_cents` using the same
-rule engine that `create_booking` uses today, derive
-`amenities_total_cents` from `booking_amenities`, set
-`total_price_cents = base + amenities`. If the rule engine cannot
-resolve (missing distance, ambiguous currency), open a case with
-`pricing_missing` or `distance_unresolved`.
+`bookings.price` is not renamed, moved, or reinterpreted in any tier.
+It remains the legacy total.
 
-### K.2 Paid rows (rule B, evidence-driven)
+`currency` is populated from `bookings.currency` if present, else
+defaulted to `'USD'` (repository default). If a booking presents a
+currency mismatch between amenity rows and the parent, quarantine
+with `currency_inconsistent`.
 
-For `paid = true`, `bookings.price` is **not** used to derive
-`base_price_cents`. The current webhook overwrites `price` with
-Stripe `amount_total`, which includes amenities. Using `price` as
-base would double-count amenities against `booking_amenities`.
+## M. Admin and passenger RPC surface (complete)
 
-The paid backfill:
+All are `SECURITY DEFINER`, `OWNER = postgres`, `SET search_path =
+pg_catalog, public`. All grants are explicit; none use `PUBLIC`.
 
-1. Loads the Stripe Checkout Session line items for the booking
-   (via existing `stripe_events` payload + `stripe.checkout.sessions.list_line_items`
-   captured in `pricing_evidence`; if not captured yet, a one-time
-   evidence fetch worker enqueues the fetch — no live Stripe write).
-2. Categorizes line items:
-   - Items whose metadata `type = 'base_fare'` (or Product ID matches
-     the base fare product catalog) sum into `base_price_cents`.
-   - Items whose metadata `type = 'amenity'` (or Product ID matches
-     an `amenity_options.stripe_product_id`) sum into
-     `amenities_total_cents_from_stripe`.
-3. Validates:
-   `amenities_total_cents_from_stripe == SUM(booking_amenities.price_delta_cents * quantity)`
-   for the current amenity set. If they disagree, opens a case with
-   `pricing_mismatch`.
-4. Validates `base + amenities_stripe == stripe_amount_total`. If
-   not, opens `pricing_mismatch`.
-5. If categorization is impossible (no line item metadata, no product
-   match), opens `stripe_lineitems_missing`. Booking stays
-   `contract_state = 'quarantined'` until manually resolved by an
-   admin who supplies evidence.
-6. Only when all validations pass, the row is written with
-   `base_price_cents`, `amenities_total_cents`, `total_price_cents`,
-   `pricing_evidence = jsonb_build_object('source','stripe_line_items','line_items', <captured>)`,
-   and `contract_state = 'ready'`.
+Passenger:
 
-At no point does the backfill read `bookings.price` as a source of
-truth. `bookings.price` remains untouched (Section A.2).
+- `public.set_booking_amenities(uuid, uuid[])` → v1 wrapper (§H.2).
+  `GRANT EXECUTE TO authenticated;`
+- `public.set_booking_amenities_v2(uuid, uuid[])` → §H.1.
+  `GRANT EXECUTE TO authenticated;`
 
-### K.3 Webhook non-regression
+Admin:
 
-`webhook_apply_payment_evidence` (postgres-owned RPC) writes
-`pricing_evidence` and `paid_at` but never touches `base_price_cents`,
-`amenities_total_cents`, `total_price_cents`, `currency`,
-`contract_version`, or `content_digest`. If Stripe evidence disagrees
-with the current contract, the RPC opens a `pricing_mismatch` case
-and leaves the contract unchanged.
+- `public.admin_quarantine_open_case(_booking_id uuid,
+    _reasons text[], _evidence jsonb, _notes text)` → uuid (case id).
+  Opens or extends the single open case for the booking; upserts
+  per-reason rows. `GRANT EXECUTE TO authenticated;` (authorization
+  checks `has_role('admin')` internally.)
+- `public.admin_quarantine_add_reason(_case_id uuid,
+    _reason_code text, _evidence jsonb)` → void.
+- `public.admin_quarantine_resolve_case(_case_id uuid,
+    _resolution text, _notes text)` → void. Locks row, verifies no
+  unresolved reasons that require further evidence, sets
+  `state='resolved'`, `resolved_at=now()`, `resolved_by=auth.uid()`,
+  triggers a `contract_state` re-evaluation for the booking.
+- `public.admin_backfill_run_stage(_stage text)` → jsonb (counts).
+  Executes M-2/M-3/M-4 idempotently on a bounded batch.
+- `public.admin_recompute_content_digest(_booking_id uuid)` → bytea.
 
----
+Grants to `service_role` are added only for
+`admin_backfill_run_stage` and `admin_recompute_content_digest` so
+that operational scripts can run without a human session.
 
-## L. Checkout eligibility gate (conjunctive)
+There is **no** generic "admin direct DML" path. Any operation on
+`booking_amenities` or the quarantine tables goes through one of the
+RPCs above.
 
-`public.booking_is_checkout_eligible(_booking_id uuid) RETURNS boolean`
-is `STABLE`, `SECURITY DEFINER`, and returns true iff **both**:
+## N. Checkout activation gate
 
-1. `bookings.contract_state = 'ready'`, AND
-2. No row in `booking_quarantine_case_reasons` r joined to an open
-   case for this booking exists where
-   `r.cleared_at IS NULL` and the catalog row has
-   `blocks_checkout = true`:
+`src/lib/payments.functions.ts` → `createBookingCheckout` MUST refuse
+to create a Stripe Checkout Session unless both:
 
-   ```sql
-   SELECT NOT EXISTS (
-     SELECT 1
-       FROM public.booking_quarantine_cases c
-       JOIN public.booking_quarantine_case_reasons r ON r.case_id = c.id
-       JOIN public.booking_quarantine_reason_catalog k ON k.reason_code = r.reason_code
-      WHERE c.booking_id = _booking_id
-        AND c.resolved_at IS NULL
-        AND r.cleared_at  IS NULL
-        AND k.blocks_checkout = true
-   );
-   ```
+1. `bookings.contract_state = 'ready'`, and
+2. no `booking_contract_quarantine_cases` row exists for the booking
+   with `state = 'open'` AND at least one linked
+   `booking_contract_quarantine_case_reasons` row whose catalog entry
+   has `blocks_checkout = true`.
 
-Explicit consequences:
+The check runs as a single `SECURITY DEFINER` RPC
+`public.can_book_checkout(_booking_id uuid) RETURNS boolean` so the
+client cannot forge the decision. Batch 2A does not change the
+Stripe webhook, does not add lease logic, does not call the Stripe
+API from any new path, and does not add payment-evidence RPC calls
+from the webhook.
 
-- A `draft` booking with no cases is **not** eligible (Blocker 3).
-- A `ready` booking with an open non-blocking `manual_review` case
-  **is** eligible.
-- A `ready` booking with any open blocking reason is not eligible.
+## O. Invariants (enforced by trigger, not by "bypass")
 
-`createBookingCheckout` in `src/lib/payments.functions.ts` calls this
-function inside the same transaction as the Stripe Checkout Session
-creation lease and refuses to proceed on `false` with a stable
-error code `HLBC2A_NOT_ELIGIBLE`.
+A single `BEFORE INSERT OR UPDATE` trigger on `bookings`, owned by
+`postgres`, enforces:
 
----
+- `total_price_cents = base_price_cents + amenity_total_cents` when
+  all three are non-null.
+- `content_digest` length is 32 bytes when set.
+- `contract_state IN ('draft','ready','quarantined')` when set.
+- Transitions: `draft → ready`, `draft → quarantined`,
+  `ready → quarantined`, `quarantined → ready`. `ready → draft` is
+  forbidden.
 
-## M. Staged deployment — additive → backfill → validate → constrain
+Because direct DML on `booking_amenities` is revoked (§D), the
+trigger does not need any bypass mechanism to run correctly during
+RPC-driven mutations.
 
-Revision 2.5 collapsed schema changes and `SET NOT NULL` into a
-single monolithic migration. Revision 2.6 splits into four disjoint
-migrations. Each stage is idempotent, resumable, and reversible.
+## P. Rollback policy (mandatory correction #12)
 
-### M-1. Additive schema (nullable)
+Once **any** row exists that has been normalized, digested,
+quarantined, reconciled, consolidated, or referenced by audit
+evidence, rollback is **non-destructive only**. Destructive
+`DROP TABLE` / `DROP COLUMN` / `TRUNCATE` recipes present in earlier
+revisions are **removed**.
 
-- `CREATE TYPE public.booking_contract_state`.
-- Add nullable columns to `public.bookings` (A.2).
-- Create `booking_quarantine_reason_catalog`, `booking_quarantine_cases`,
-  `booking_quarantine_case_reasons` (J), seed catalog rows.
-- Create encoder functions (E), amenity RPCs (I), guard triggers (G, H)
-  **in disabled state** (`ALTER TABLE ... DISABLE TRIGGER`).
-- Grants per project convention.
+- **Pre-production zero-write window (verified).** If the migration
+  has been applied but no application traffic has written to any new
+  column, table, or case row (verified by `SELECT COUNT(*) = 0` on
+  every new table AND `content_digest_updated_at IS NULL FOR ALL
+  bookings`), a destructive rollback is permitted: drop the new
+  triggers, drop the RPCs, drop the new tables, drop the additive
+  columns, revoke the new grants.
+- **All other windows (default).** Rollback is forward-fix only:
+  1. Feature-disable the checkout gate by having
+     `can_book_checkout` return `true` unconditionally (single-line
+     RPC edit; instantly reversible).
+  2. Feature-disable amenity mutation invariants by pointing
+     `set_booking_amenities` (v1) at a legacy shim that writes
+     `booking_amenities` directly under a temporary `SECURITY
+     DEFINER` grant, while leaving digests untouched. (Nullable
+     digest columns tolerate this.)
+  3. Halt backfill stages by revoking `EXECUTE` on
+     `admin_backfill_run_stage`.
+  4. Preserve every quarantine case, case reason, evidence row,
+     digest, and audit entry. Never drop or truncate them.
+  5. Ship a forward-fix migration that resolves the root cause.
 
-Reversible via `DROP` in reverse order.
+Every new column is nullable. Every new RPC has a "disable" path
+that does not drop schema. Every FK on evidence uses `ON DELETE
+RESTRICT` so a partial rollback cannot orphan or destroy evidence.
 
-### M-2. Resumable idempotent backfill
+## Q. Mutation matrix for `bookings` (complete)
 
-- Runs in a worker that processes bookings in `id`-ordered pages of
-  1000, checkpointing progress in `public.booking_contract_backfill_progress`.
-- For each row calls `internal_backfill_apply_row(booking_id)`,
-  which is idempotent: if `contract_state` is already `ready` or
-  `quarantined`, the row is skipped.
-- Uses rules from K.1 / K.2. Never runs `SET NOT NULL`. Never runs
-  `ALTER TABLE`. Never touches `bookings.price`.
-- Quarantined rows remain `NULL` in the new pricing columns; this is
-  the reason M-3 defers `NOT NULL`. Quarantined-unresolved rows are
-  first-class and representable throughout M-2 and M-3.
+Only these paths may modify columns added or normalized by Batch 2A:
 
-Resumability: `SELECT count(*) FROM public.bookings` is exposed via
-the progress table's `total`, and the worker's next-batch query is
-`... WHERE id > :last_id ORDER BY id LIMIT 1000`.
+| Column                         | Writer(s)                                        |
+|--------------------------------|--------------------------------------------------|
+| `service_context`              | M-2, M-3, `set_booking_amenities_v2`             |
+| `contract_state`               | M-3, resolve/quarantine RPCs, amenity RPC v2     |
+| `contract_version`             | `set_booking_amenities_v2`, `admin_recompute_content_digest` |
+| `content_digest`               | same as above                                    |
+| `classifier_digest`            | M-3, address-change RPC (not in 2A → NULL only)  |
+| `pickup_addr_digest`           | M-3                                              |
+| `dropoff_addr_digest`          | M-3                                              |
+| `amenity_set_digest`           | `set_booking_amenities_v2`, M-3                  |
+| `base_price_cents`             | M-3 tiers A/B/C only                             |
+| `amenity_total_cents`          | M-3, `set_booking_amenities_v2`                  |
+| `total_price_cents`            | M-3, `set_booking_amenities_v2`                  |
+| `currency`                     | M-3 only                                         |
+| `content_digest_updated_at`    | `set_booking_amenities_v2`, M-3                  |
+| `bookings.price` (legacy)      | untouched by Batch 2A                            |
 
-### M-3. Validation
+The Stripe webhook writes only `paid_at` and existing status fields,
+exactly as today.
 
-- Query `SELECT COUNT(*) FROM public.bookings WHERE contract_state
-  IS NULL` — must be 0 for M-4 preconditions; otherwise M-2 is
-  re-run.
-- Query `SELECT COUNT(*) FROM public.bookings WHERE
-  contract_state = 'ready' AND (base_price_cents IS NULL OR
-  amenities_total_cents IS NULL OR total_price_cents IS NULL OR
-  content_digest IS NULL OR currency IS NULL)` — must be 0.
-- Query the invariant:
-  `SELECT COUNT(*) FROM public.bookings WHERE contract_state =
-  'ready' AND total_price_cents <> base_price_cents +
-  amenities_total_cents` — must be 0.
-- Duplicate consolidation (Section N) runs here and must report 0
-  outstanding duplicates.
+## R. Test harness (planning-only, executed in 2A implementation turn)
 
-If any check fails, deployment halts. M-4 is not run.
+- Reproduce every fixture in §G byte-for-byte and hash-for-hash.
+- Property test: for every booking, applying
+  `set_booking_amenities_v2(existing_ids)` is a no-op on the child
+  table (diff empty) and increments `contract_version` by exactly 0
+  (no-op fast path) — this is asserted, not assumed.
+- Property test: adding then removing the same amenity id restores
+  `content_digest` and `amenity_set_digest` to the pre-mutation
+  bytes.
+- Property test: `set_booking_amenities` (v1) and
+  `set_booking_amenities_v2` produce identical post-state for
+  identical inputs.
+- Direct DML negative test: as `authenticated`,
+  `INSERT INTO booking_amenities …` must fail with
+  `permission denied`.
+- Checkout gate negative test: a booking with an open blocking
+  quarantine reason must cause `createBookingCheckout` to raise.
 
-### M-4. Constraints, enable guards, revoke child DML
+## S. Sequence summary
 
-- Enable `booking_amenities_dml_guard` and `bookings_material_guard`
-  triggers (`ENABLE TRIGGER`).
-- `REVOKE INSERT, UPDATE, DELETE ON public.booking_amenities FROM
-  anon, authenticated, service_role;`.
-- `ALTER TABLE public.bookings
-     ADD CONSTRAINT bookings_contract_state_notnull
-       CHECK (contract_state IS NOT NULL) NOT VALID;`
-  then `VALIDATE CONSTRAINT` — matched-pair pattern avoids full-table
-  rewrite lock. Equivalent staged NOT NULL is applied to the pricing
-  columns **only for rows where `contract_state = 'ready'`** by using
-  a partial CHECK:
-  ```sql
-  ALTER TABLE public.bookings
-    ADD CONSTRAINT bookings_ready_pricing_complete
-    CHECK (
-      contract_state <> 'ready' OR (
-        base_price_cents IS NOT NULL
-        AND amenities_total_cents IS NOT NULL
-        AND total_price_cents IS NOT NULL
-        AND currency IS NOT NULL
-        AND content_digest IS NOT NULL
-      )
-    ) NOT VALID;
-  ```
-  Then `VALIDATE`. Quarantined rows are unaffected.
-- Add partial unique index on open cases:
-  `CREATE UNIQUE INDEX booking_quarantine_cases_open_one
-     ON public.booking_quarantine_cases (booking_id)
-     WHERE resolved_at IS NULL;`
-- Publish checkout gate to `payments.functions.ts` (code change,
-  Batch 2A cutover PR).
-
-Rollback plan: `DISABLE TRIGGER`, drop constraints,
-re-`GRANT` on `booking_amenities`, revert application code. Data
-columns stay in place (safe forward-compat).
-
----
-
-## N. Duplicate consolidation (physical, before unique index)
-
-Before M-4 creates `booking_quarantine_cases_open_one`, run:
-
-```sql
-WITH ranked AS (
-  SELECT id, booking_id,
-         ROW_NUMBER() OVER (PARTITION BY booking_id
-                            ORDER BY opened_at DESC, id DESC) rn
-    FROM public.booking_quarantine_cases
-   WHERE resolved_at IS NULL
-)
-UPDATE public.booking_quarantine_cases c
-   SET resolved_at = now(),
-       resolved_by = NULL,
-       resolution  = 'closed_wontfix',
-       notes       = COALESCE(notes,'') || ' [auto-consolidated superseded duplicate]'
-  FROM ranked r
- WHERE c.id = r.id AND r.rn > 1;
-```
-
-Then re-run `SELECT COUNT(*) FROM public.booking_quarantine_cases
-WHERE resolved_at IS NULL GROUP BY booking_id HAVING COUNT(*) > 1;`
-— must return zero rows before the unique index is created.
+1. **M-1** — Additive schema, tri-table quarantine, revoke child DML,
+   create RPCs (empty bodies where safe), grants. No writes.
+2. **M-2** — Preflight scan opens quarantine cases; deterministic.
+3. **M-3** — Backfill tiers A/B/C; Tier D auto-quarantines.
+4. **M-4** — Validation gates + unique index + CHECK constraints.
+5. Passenger checkout gate enabled after M-4 succeeds in shadow
+   mode against production data.
 
 ---
 
-## O. Grants summary (aligned with existing revoke posture)
-
-- `booking_amenities`: application `SELECT` under RLS only; no DML
-  after M-4 (Section G.1).
-- `bookings`: application `SELECT/UPDATE/INSERT/DELETE` retained for
-  non-material columns; material columns protected by trigger (H).
-- New tables (`booking_quarantine_reason_catalog`,
-  `booking_quarantine_cases`, `booking_quarantine_case_reasons`):
-  grant block per Section J.5, RLS enforced.
-- All new RPCs (`update_booking_amenities_v2`, `admin_resolve_quarantine_case`,
-  `webhook_apply_payment_evidence`, `internal_backfill_apply_row`,
-  `booking_is_checkout_eligible`): grants restricted to the roles
-  that actually call them; `internal_backfill_apply_row` and
-  `webhook_apply_payment_evidence` are `EXECUTE` to `postgres` only.
-
----
-
-## P. Acceptance criteria (Revision 2.6 exit gate)
-
-1. Encoder fixtures (F) reproduce exactly against a reference
-   implementation and against the SQL implementation.
-2. Direct DML on `booking_amenities` from any application role fails
-   with SQLSTATE `42501` (test uses `SET ROLE authenticated;
-   INSERT INTO booking_amenities ...`). Same test with a GUC
-   spoof (`SELECT set_config('harborline.amenity_mutation_source','rpc',true);`
-   before the INSERT) still fails — proves no forgeable bypass.
-3. Direct `UPDATE public.bookings SET base_price_cents = ...` from
-   `authenticated` fails with `42501`.
-4. `update_booking_amenities` v1 wrapper called with an identical
-   amenity id list does not touch `booking_amenities` (no rows
-   inserted, no snapshot regenerated). Called with one added id,
-   only `to_add` rows are inserted; existing rows are byte-identical
-   before and after.
-5. `booking_is_checkout_eligible` returns false for a `draft`
-   booking with no cases, and false for a `ready` booking with any
-   open blocking reason.
-6. Paid backfill on a fixture whose Stripe line items omit metadata
-   opens a `stripe_lineitems_missing` case and leaves
-   `contract_state = 'quarantined'` — never derives base from
-   `bookings.price`.
-7. M-2 backfill is stopped mid-run and resumed; final row counts
-   match a single-shot run.
-8. M-4 constraints validate without table rewrite (verified with
-   `EXPLAIN (ANALYZE, BUFFERS)` on a copy).
-
----
-
-## Q. Out of scope reminders
-
-- No Stripe API call is added in Batch 2A.
-- No changes to `payment_attempts`.
-- No SEO/UI changes.
-- No i18n updates.
-
----
-
-PLAN STATUS: REVISION 2.6 — FINAL BATCH 2A BLOCKERS CORRECTED
+PLAN STATUS: REVISION 2.7 — FINAL BATCH 2A BLOCKERS CORRECTED
 
 IMPLEMENTATION STATUS: BLOCKED — AWAITING CODEX REVIEW
