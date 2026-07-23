@@ -116,6 +116,47 @@ export const Route = createFileRoute("/api/blake")({
         const userId = await verifyUser(accessToken);
         if (!userId) return new Response("Unauthorized", { status: 401 });
 
+        // Cost-protection input caps. Reject early so we never spend AI credits
+        // on abusive payloads. Numbers chosen to fit a normal 5-min concierge
+        // conversation (see docs/rate-limits.md).
+        const MAX_MSG_CHARS = 2000;
+        const MAX_TOTAL_CHARS = 12000;
+        const MAX_HISTORY = 12;
+        for (const m of msgs) {
+          if (typeof m?.content !== "string" || m.content.length > MAX_MSG_CHARS) {
+            return new Response("Message too long", { status: 413 });
+          }
+        }
+        const trimmed = msgs.slice(-MAX_HISTORY);
+        const totalChars = trimmed.reduce((n, m) => n + (m.content?.length ?? 0), 0);
+        if (totalChars > MAX_TOTAL_CHARS) {
+          return new Response("Conversation too long", { status: 413 });
+        }
+
+        // Server-authoritative rate limit: 40 requests / 10 min per user.
+        // Uses the shared check_and_bump_rate_limit SECURITY DEFINER RPC.
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: rl } = await supabaseAdmin.rpc("check_and_bump_rate_limit", {
+            _action: "blake_concierge_prompt",
+            _key: `user:${userId}`,
+            _limit: 40,
+            _window_seconds: 600,
+          });
+          // TABLE-returning RPC → array of rows.
+          const row = Array.isArray(rl) ? (rl[0] as { allowed?: boolean; retry_after?: number } | undefined) : (rl as { allowed?: boolean; retry_after?: number } | null);
+          if (row?.allowed === false) {
+            const retry = row.retry_after ?? 60;
+            return new Response("Rate limited. Please wait a moment.", {
+              status: 429,
+              headers: { "Retry-After": String(retry) },
+            });
+          }
+        } catch (e) {
+          // Fail-open on RPC error to avoid taking Blake offline, but log loudly.
+          console.warn("[blake] rate-limit RPC failed", e);
+        }
+
         const { agent, busy } = await assignAgent(userId);
 
         if (busy || !agent) {
@@ -143,7 +184,7 @@ export const Route = createFileRoute("/api/blake")({
             service_tier: "priority",
             messages: [
               { role: "system", content: buildSystem(agent) },
-              ...msgs.map((m) => ({ role: m.role, content: m.content })),
+              ...trimmed.map((m) => ({ role: m.role, content: m.content })),
             ],
           }),
         });
