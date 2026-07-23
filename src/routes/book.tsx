@@ -25,6 +25,9 @@ export const Route = createFileRoute("/book")({
   component: Book,
 });
 
+// DISPLAY ONLY. Authoritative fare is derived server-side inside the
+// create_booking SECURITY DEFINER RPC from _ride_type; any value posted from
+// the client is ignored. Keep this table in sync with the RPC constants.
 const RATES: Record<string, number> = { escalade: 4.5, suburban: 4.2, denali: 4.8 };
 
 function Book() {

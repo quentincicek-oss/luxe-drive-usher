@@ -75,6 +75,10 @@ export function AddressAutocomplete({
   const debounceRef = useRef<number | null>(null);
   const sessionTokenRef = useRef<unknown>(null);
   const gmapsRef = useRef<GMaps | null>(null);
+  // Client-side quota guard: cap Google Places autocomplete requests at 30 per
+  // rolling 60s window per component instance. Prevents runaway typing loops
+  // from burning through the daily Places quota.
+  const requestTimestampsRef = useRef<number[]>([]);
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -116,11 +120,21 @@ export function AddressAutocomplete({
 
   const fetchSuggestions = useCallback(async (input: string) => {
     const gmaps = gmapsRef.current;
-    if (!gmaps || !input || input.trim().length < 2) {
+    // Require at least 3 characters — reduces low-signal Places calls.
+    if (!gmaps || !input || input.trim().length < 3) {
       setSuggestions([]);
       setLoading(false);
       return;
     }
+    // Rolling 60s / 30 request tap. If exceeded, skip silently.
+    const now = Date.now();
+    const cutoff = now - 60_000;
+    requestTimestampsRef.current = requestTimestampsRef.current.filter((t) => t > cutoff);
+    if (requestTimestampsRef.current.length >= 30) {
+      setLoading(false);
+      return;
+    }
+    requestTimestampsRef.current.push(now);
     setLoading(true);
     try {
       const { suggestions } = await gmaps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
@@ -165,7 +179,7 @@ export function AddressAutocomplete({
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       void fetchSuggestions(v);
-    }, 180);
+    }, 300);
   }
 
   async function choose(s: Suggestion) {
