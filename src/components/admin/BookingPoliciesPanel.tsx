@@ -333,7 +333,7 @@ function CancellationEditor({
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="btn-ghost-luxe" disabled={saving}>Cancel</button>
-          <button onClick={submit} className="btn-luxe" disabled={saving}>{saving ? "Saving…" : "Save as draft"}</button>
+          <button onClick={submit} className="btn-primary-luxe" disabled={saving}>{saving ? "Saving…" : "Save as draft"}</button>
         </div>
       </div>
     </div>
@@ -525,7 +525,7 @@ function NoShowEditor({
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="btn-ghost-luxe" disabled={saving}>Cancel</button>
-          <button onClick={submit} className="btn-luxe" disabled={saving}>{saving ? "Saving…" : "Save as draft"}</button>
+          <button onClick={submit} className="btn-primary-luxe" disabled={saving}>{saving ? "Saving…" : "Save as draft"}</button>
         </div>
       </div>
     </div>
@@ -632,7 +632,7 @@ export function BookingPoliciesPanel() {
       ) : tab === "cancellation" ? (
         <section className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setCancelEditor({ kind: "create" })} className="btn-luxe">
+            <button onClick={() => setCancelEditor({ kind: "create" })} className="btn-primary-luxe">
               <PlusCircle className="mr-2 h-4 w-4" /> New cancellation policy
             </button>
           </div>
@@ -722,7 +722,7 @@ export function BookingPoliciesPanel() {
       ) : (
         <section className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setNoshowEditor({ kind: "create" })} className="btn-luxe">
+            <button onClick={() => setNoshowEditor({ kind: "create" })} className="btn-primary-luxe">
               <PlusCircle className="mr-2 h-4 w-4" /> New no-show policy
             </button>
           </div>
