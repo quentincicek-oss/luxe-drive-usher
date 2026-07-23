@@ -469,6 +469,78 @@ export type Database = {
         }
         Relationships: []
       }
+      cancellation_policies: {
+        Row: {
+          active: boolean
+          admin_review_required: boolean
+          allow_cancellation_inside_cutoff: boolean
+          created_at: string
+          created_by: string | null
+          customer_summary: string
+          effective_at: string
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string
+          free_cancellation_cutoff_hours: number
+          free_cancellation_enabled: boolean
+          id: string
+          internal_notes: string | null
+          late_cancellation_enabled: boolean
+          name: string
+          policy_key: string
+          service_type: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          admin_review_required?: boolean
+          allow_cancellation_inside_cutoff?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_summary: string
+          effective_at?: string
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type: string
+          free_cancellation_cutoff_hours?: number
+          free_cancellation_enabled?: boolean
+          id?: string
+          internal_notes?: string | null
+          late_cancellation_enabled?: boolean
+          name: string
+          policy_key: string
+          service_type?: string
+          version: number
+        }
+        Update: {
+          active?: boolean
+          admin_review_required?: boolean
+          allow_cancellation_inside_cutoff?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_summary?: string
+          effective_at?: string
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string
+          free_cancellation_cutoff_hours?: number
+          free_cancellation_enabled?: boolean
+          id?: string
+          internal_notes?: string | null
+          late_cancellation_enabled?: boolean
+          name?: string
+          policy_key?: string
+          service_type?: string
+          version?: number
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           agent_name: string | null
@@ -1201,6 +1273,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      no_show_policies: {
+        Row: {
+          active: boolean
+          admin_review_required: boolean
+          automatic_charge_enabled: boolean
+          created_at: string
+          created_by: string | null
+          customer_summary: string
+          effective_at: string
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string
+          id: string
+          internal_notes: string | null
+          min_wait_seconds: number
+          name: string
+          no_show_enabled: boolean
+          policy_key: string
+          required_contact_attempts: number
+          service_type: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          admin_review_required?: boolean
+          automatic_charge_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_summary: string
+          effective_at?: string
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type: string
+          id?: string
+          internal_notes?: string | null
+          min_wait_seconds: number
+          name: string
+          no_show_enabled?: boolean
+          policy_key: string
+          required_contact_attempts?: number
+          service_type: string
+          version: number
+        }
+        Update: {
+          active?: boolean
+          admin_review_required?: boolean
+          automatic_charge_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_summary?: string
+          effective_at?: string
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string
+          id?: string
+          internal_notes?: string | null
+          min_wait_seconds?: number
+          name?: string
+          no_show_enabled?: boolean
+          policy_key?: string
+          required_contact_attempts?: number
+          service_type?: string
+          version?: number
+        }
+        Relationships: []
       }
       no_show_reports: {
         Row: {
@@ -2323,6 +2467,126 @@ export type Database = {
           },
         ]
       }
+      v_active_cancellation_policy: {
+        Row: {
+          admin_review_required: boolean | null
+          allow_cancellation_inside_cutoff: boolean | null
+          customer_summary: string | null
+          effective_at: string | null
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string | null
+          free_cancellation_cutoff_hours: number | null
+          free_cancellation_enabled: boolean | null
+          id: string | null
+          late_cancellation_enabled: boolean | null
+          name: string | null
+          policy_key: string | null
+          service_type: string | null
+          version: number | null
+        }
+        Insert: {
+          admin_review_required?: boolean | null
+          allow_cancellation_inside_cutoff?: boolean | null
+          customer_summary?: string | null
+          effective_at?: string | null
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string | null
+          free_cancellation_cutoff_hours?: number | null
+          free_cancellation_enabled?: boolean | null
+          id?: string | null
+          late_cancellation_enabled?: boolean | null
+          name?: string | null
+          policy_key?: string | null
+          service_type?: string | null
+          version?: number | null
+        }
+        Update: {
+          admin_review_required?: boolean | null
+          allow_cancellation_inside_cutoff?: boolean | null
+          customer_summary?: string | null
+          effective_at?: string | null
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string | null
+          free_cancellation_cutoff_hours?: number | null
+          free_cancellation_enabled?: boolean | null
+          id?: string | null
+          late_cancellation_enabled?: boolean | null
+          name?: string | null
+          policy_key?: string | null
+          service_type?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
+      v_active_no_show_policy: {
+        Row: {
+          admin_review_required: boolean | null
+          automatic_charge_enabled: boolean | null
+          customer_summary: string | null
+          effective_at: string | null
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string | null
+          id: string | null
+          min_wait_seconds: number | null
+          name: string | null
+          no_show_enabled: boolean | null
+          policy_key: string | null
+          required_contact_attempts: number | null
+          service_type: string | null
+          version: number | null
+        }
+        Insert: {
+          admin_review_required?: boolean | null
+          automatic_charge_enabled?: boolean | null
+          customer_summary?: string | null
+          effective_at?: string | null
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string | null
+          id?: string | null
+          min_wait_seconds?: number | null
+          name?: string | null
+          no_show_enabled?: boolean | null
+          policy_key?: string | null
+          required_contact_attempts?: number | null
+          service_type?: string | null
+          version?: number | null
+        }
+        Update: {
+          admin_review_required?: boolean | null
+          automatic_charge_enabled?: boolean | null
+          customer_summary?: string | null
+          effective_at?: string | null
+          expires_at?: string | null
+          fee_cap_cents?: number | null
+          fee_fixed_cents?: number | null
+          fee_percent_bps?: number | null
+          fee_type?: string | null
+          id?: string | null
+          min_wait_seconds?: number | null
+          name?: string | null
+          no_show_enabled?: boolean | null
+          policy_key?: string | null
+          required_contact_attempts?: number | null
+          service_type?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _audit_write: {
@@ -2338,6 +2602,22 @@ export type Database = {
         Returns: undefined
       }
       _email_fingerprint: { Args: { _email: string }; Returns: string }
+      _validate_cancellation_payload: {
+        Args: { _payload: Json }
+        Returns: undefined
+      }
+      _validate_no_show_payload: {
+        Args: { _payload: Json }
+        Returns: undefined
+      }
+      admin_activate_cancellation_policy: {
+        Args: { _id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_activate_no_show_policy: {
+        Args: { _id: string; _reason?: string }
+        Returns: Json
+      }
       admin_assign_driver: {
         Args: {
           _booking_id: string
@@ -2396,6 +2676,27 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_create_cancellation_policy: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      admin_create_cancellation_policy_version: {
+        Args: { _payload: Json; _policy_key: string }
+        Returns: Json
+      }
+      admin_create_no_show_policy: { Args: { _payload: Json }; Returns: Json }
+      admin_create_no_show_policy_version: {
+        Args: { _payload: Json; _policy_key: string }
+        Returns: Json
+      }
+      admin_deactivate_cancellation_policy: {
+        Args: { _id: string; _reason?: string }
+        Returns: Json
+      }
+      admin_deactivate_no_show_policy: {
+        Args: { _id: string; _reason?: string }
+        Returns: Json
+      }
       admin_delete_amenity: { Args: { _id: string }; Returns: undefined }
       admin_delete_campaign: { Args: { _id: string }; Returns: undefined }
       admin_delete_discount: { Args: { _id: string }; Returns: undefined }
@@ -2441,6 +2742,38 @@ export type Database = {
         }[]
       }
       admin_list_amenities: { Args: never; Returns: Json }
+      admin_list_cancellation_policies: {
+        Args: never
+        Returns: {
+          active: boolean
+          admin_review_required: boolean
+          allow_cancellation_inside_cutoff: boolean
+          created_at: string
+          created_by: string | null
+          customer_summary: string
+          effective_at: string
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string
+          free_cancellation_cutoff_hours: number
+          free_cancellation_enabled: boolean
+          id: string
+          internal_notes: string | null
+          late_cancellation_enabled: boolean
+          name: string
+          policy_key: string
+          service_type: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "cancellation_policies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_list_integration_health: {
         Args: never
         Returns: {
@@ -2452,6 +2785,38 @@ export type Database = {
         }[]
       }
       admin_list_managed_users: { Args: never; Returns: Json }
+      admin_list_no_show_policies: {
+        Args: never
+        Returns: {
+          active: boolean
+          admin_review_required: boolean
+          automatic_charge_enabled: boolean
+          created_at: string
+          created_by: string | null
+          customer_summary: string
+          effective_at: string
+          expires_at: string | null
+          fee_cap_cents: number | null
+          fee_fixed_cents: number | null
+          fee_percent_bps: number | null
+          fee_type: string
+          id: string
+          internal_notes: string | null
+          min_wait_seconds: number
+          name: string
+          no_show_enabled: boolean
+          policy_key: string
+          required_contact_attempts: number
+          service_type: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "no_show_policies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_list_restore_drills: {
         Args: { _limit?: number }
         Returns: {
@@ -2642,6 +3007,14 @@ export type Database = {
           }
       driver_owns_booking: { Args: { _booking_id: string }; Returns: boolean }
       driver_signin_eligibility: { Args: never; Returns: boolean }
+      get_active_cancellation_policy: {
+        Args: { _at?: string; _service_type: string }
+        Returns: Json
+      }
+      get_active_no_show_policy: {
+        Args: { _at?: string; _service_type: string }
+        Returns: Json
+      }
       get_my_booking_pin: { Args: { _booking_id: string }; Returns: string }
       has_role: {
         Args: {

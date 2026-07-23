@@ -32,6 +32,7 @@ import { Route as AdminTripsRouteImport } from './routes/admin.trips'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSecurityRouteImport } from './routes/admin.security'
 import { Route as AdminRecoverRouteImport } from './routes/admin.recover'
+import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminOperationsRouteImport } from './routes/admin.operations'
 import { Route as AdminMfaRouteImport } from './routes/admin.mfa'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -161,6 +162,11 @@ const AdminRecoverRoute = AdminRecoverRouteImport.update({
   path: '/recover',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOperationsRoute = AdminOperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/operations': typeof AdminOperationsRoute
+  '/admin/policies': typeof AdminPoliciesRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/operations': typeof AdminOperationsRoute
+  '/admin/policies': typeof AdminPoliciesRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -317,6 +325,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/mfa': typeof AdminMfaRoute
   '/admin/operations': typeof AdminOperationsRoute
+  '/admin/policies': typeof AdminPoliciesRoute
   '/admin/recover': typeof AdminRecoverRoute
   '/admin/security': typeof AdminSecurityRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/operations'
+    | '/admin/policies'
     | '/admin/recover'
     | '/admin/security'
     | '/admin/settings'
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/operations'
+    | '/admin/policies'
     | '/admin/recover'
     | '/admin/security'
     | '/admin/settings'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/mfa'
     | '/admin/operations'
+    | '/admin/policies'
     | '/admin/recover'
     | '/admin/security'
     | '/admin/settings'
@@ -637,6 +649,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecoverRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/policies': {
+      id: '/admin/policies'
+      path: '/policies'
+      fullPath: '/admin/policies'
+      preLoaderRoute: typeof AdminPoliciesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/operations': {
       id: '/admin/operations'
       path: '/operations'
@@ -786,6 +805,7 @@ interface AdminRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMfaRoute: typeof AdminMfaRoute
   AdminOperationsRoute: typeof AdminOperationsRoute
+  AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminRecoverRoute: typeof AdminRecoverRoute
   AdminSecurityRoute: typeof AdminSecurityRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -801,6 +821,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminMfaRoute: AdminMfaRoute,
   AdminOperationsRoute: AdminOperationsRoute,
+  AdminPoliciesRoute: AdminPoliciesRoute,
   AdminRecoverRoute: AdminRecoverRoute,
   AdminSecurityRoute: AdminSecurityRoute,
   AdminSettingsRoute: AdminSettingsRoute,
@@ -860,13 +881,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

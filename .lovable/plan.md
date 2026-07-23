@@ -1,131 +1,122 @@
 
-# Phase H — Trust, Safety & Operational Proof
+# Batch 1 Pre-flight Plan — Versioned Booking Policy Foundation
 
-Per your directive, I performed an architecture review **before** proposing code. Below is the impact analysis, the additive design, and the clarifications I need before implementation.
+Scope is strictly limited to the schema, secure RPCs, admin UI, and audit logging for cancellation and no-show policies. No existing runtime flow is touched.
 
----
+## 1. Migration (single file)
 
-## 1. Architecture review (what exists today, what we reuse)
+`supabase/migrations/<ts>_booking_policies_foundation.sql`
 
-Already in place — will be **reused, not rebuilt**:
+### Tables
 
-- `bookings`, `booking_assignments` (with `dispatch_status`, `is_current`, history preserved by the `handle_booking_assignment_change` trigger).
-- `driver_trip_events` — already captures `accepted`, `arrived`, `waiting`, `started`, `completed`, `no_show`, `incident`, `passenger_contacted`, `dispatch_contacted`, `rejected`. Reason field exists.
-- `driver_profiles`, `vehicles` (with `insurance_expires_at`, `registration_expires_at`, `inspection_expires_at`), `driver_unavailability`, `driver_documents`.
-- `audit_log` (Phase G) — immutable, admin-only, INSERT via `admin_audit_log()` SECURITY DEFINER RPC.
-- `admin_incident_feed`, `admin_fleet_expirations`, `admin_dispatch_overview` RPCs.
-- Receipts + OTP verification (`receipt_verifications`), Stripe webhook, referrals — **untouched**.
-- Driver workflow UI (`WorkflowStepper`, `VerificationSlot`, `AssignmentDetailCard`, `useDispatchState`) — extended, not replaced.
+**`public.cancellation_policies`** (append-only versioned)
+- `id uuid pk default gen_random_uuid()`
+- `policy_key text not null` — logical group (e.g. `standard`)
+- `version int not null` — server-assigned, monotonically increasing per `policy_key`
+- `name text not null`
+- `service_type text not null default 'standard'` — check in (`standard`,`airport`)
+- `free_cancellation_enabled boolean not null default true`
+- `free_cancellation_cutoff_hours int not null default 24` — check `>= 0`
+- `late_cancellation_enabled boolean not null default true`
+- `fee_type text not null` — check in (`fixed`,`percentage`,`full_fare`,`none`)
+- `fee_fixed_cents int` — check `>= 0`; required iff `fee_type='fixed'`
+- `fee_percent_bps int` — basis points 0–10000; required iff `fee_type='percentage'`
+- `fee_cap_cents int` — check `>= 0`
+- `allow_cancellation_inside_cutoff boolean not null default true`
+- `admin_review_required boolean not null default true`
+- `customer_summary text not null` — non-empty
+- `internal_notes text`
+- `effective_at timestamptz not null default now()`
+- `expires_at timestamptz`
+- `active boolean not null default false`
+- `created_at timestamptz not null default now()`
+- `created_by uuid references auth.users(id)`
+- Constraints: `unique(policy_key, version)`; CHECK combinations; CHECK `expires_at is null or expires_at > effective_at`.
+- Partial unique index to prevent overlapping active versions per `policy_key`+`service_type`: `unique(policy_key, service_type) where active`.
 
-**Gap map** (what Phase H must add):
+**`public.no_show_policies`** (append-only versioned)
+- Same versioning fields as above, plus:
+- `service_type text not null` — check in (`standard`,`airport`)
+- `no_show_enabled boolean not null default true`
+- `min_wait_seconds int not null` — check `>= 0`
+- `required_contact_attempts int not null default 1` — check `>= 0`
+- `fee_type` / `fee_fixed_cents` / `fee_percent_bps` / `fee_cap_cents` (same rules)
+- `automatic_charge_enabled boolean not null default false`
+- `admin_review_required boolean not null default true`
+- `customer_summary text not null`
+- `internal_notes text`
+- `effective_at`, `expires_at`, `active`, `created_at`, `created_by`
+- Partial unique index: `unique(policy_key, service_type) where active`.
 
-| Requirement | Gap | Fill |
-|---|---|---|
-| Passenger PIN / QR / NFC verification | `VerificationSlot` is UI-only, no server enforcement, no code storage | 4-digit PIN on booking + verification RPC + event |
-| Trip lifecycle proof | Events exist per assignment; no unified read model, no "Evidence Package" concept | New `trip_evidence` view + Evidence Package screen (read-only) |
-| GPS evidence (arrival / start / end / route) | No location table | New `trip_locations` + `trip_route_points` tables, offline-tolerant batch upload |
-| No-show workflow | Event exists, but no waiting timer / arrival-location / attempt log tie-in | Structured `no_show_reports` referencing existing events + GPS |
-| Communication logging | `passenger_contacted` / `dispatch_contacted` events exist as flat rows | New `communication_events` table with direction, duration, status |
-| Incident reporting expansion | Free-text `reason` on `driver_trip_events` | New `incidents` table with `category`, `severity`, `status`, admin resolution |
-| Vehicle compliance warnings | RPC returns expirations; no proactive UI banner or dashboard alerts | Reuse RPC, add banner + admin toast; no schema change |
-| Admin verification-method policy | Not present | New `verification_settings` row (single-row config table) |
-| Everything auditable | `admin_audit_log` exists | Wrap every new admin mutation |
+Both tables have **no `updated_at`** and **no UPDATE grant** — rows are immutable except for `active` toggles routed through RPCs (which perform UPDATE via DEFINER, not via authenticated grants).
 
----
+### RLS & GRANTs
+- Enable RLS on both tables.
+- `GRANT SELECT ON public.cancellation_policies, public.no_show_policies TO authenticated;` — SELECT policy restricted to admins for full row; a public view exposes only customer-safe columns.
+- `GRANT ALL ON ... TO service_role;`
+- No grants to `anon`.
+- No `INSERT/UPDATE/DELETE` to `authenticated` — all mutations go through DEFINER RPCs.
+- Admin-only SELECT policy: `USING (public.has_role(auth.uid(),'admin'))`.
+- Two views `public.v_active_cancellation_policy` and `public.v_active_no_show_policy` expose only customer-safe columns (excluding `internal_notes`, `created_by`); `GRANT SELECT ... TO authenticated` (used by future batches, not wired into runtime yet).
 
-## 2. Additive schema (one migration, no changes to existing tables)
+### RPCs (all `SECURITY DEFINER SET search_path = public`, guarded by `has_role(...,'admin')`, invoke `_audit_write`)
+- `admin_create_cancellation_policy(_payload jsonb) returns jsonb` — creates version 1 for a new `policy_key`.
+- `admin_create_cancellation_policy_version(_policy_key text, _payload jsonb) returns jsonb` — locks max version row `FOR UPDATE`, inserts `version = max+1`, new row inactive.
+- `admin_activate_cancellation_policy(_id uuid, _reason text) returns jsonb` — in one transaction deactivates any currently-active row for same `(policy_key, service_type)`, activates `_id`. Uses row-lock on the group.
+- `admin_deactivate_cancellation_policy(_id uuid, _reason text) returns jsonb`.
+- `admin_list_cancellation_policies() returns setof cancellation_policies` — admin-only.
+- Mirror set for `no_show_policies`.
+- `get_active_cancellation_policy(_service_type text, _at timestamptz default now()) returns jsonb` — reads active row (safe columns only), invoker-security, returns null if none.
+- `get_active_no_show_policy(_service_type text, _at timestamptz default now()) returns jsonb`.
+- Payload validation: enum checks, fee-type/value coherence, non-negative numbers, percentage 0–10000 bps, non-empty summary; on failure `RAISE EXCEPTION`.
+- Audit action names: `policy.cancellation.created`, `.version_created`, `.activated`, `.deactivated`, and no-show equivalents.
 
-```text
-trip_locations         (booking_id, kind: arrival|trip_start|trip_end,
-                        lat, lng, accuracy_m, recorded_at, driver_id)
-trip_route_points      (booking_id, driver_id, lat, lng, recorded_at, speed_mps, seq)
-passenger_verifications(booking_id, method: pin|qr|nfc, verified_at,
-                        verified_by_driver_id, evidence jsonb)
-booking_pins           (booking_id PK, pin_hash, salt, attempts, locked_until)
-no_show_reports        (booking_id, driver_id, arrival_at, waited_seconds,
-                        attempts_count, arrival_lat, arrival_lng, reason,
-                        admin_status: pending|approved|rejected, admin_notes)
-communication_events   (booking_id, driver_id, direction: driver_to_passenger|
-                        passenger_to_driver, channel: phone|inapp, duration_sec,
-                        status: initiated|connected|missed|failed, started_at)
-incidents              (booking_id, driver_id, category, severity, description,
-                        photo_urls text[], status: open|reviewing|resolved|dismissed,
-                        admin_notes, resolved_by, resolved_at)
-verification_settings  (id=1 single row: pin_enabled, qr_enabled, nfc_enabled,
-                        min_waiting_seconds default 300)
+### Seed
+Insert three **inactive** version-1 rows (`standard` cancellation, `standard` no-show 15min, `airport` no-show 45min) with placeholder `fee_type='none'` and neutral customer summaries. Not activated — no runtime effect.
+
+## 2. Server functions (new file)
+
+`src/lib/policies.functions.ts` — thin `createServerFn` wrappers with `.middleware([requireSupabaseAuth])` mirroring the pattern in `src/lib/admin.functions.ts`:
+- `adminListCancellationPolicies`, `adminCreateCancellationPolicy`, `adminCreateCancellationPolicyVersion`, `adminActivateCancellationPolicy`, `adminDeactivateCancellationPolicy`
+- Same six for no-show.
+- Zod validation for payloads (mirrors DB CHECKs).
+
+## 3. Admin UI
+
+- New route: `src/routes/admin.policies.tsx` (Operations → Booking Policies).
+- New component: `src/components/admin/BookingPoliciesPanel.tsx` with two tabs (Cancellation, No-Show), list of versions per group, "New version", "Activate/Deactivate" (confirm dialog), read-only history, form with validation.
+- Prominent banner: *"No financial charge is performed by this settings screen in the current implementation…"*
+- Modify `src/components/admin/AdminSidebar.tsx`: add one nav entry `{ to: "/admin/policies", label: "Policies", icon: ScrollText }` between Operations and Settings. No other UI changes.
+
+## 4. Tests / verification
+
+- `bunx tsgo --noEmit` and `bun run build`.
+- `supabase--linter` after migration.
+- `supabase--read_query` to verify: seed rows present, RLS enabled, GRANTs match spec, `_audit_write` fires (invoke RPCs, then select from `audit_log`).
+- Manual admin UI smoke via Playwright: navigate to `/admin/policies` while signed in as admin, create version, activate, verify history.
+- Regression: load `/`, `/book`, `/admin`, `/admin/trips`; confirm no schema-level impact on `bookings`, `create_booking`, `advance_assignment`, `verify_booking_pin` (grep-only — no code changes to those).
+
+## 5. Rollback plan
+
+Single reversal script (not executed):
 ```
+DROP VIEW IF EXISTS public.v_active_cancellation_policy, public.v_active_no_show_policy;
+DROP FUNCTION IF EXISTS public.admin_create_cancellation_policy(jsonb),
+  public.admin_create_cancellation_policy_version(text,jsonb),
+  public.admin_activate_cancellation_policy(uuid,text),
+  public.admin_deactivate_cancellation_policy(uuid,text),
+  public.admin_list_cancellation_policies(),
+  public.get_active_cancellation_policy(text,timestamptz),
+  -- no-show equivalents --
+;
+DROP TABLE IF EXISTS public.cancellation_policies, public.no_show_policies;
+```
+Only touches new objects.
 
-Plus **view** (not a table): `trip_evidence_v` joining booking + assignment + verifications + locations summary + incidents + no-show + receipt + payment status. Read-only.
+## 6. Risks
 
-**Immutability**: every table above has RLS with `INSERT` allowed for the correct actor (driver for own trip, admin for settings), **no `UPDATE`/`DELETE` policies** except for `incidents.status` (admin only) and `no_show_reports.admin_status` (admin only). Those two updates are the only mutable fields — everything else append-only. All admin updates go through server functions that write to `audit_log` in the same call.
+- Partial unique index on `active` prevents two active rows per group — must ensure activation RPC deactivates in same tx (uses `FOR UPDATE` + single UPDATE-then-INSERT-of-audit).
+- View + `GRANT SELECT` to authenticated is required because future batches will read the active row from passenger context; internal notes stay hidden.
+- Sidebar edit is the only touched non-new file.
 
-**RLS shape**:
-- Drivers: `INSERT/SELECT` on rows where `driver_id = (SELECT id FROM driver_profiles WHERE user_id=auth.uid())` and the booking's current assignment is theirs.
-- Passengers: `SELECT` only their own booking's verification status + evidence summary (no raw GPS).
-- Admins: full `SELECT`, controlled `UPDATE` on the two mutable fields via server fns.
-
-GRANTs follow the mandated pattern (authenticated + service_role; no anon).
-
----
-
-## 3. Server functions (all `requireSupabaseAuth` + audit-wrapped for admin actions)
-
-`src/lib/trust.functions.ts`:
-- `startPassengerVerification({bookingId, method})` — driver-only, logs attempt.
-- `submitPin({bookingId, pin})` — driver submits the code the passenger showed, hash-compare, lock after 5 fails, insert `passenger_verifications` + `driver_trip_events('verified')`.
-- `recordTripLocation({bookingId, kind, lat, lng, accuracy})` — driver only.
-- `uploadRoutePoints({bookingId, points[]})` — bulk insert; idempotent by `(booking_id, seq)`.
-- `submitNoShow({bookingId, arrivalAt, attempts, arrivalLoc, reason})` — requires ≥ configured wait + at least one communication event.
-- `logCommunication({bookingId, direction, channel, durationSec, status})`.
-- `reportIncident({bookingId, category, severity, description})`.
-- Admin-only: `resolveIncident`, `reviewNoShow`, `updateVerificationSettings` — each wrapped in `admin_audit_log`.
-
-Reads: TanStack Query directly to Supabase (RLS-scoped).
-
----
-
-## 4. Client surfaces (additive, no design overhaul)
-
-- **Booking confirmation**: passenger sees a 4-digit PIN card ("Show this to your chauffeur"). Also renders QR (encodes booking id + short-lived HMAC token). NFC prep only.
-- **Driver trip screen**: `VerificationSlot` becomes real — 3 tabs (PIN / QR / NFC), gated by admin `verification_settings`. Start-trip button disabled until verified. Waiting timer + "Log call" + "Report No-Show" (enabled after `min_waiting_seconds`). Silent GPS pings every 10s while `en_route`/`in_progress`, queued in IndexedDB when offline, flushed via `uploadRoutePoints`.
-- **Admin → Incidents** (existing tab): switch data source from ad-hoc `driver_trip_events` union to new `incidents` table; keep the legacy feed as "Historical events".
-- **Admin → Evidence** (new subview under a booking row): read-only Evidence Package — timeline, verification, GPS summary (distance/duration/map static image), no-show report, incidents, receipt link.
-- **Admin → Fleet**: compliance banner + row-level red/amber pills already exist; add a dashboard-top warning when any doc expires ≤ 14 days.
-- **Admin → Settings**: new "Verification methods" panel (toggle PIN/QR/NFC, wait-time).
-
-**No** changes to Stripe, Concierge, Referrals, Auth, booking creation flow copy, landing, showroom.
-
----
-
-## 5. Rollout order (each step compiles and preserves prior behavior)
-
-1. Migration (all new tables + view + RLS + GRANTs + `verification_settings` seed row).
-2. `trust.functions.ts` (all server fns, audit-wrapped where admin).
-3. PIN generation on booking create (trigger on `bookings` INSERT — the only touch to an existing table is via trigger, no column changes) + passenger PIN card component.
-4. Real `VerificationSlot` + gated Start-trip button.
-5. GPS collector hook + offline queue + upload fn wiring.
-6. No-show structured flow (replaces the `window.confirm` prompt).
-7. Communication log button + panel.
-8. Incident modal + admin incidents table swap.
-9. Fleet compliance banner (UI only).
-10. Evidence Package admin view.
-11. Verification settings admin panel.
-12. Typecheck, smoke-test as passenger / driver / admin.
-
----
-
-## 6. Guardrails re-confirmed
-
-Untouched: `book.tsx` booking submit logic, `payments.functions.ts`, `receipts.functions.ts`, `stripe.*`, `blake.ts`, referral tables/fns, `auth.tsx`, `_authenticated` gate, `AppHeader`, `AuthProvider`. No column added or removed on any existing table. Only new trigger is one `AFTER INSERT` on `bookings` to mint a PIN into the new `booking_pins` table.
-
----
-
-## 7. Clarifications I need before writing code
-
-1. **Verification default**: Should PIN be the only method enabled at launch (QR/NFC toggles present but off), or all three on by default?
-2. **No-show waiting time**: Default I proposed is **5 minutes** after driver marks "arrived". Confirm, or specify per-ride-type (airport vs city)?
-3. **GPS retention**: How long should raw `trip_route_points` be kept? I propose **90 days**, then auto-purge via cron; summary in `trip_evidence_v` stays forever. OK?
-4. **PIN visibility**: Show PIN to the passenger **immediately on booking confirmation**, or only **T-30 min before pickup**? (Security vs convenience.)
-5. **Photos on incidents**: You wrote "photos (future-ready)". Do you want Supabase Storage bucket created now (private, admin+owner-driver read) or truly deferred?
-
-Once these are answered I'll execute steps 1–12 in order, running typecheck between phases, without touching any protected surface.
+Proceeding to implement after this plan is on record.
