@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // ============ Passenger verification (driver submits PIN) ============
 export const verifyPin = createServerFn({ method: "POST" })
@@ -105,34 +106,54 @@ export const uploadRoutePoints = createServerFn({ method: "POST" })
   });
 
 // ============ No-show ============
+// Evidence is server-derived: the driver's client may not choose the arrival
+// timestamp or claim contact attempts it never made, and the trip is cancelled
+// through advance_assignment() so the transition table, ownership check and
+// audit event all still apply.
 export const submitNoShow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
-    bookingId: string; arrivalAt: string; waitedSeconds: number; attempts: number;
+    bookingId: string; waitedSeconds: number;
     arrivalLat?: number; arrivalLng?: number; reason?: string;
   }) => z.object({
     bookingId: z.string().uuid(),
-    arrivalAt: z.string(),
     waitedSeconds: z.number().int().nonnegative(),
-    attempts: z.number().int().nonnegative(),
-    arrivalLat: z.number().optional(),
-    arrivalLng: z.number().optional(),
+    arrivalLat: z.number().gte(-90).lte(90).optional(),
+    arrivalLng: z.number().gte(-180).lte(180).optional(),
     reason: z.string().max(500).optional(),
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    await enforceRateLimit(supabase, userId, "no_show_submit", 10);
+
     const { data: settings } = await (supabase as any).from("verification_settings").select("min_waiting_seconds").eq("id", 1).maybeSingle();
     const min = settings?.min_waiting_seconds ?? 300;
-    if (data.waitedSeconds < min) throw new Error(`Minimum wait ${min}s not met`);
 
     const { data: drv } = await (supabase as any).from("driver_profiles").select("id").eq("user_id", userId).maybeSingle();
     const { data: a } = await (supabase as any).from("booking_assignments")
-      .select("id, driver_id").eq("booking_id", data.bookingId).eq("is_current", true).maybeSingle();
+      .select("id, driver_id, dispatch_status").eq("booking_id", data.bookingId).eq("is_current", true).maybeSingle();
     if (!drv || !a) throw new Error("assignment not found");
+    if (a.driver_id !== drv.id) throw new Error("not your assignment");
+
+    // Arrival time comes from the recorded GPS arrival event when there is one;
+    // otherwise it is derived from server time, never from the client payload.
+    const { data: arrival } = await (supabase as any).from("trip_locations")
+      .select("recorded_at").eq("booking_id", data.bookingId).eq("kind", "arrival")
+      .order("recorded_at", { ascending: true }).limit(1).maybeSingle();
+    const now = Date.now();
+    const arrivalAt = arrival?.recorded_at ? new Date(arrival.recorded_at) : new Date(now - data.waitedSeconds * 1000);
+    const waitedSeconds = Math.max(0, Math.floor((now - arrivalAt.getTime()) / 1000));
+    if (waitedSeconds < min) throw new Error(`Minimum wait ${min}s not met`);
+
+    // Contact attempts are counted from logged communication events.
+    const { count: attempts } = await (supabase as any).from("communication_events")
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", data.bookingId)
+      .eq("direction", "driver_to_passenger");
 
     const { error: e1 } = await (supabase as any).from("no_show_reports").insert({
       booking_id: data.bookingId, driver_id: drv.id,
-      arrival_at: data.arrivalAt, waited_seconds: data.waitedSeconds, attempts_count: data.attempts,
+      arrival_at: arrivalAt.toISOString(), waited_seconds: waitedSeconds, attempts_count: attempts ?? 0,
       arrival_lat: data.arrivalLat, arrival_lng: data.arrivalLng, reason: data.reason,
     });
     if (e1) throw new Error(e1.message);
@@ -140,9 +161,13 @@ export const submitNoShow = createServerFn({ method: "POST" })
     await (supabase as any).from("driver_trip_events").insert({
       assignment_id: a.id, driver_id: a.driver_id, event: "no_show", reason: data.reason,
     });
-    await (supabase as any).from("booking_assignments")
-      .update({ dispatch_status: "cancelled" }).eq("id", a.id);
-    return { ok: true };
+    const { error: e2 } = await (supabase as any).rpc("advance_assignment", {
+      _assignment_id: a.id,
+      _next_status: "cancelled",
+      _reason: data.reason ?? "passenger no-show",
+    });
+    if (e2) throw new Error(e2.message);
+    return { ok: true, waited_seconds: waitedSeconds, attempts_count: attempts ?? 0 };
   });
 
 // ============ Communication metadata ============
