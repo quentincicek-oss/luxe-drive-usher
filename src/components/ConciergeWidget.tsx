@@ -157,7 +157,19 @@ export function ConciergeWidget() {
                 </div>
               </div>
             ))}
+            {progress.running && !streaming && (
+              <AiWorkingState
+                stage={progress.stage}
+                elapsedMs={progress.elapsedMs}
+                slow={progress.slow}
+                onCancel={progress.cancel}
+                cancelLabel={t("ai.working.cancel")}
+                slowNote={t("ai.working.slow")}
+                t={t}
+              />
+            )}
           </div>
+
           <div className="border-t border-border/60 p-2.5 flex gap-2">
             <input
               value={draft}
