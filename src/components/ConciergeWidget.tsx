@@ -176,12 +176,14 @@ export function ConciergeWidget() {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={t("book.blake.placeholder")}
-              className="flex-1 rounded-md bg-input border border-border/60 px-3 py-2 text-sm focus:border-gold outline-none"
+              disabled={sending}
+              className="flex-1 rounded-md bg-input border border-border/60 px-3 py-2 text-sm focus:border-gold outline-none disabled:opacity-60"
             />
-            <button onClick={send} disabled={sending || !draft.trim()} className="rounded-md bg-gold-gradient px-3.5 disabled:opacity-50">
+            <button onClick={send} disabled={sending || !draft.trim()} className="rounded-md bg-gold-gradient px-3.5 disabled:opacity-50" data-testid="concierge-send">
               <Send className="h-4 w-4 text-primary-foreground" />
             </button>
           </div>
+
         </div>
       )}
     </>
