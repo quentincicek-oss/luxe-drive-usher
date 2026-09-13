@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SiriOrb } from "@/components/SiriOrb";
+import { AiWorkingState } from "@/components/ai/AiWorkingState";
+import { useAiProgress } from "@/hooks/useAiProgress";
 import { Send, X } from "lucide-react";
 import { toast } from "sonner";
 
