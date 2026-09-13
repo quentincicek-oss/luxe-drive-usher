@@ -85,14 +85,16 @@ export function AiRouterPanel() {
           if (sc.expect.shouldFail) checks.push("expected rejection but call succeeded");
           if (sc.expect.tier && r.tier_used !== sc.expect.tier) checks.push(`tier=${r.tier_used}`);
           if (sc.expect.escalated && !r.escalated) checks.push("did not escalate");
-          if (sc.expect.overridden && !r.ai_overridden) checks.push("guardrail did not override");
+          if (sc.expect.blocked && r.deterministic_decision !== "blocked")
+            checks.push("deterministic rules did not block");
+          if (sc.expect.minTier === "balanced" && r.tier_used === "fast") checks.push("tier=fast");
           if (!r.reliability) checks.push("no reliability assessment");
           update(sc.id, {
             status: checks.length === 0 ? "pass" : "fail",
             detail: checks.length
               ? checks.join("; ")
               : `${r.model_used} · ${r.tier_used} · reliability ${r.reliability.score} (${r.reliability.band}) · self-conf ${r.model_confidence}` +
-                (r.ai_overridden ? " · AI OVERRIDDEN" : "") + (r.escalated ? " · escalated" : ""),
+                (r.deterministic_decision === "blocked" ? " · RULES BLOCKED" : "") + (r.ai_overridden ? " · AI OVERRIDDEN" : "") + (r.escalated ? " · escalated" : ""),
             ms: Date.now() - t0,
           });
         }

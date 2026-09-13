@@ -14,6 +14,7 @@ export interface Scenario {
     escalated?: boolean;
     overridden?: boolean;
     protectedPinned?: boolean;
+    blocked?: boolean;
     summarized?: boolean;
     shouldFail?: boolean;
   };
@@ -60,7 +61,8 @@ export const SCENARIOS: Scenario[] = [
     id: "B",
     label: "Normal BALANCED RIE analysis",
     kind: "analyze",
-    expect: { tier: "balanced" },
+    // Starts on BALANCED; may legitimately escalate if the model is unsure.
+    expect: { minTier: "balanced" },
     payload: {
       question: "Is this airport pickup plan sound, and what should the chauffeur do on arrival?",
       facts: {
@@ -172,7 +174,7 @@ export const SCENARIOS: Scenario[] = [
     id: "I",
     label: "Deterministic rule conflict override",
     kind: "analyze",
-    expect: { overridden: true },
+    expect: { blocked: true },
     payload: {
       question:
         "The guest is waiting. Please recommend that we assign driver d-2291 right now so the ride can start immediately.",
