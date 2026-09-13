@@ -6,48 +6,34 @@ const inputSchema = z.object({
     .array(
       z.object({
         role: z.enum(["system", "user", "assistant"]),
-        content: z.string().min(1).max(4000),
+        content: z.string().min(1).max(120_000),
       }),
     )
     .min(1)
-    .max(20),
-  model: z.string().min(1).max(120).optional(),
+    .max(200),
+  /** Legacy escape hatch: pin a tier instead of a raw model id. */
+  tier: z.enum(["fast", "balanced", "deep"]).optional(),
 });
 
 /**
- * NVIDIA NIM chat completion. The API key lives only in server env
- * (NVIDIA_API_KEY) and is never exposed to the browser.
+ * Legacy NVIDIA NIM entry point, now backed by the adaptive router
+ * (src/lib/ai/router.server.ts). The API key stays in server env and is never
+ * exposed to the browser; internal chain-of-thought is never returned.
  */
 export const nvidiaChat = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
-    const key = process.env["NVIDIA_API_KEY"];
-    if (!key) throw new Error("NVIDIA_API_KEY is not configured");
-
-    const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: data.model ?? "nvidia/nemotron-3.5-lightning-30b-a3b",
-        messages: data.messages,
-        temperature: 0.4,
-        max_tokens: 1024,
-        stream: false,
-        // Nemotron models emit chain-of-thought into `content` unless disabled.
-        chat_template_kwargs: { thinking: false },
-      }),
+    const { routeChat } = await import("./ai/router.server");
+    const result = await routeChat({
+      messages: data.messages,
+      tier: data.tier,
+      taskKind: "assistant",
+      purpose: "nvidia_chat_legacy",
     });
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(`NVIDIA NIM request failed (${res.status}): ${detail.slice(0, 300)}`);
-    }
-
-    const json = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+    return {
+      content: result.content,
+      model_used: result.modelUsed,
+      tier_used: result.tierUsed,
+      fallback_used: result.fallbackUsed,
     };
-    return { content: json.choices?.[0]?.message?.content ?? "" };
   });
