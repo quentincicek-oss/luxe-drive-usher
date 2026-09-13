@@ -6,6 +6,17 @@ import { DriverShell } from "@/components/driver/DriverShell";
 import { DocumentRow } from "@/components/driver/DocumentRow";
 
 export const Route = createFileRoute("/driver/documents")({
+  head: () => ({
+    meta: [
+      { title: "Documents | HarborLine Chauffeur" },
+      { name: "description", content: "Licence, insurance and compliance documents for HarborLine chauffeurs." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Documents | HarborLine Chauffeur" },
+      { property: "og:description", content: "Licence, insurance and compliance documents for HarborLine chauffeurs." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: DriverDocuments,
 });
 

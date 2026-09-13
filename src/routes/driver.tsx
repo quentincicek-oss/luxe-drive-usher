@@ -3,6 +3,17 @@ import { useAuth } from "@/lib/auth";
 import { ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/driver")({
+  head: () => ({
+    meta: [
+      { title: "HarborLine Chauffeur Portal" },
+      { name: "description", content: "Secure chauffeur portal for HarborLine Executive Services assignments and trip management." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "HarborLine Chauffeur Portal" },
+      { property: "og:description", content: "Secure chauffeur portal for HarborLine Executive Services assignments and trip management." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   ssr: false,
   beforeLoad: () => {
     // Client-side redirect for unauthenticated; role gate rendered in component.
