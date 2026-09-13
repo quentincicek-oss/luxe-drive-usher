@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { aiRouterReport, aiChat, aiAnalyze, aiFallbackProbe, aiModelHealth, type AiRouterReport, type ModelHealthRow } from "@/lib/ai.functions";
 import { SCENARIOS } from "@/lib/ai/selftest";
+import { AiWorkingState } from "@/components/ai/AiWorkingState";
+import { useAiProgress } from "@/hooks/useAiProgress";
 
 type TestRow = {
   id: string;
