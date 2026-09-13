@@ -38,11 +38,11 @@ const RIDE_STATE = {
 };
 
 const longConversation = () =>
-  Array.from({ length: 46 }, (_, i) => ({
+  Array.from({ length: 160 }, (_, i) => ({
     role: i % 2 === 0 ? ("user" as const) : ("assistant" as const),
     content:
       `Turn ${i}: the guest and concierge discussed terminal access, luggage handling, and waiting areas at length. ` +
-      "Additional pleasantries and repeated logistics chatter follow. ".repeat(60),
+      "Additional pleasantries and repeated logistics chatter follow. ".repeat(140),
   }));
 
 export const SCENARIOS: Scenario[] = [
@@ -153,6 +153,7 @@ export const SCENARIOS: Scenario[] = [
         },
       ],
       taskKind: "assistant",
+      tier: "fast",
       protectedContext: RIDE_STATE,
       purpose: "selftest_G",
     },
