@@ -67,3 +67,32 @@ AI Router**: request/failure/fallback counts, p50/p95 latency, per-model and
 per-tier breakdowns, error classes, and live circuit-breaker state.
 
 Rate limit: 60 router requests / 10 minutes per user (`ai_router_request`).
+
+## Production hardening pass (2026-09-13)
+
+Verified by real calls through the app's own `aiChat` / `aiAnalyze` /
+`aiFallbackProbe` / `aiModelHealth` entry points in the preview build.
+
+- Lightning 30B is `plainTextOnly` — barred from every structured and
+  operational path; retained only as a plain-text last resort.
+- DEEP is entered from BALANCED. Immediate DEEP only on: explicit `maxDepth`,
+  conflicting constraints, safety/eligibility rule violation, very large
+  context, low reliability, schema-validation failure, or low self-confidence.
+- Reliability = weighted evidence (input completeness, deterministic rules,
+  schema validity, contradictions, missing facts, self-confidence, fallback,
+  escalation) with hard floors. Self-confidence carries weight 0.10 and caps
+  the score when very low; it is never treated as proof.
+- Deterministic guardrails (8 domains) are authoritative; conflicting AI
+  recommendations are overridden and flagged, safety/eligibility blocking.
+- Protected context (ride state, pickup/dropoff, driver, timestamps, pricing
+  inputs, constraints, incidents, options, rules) is pinned verbatim; only
+  conversational prose is compressed.
+- Per-error retry policy: abort on auth, immediate failover on
+  unavailable/retired/overloaded, one Retry-After-respecting retry on rate
+  limits, max one retry per model, no fallback loops.
+- Scenario suite A–J: all pass. Fallback probe: 404 primary → failover to
+  gpt-oss in 1.6s. 160-turn conversation: compressed, verbatim state intact.
+- Admin metrics populate: 15 requests / 0 failures / 3 fallbacks, p50 14.0s,
+  p95 157.4s, per-model counts and token usage recorded.
+- No `nvapi-` value in HTML, client modules, network responses, console or
+  error messages. The provider key is read only in `*.server.ts` modules.
