@@ -10,19 +10,23 @@ function admin(): SupabaseClient {
   return _admin;
 }
 
-// C5 — idempotency. Returns true if this Stripe event has NOT been seen
-// before (and reserves it). Retried webhooks return false and are skipped.
-async function reserveEventOnce(eventId: string, eventType: string, env: StripeEnv): Promise<boolean> {
+// C5 — idempotency. Returns "first" when this Stripe event has not been seen
+// before (and reserves it), "duplicate" for a Stripe retry, and "unavailable"
+// when the reservation itself failed — in that last case we must NOT process
+// the event and must let Stripe retry, otherwise a transient database error
+// silently drops a real payment.
+type Reservation = "first" | "duplicate" | "unavailable";
+
+async function reserveEventOnce(eventId: string, eventType: string, env: StripeEnv): Promise<Reservation> {
   const { error } = await admin()
     .from("stripe_events")
     .insert({ event_id: eventId, event_type: eventType, environment: env });
-  if (!error) return true;
+  if (!error) return "first";
   // Postgres unique_violation = 23505
   const code = (error as { code?: string }).code;
-  if (code === "23505") return false;
-  // Any other error: treat as processed to avoid infinite retries; log for ops.
+  if (code === "23505") return "duplicate";
   console.error("stripe_events insert failed:", error.message);
-  return false;
+  return "unavailable";
 }
 
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
