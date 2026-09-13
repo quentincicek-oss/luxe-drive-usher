@@ -36,7 +36,7 @@ export type RieAnalysis = z.infer<typeof RieAnalysisSchema> & {
   tier_used: "fast" | "balanced" | "deep";
   fallback_used: boolean;
   escalated: boolean;
-  reasoning_summary: string | null;
+  reasoning_used: boolean;
   latency_ms: number;
 };
 
@@ -97,7 +97,7 @@ export const aiChat = createServerFn({ method: "POST" })
       await recordAiEvent(telemetryFromResult(result, { purpose, taskKind, userId: context.userId }));
       return {
         content: result.content,
-        reasoning_summary: result.reasoningSummary,
+        reasoning_used: result.reasoningUsed,
         model_used: result.modelUsed,
         tier_used: result.tierUsed,
         fallback_used: result.fallbackUsed,
@@ -189,7 +189,7 @@ export const aiAnalyze = createServerFn({ method: "POST" })
         tier_used: chosen.result.tierUsed,
         fallback_used: chosen.result.fallbackUsed,
         escalated,
-        reasoning_summary: chosen.result.reasoningSummary,
+        reasoning_used: chosen.result.reasoningUsed,
         latency_ms: chosen.result.latencyMs,
       };
     } catch (e) {

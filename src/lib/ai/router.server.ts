@@ -44,8 +44,8 @@ export interface AttemptRecord {
 
 export interface RouteResult {
   content: string;
-  /** Short, model-authored summary of its reasoning. Never raw CoT. */
-  reasoningSummary: string | null;
+  /** True when the model reasoned internally. The chain-of-thought itself never leaves the server. */
+  reasoningUsed: boolean;
   tierUsed: Tier;
   requestedTier: Tier | null;
   modelUsed: string;
@@ -316,8 +316,8 @@ export async function routeChat(opts: RouteOptions): Promise<RouteResult> {
         recordSuccess(spec.id);
         return {
           content: out.content,
-          // Raw CoT stays server-side: only a clipped summary line leaves this module.
-          reasoningSummary: out.reasoning ? condense(out.reasoning) : null,
+          // Raw CoT is discarded here: it never leaves the server in any form.
+          reasoningUsed: out.reasoning !== null && out.reasoning.length > 0,
           tierUsed: tier,
           requestedTier,
           modelUsed: spec.id,
@@ -347,12 +347,4 @@ export async function routeChat(opts: RouteOptions): Promise<RouteResult> {
   e.attempts = attempts;
   e.tier = tier;
   throw e;
-}
-
-/** Reasoning models can emit pages of internal thought; never ship that out. */
-function condense(reasoning: string): string {
-  const cleaned = reasoning.replace(/\s+/g, " ").trim();
-  const sentences = cleaned.split(/(?<=[.!?])\s+/);
-  const tail = sentences.slice(-2).join(" ");
-  return tail.length > 320 ? `${tail.slice(0, 317)}…` : tail;
 }
