@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 /**
  * Current active versions of legal surfaces.
@@ -26,6 +27,7 @@ export const recordLegalAcceptance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => AcceptInput.parse(data))
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, context.userId, "legal_acceptance", 30);
     const { error } = await context.supabase.rpc("record_legal_acceptance", {
       _kind: data.kind,
       _version: data.version,

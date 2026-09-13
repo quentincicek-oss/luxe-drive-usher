@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { Json } from "@/integrations/supabase/types";
 
 type RpcClient = {
@@ -26,14 +27,16 @@ export const supportOpenConversation = createServerFn({ method: "POST" })
       bookingId: z.string().uuid().nullable().optional(),
     }).parse(input),
   )
-  .handler(async ({ data, context }) =>
-    callRpc(context.supabase, "support_open_conversation", {
+  .handler(async ({ data, context }) => {
+    // Stops a single account flooding the support queue with new threads.
+    await enforceRateLimit(context.supabase, context.userId, "support_open", 5);
+    return callRpc(context.supabase, "support_open_conversation", {
       _category: data.category,
       _subject: data.subject,
       _first_message: data.firstMessage,
       _booking_id: data.bookingId ?? null,
-    }),
-  );
+    });
+  });
 
 export const supportSendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -43,12 +46,13 @@ export const supportSendMessage = createServerFn({ method: "POST" })
       body: z.string().trim().min(1).max(4000),
     }).parse(input),
   )
-  .handler(async ({ data, context }) =>
-    callRpc(context.supabase, "support_send_message", {
+  .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, context.userId, "support_message", 60);
+    return callRpc(context.supabase, "support_send_message", {
       _conversation_id: data.conversationId,
       _body: data.body,
-    }),
-  );
+    });
+  });
 
 export const supportMarkRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
