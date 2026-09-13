@@ -11,7 +11,10 @@ export type { ModelHealthRow };
 import type { ReliabilityAssessment } from "./ai/reliability.server";
 
 const MessageSchema = z.object({
-  role: z.enum(["system", "user", "assistant"]),
+  // Clients may only ever send conversation turns. The system prompt is
+  // composed server-side; a client-supplied `system` role is rejected so the
+  // model's instructions can never be overridden from the browser.
+  role: z.enum(["user", "assistant"]),
   // Sensible server-side cap: the router does token-aware trimming above this.
   content: z.string().min(1).max(120_000),
 });
@@ -120,6 +123,10 @@ export const aiChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => ChatInput.parse(data))
   .handler(async ({ data, context }) => {
+    // Routing controls (tier, task kind, long-form, authoritative context) are
+    // operator tools: only admins may set them, and only admins may spend the
+    // deep-reasoning budget. Passengers and drivers use the concierge instead.
+    await requireAdmin({ supabase: context.supabase, userId: context.userId });
     const { routeChat } = await import("./ai/router.server");
     const { recordAiEvent, telemetryFromResult } = await import("./ai/telemetry.server");
     const taskKind = data.taskKind ?? "assistant";
@@ -176,6 +183,10 @@ export const aiAnalyze = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => AnalyzeInput.parse(data))
   .handler(async ({ data, context }): Promise<RieAnalysis> => {
+    // `facts`, `rules` and `protectedContext` are presented to the model as
+    // authoritative. Only an operator may supply them, so an untrusted caller
+    // can never fabricate a passing rule or a fake ride state.
+    await requireAdmin({ supabase: context.supabase, userId: context.userId });
     const { routeChat, assessComplexity } = await import("./ai/router.server");
     const { recordAiEvent, telemetryFromResult } = await import("./ai/telemetry.server");
     const { evaluateGuardrails } = await import("./ai/guardrails.server");
