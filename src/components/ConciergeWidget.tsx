@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SiriOrb } from "@/components/SiriOrb";
+import { AiWorkingState } from "@/components/ai/AiWorkingState";
+import { useAiProgress } from "@/hooks/useAiProgress";
 import { Send, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +30,8 @@ export function ConciergeWidget() {
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const progress = useAiProgress({ slowAfterMs: 12_000, timeoutMs: 120_000 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,45 +49,60 @@ export function ConciergeWidget() {
 
   async function send() {
     const text = draft.trim();
-    if (!text || sending) return;
+    // Duplicate-submission guard: one concierge request at a time.
+    if (!text || sending || progress.running) return;
     const next: ChatMsg[] = [...chat, { role: "user", content: text }];
     setChat(next);
     setDraft("");
     setSending(true);
+    setStreaming(false);
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) { toast.error(t("book.chat.failed")); setSending(false); return; }
-      const res = await fetch("/api/blake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ messages: next }),
+      const outcome = await progress.run(async (signal) => {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) throw new Error(t("book.chat.failed"));
+        const res = await fetch("/api/blake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ messages: next }),
+          signal,
+        });
+        if (!res.ok || !res.body) {
+          const message = await res.text().catch(() => "");
+          throw new Error(message || t("book.blake.unavailable"));
+        }
+        if (res.headers.get("X-Concierge-Busy") === "1") {
+          setChat([...next, { role: "assistant", content: t("book.blake.busy") }]);
+          return "busy" as const;
+        }
+        const assigned = res.headers.get("X-Concierge-Agent");
+        if (assigned && AGENT_ROLES[assigned]) setAgent(assigned);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let assistant = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          assistant += decoder.decode(value, { stream: true });
+          if (!assistant.trim()) continue;
+          setStreaming(true);
+          setChat([...next, { role: "assistant", content: assistant }]);
+        }
+        return "ok" as const;
       });
-      if (!res.ok || !res.body) {
-        const message = await res.text().catch(() => "");
-        toast.error(message || t("book.blake.unavailable"));
-        setSending(false); return;
-      }
-      if (res.headers.get("X-Concierge-Busy") === "1") {
-        setChat([...next, { role: "assistant", content: t("book.blake.busy") }]);
-        setSending(false); return;
-      }
-      const assigned = res.headers.get("X-Concierge-Agent");
-      if (assigned && AGENT_ROLES[assigned]) setAgent(assigned);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let assistant = "";
-      setChat([...next, { role: "assistant", content: "" }]);
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        assistant += decoder.decode(value, { stream: true });
-        setChat([...next, { role: "assistant", content: assistant }]);
+      // `null` = canceled, timed out, or a duplicate submission was blocked.
+      if (outcome === null) {
+        const note = progress.timedOut ? t("ai.working.timeout") : t("ai.working.canceled");
+        toast.message(note);
       }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t("book.chat.failed"));
-    } finally { setSending(false); }
+    } finally {
+      setSending(false);
+      setStreaming(false);
+    }
   }
+
 
   return (
     <>
@@ -138,19 +157,33 @@ export function ConciergeWidget() {
                 </div>
               </div>
             ))}
+            {progress.running && !streaming && (
+              <AiWorkingState
+                stage={progress.stage}
+                elapsedMs={progress.elapsedMs}
+                slow={progress.slow}
+                onCancel={progress.cancel}
+                cancelLabel={t("ai.working.cancel")}
+                slowNote={t("ai.working.slow")}
+                t={t}
+              />
+            )}
           </div>
+
           <div className="border-t border-border/60 p-2.5 flex gap-2">
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={t("book.blake.placeholder")}
-              className="flex-1 rounded-md bg-input border border-border/60 px-3 py-2 text-sm focus:border-gold outline-none"
+              disabled={sending}
+              className="flex-1 rounded-md bg-input border border-border/60 px-3 py-2 text-sm focus:border-gold outline-none disabled:opacity-60"
             />
-            <button onClick={send} disabled={sending || !draft.trim()} className="rounded-md bg-gold-gradient px-3.5 disabled:opacity-50">
+            <button onClick={send} disabled={sending || !draft.trim()} className="rounded-md bg-gold-gradient px-3.5 disabled:opacity-50" data-testid="concierge-send">
               <Send className="h-4 w-4 text-primary-foreground" />
             </button>
           </div>
+
         </div>
       )}
     </>

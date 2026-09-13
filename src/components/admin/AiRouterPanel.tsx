@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { aiRouterReport, aiChat, aiAnalyze, aiFallbackProbe, aiModelHealth, type AiRouterReport, type ModelHealthRow } from "@/lib/ai.functions";
 import { SCENARIOS } from "@/lib/ai/selftest";
+import { AiWorkingState } from "@/components/ai/AiWorkingState";
+import { useAiProgress } from "@/hooks/useAiProgress";
 
 type TestRow = {
   id: string;
@@ -26,6 +28,9 @@ export function AiRouterPanel() {
   const [tests, setTests] = useState<TestRow[]>([]);
   const [running, setRunning] = useState(false);
   const [health, setHealth] = useState<ModelHealthRow[] | null>(null);
+  const deep = useAiProgress();
+  const [deepResult, setDeepResult] = useState<string | null>(null);
+
 
   async function reload() {
     setBusy(true);
@@ -119,6 +124,44 @@ export function AiRouterPanel() {
       setError(e instanceof Error ? e.message : "Model health check failed");
     }
   }
+
+  /** Exercises the long-request working state against a real maximum-depth analysis. */
+  async function runDeepProbe() {
+    if (deep.running) return; // duplicate-submission guard
+    setDeepResult(null);
+    setError(null);
+    try {
+      const r = await deep.run((signal) =>
+        analyze({
+          signal,
+          data: {
+            question:
+              "A guest requests an immediate airport pickup for 6 passengers while the only nearby chauffeur is 55 minutes away and their medical certificate expires tomorrow. Weigh the operational trade-offs and recommend an action.",
+            facts: {
+              passengers: 6,
+              nearest_driver_eta_minutes: 55,
+              requested_pickup: "immediate",
+              vehicle_capacity: 7,
+              driver_certificate_expires: "tomorrow",
+            },
+            requiredFacts: ["passengers", "nearest_driver_eta_minutes", "requested_pickup", "vehicle_capacity"],
+            maxDepth: true,
+            purpose: "ui_progress_probe",
+          } as never,
+        }),
+      );
+      if (r === null) {
+        setDeepResult(deep.timedOut ? "Timed out — no recommendation produced." : "Canceled by operator.");
+      } else {
+        setDeepResult(`Completed in ${(r.latency_ms / 1000).toFixed(1)}s · reliability ${r.reliability.band}`);
+      }
+    } catch (e) {
+      setDeepResult(e instanceof Error ? e.message : "Deep analysis failed");
+    }
+    await reload();
+  }
+
+
 
   useEffect(() => {
     let alive = true;
@@ -258,6 +301,14 @@ export function AiRouterPanel() {
               >
                 Check model availability
               </button>
+              <button
+                onClick={runDeepProbe}
+                disabled={running || deep.running}
+                className="rounded-lg border border-border/60 px-3 py-1.5 text-sm hover:border-gold/60 disabled:opacity-50"
+                data-testid="ai-deep-probe"
+              >
+                {deep.running ? "Deep analysis running…" : "Run deep analysis (progress UI)"}
+              </button>
               {tests.length > 0 && (
                 <span className="text-xs text-muted-foreground">
                   {tests.filter((t) => t.status === "pass").length} passed ·{" "}
@@ -265,6 +316,20 @@ export function AiRouterPanel() {
                 </span>
               )}
             </div>
+
+            {deep.running && (
+              <AiWorkingState
+                className="mb-3"
+                stage={deep.stage}
+                elapsedMs={deep.elapsedMs}
+                slow={deep.slow}
+                onCancel={deep.cancel}
+              />
+            )}
+            {!deep.running && deepResult && (
+              <p className="mb-3 text-xs text-muted-foreground" data-testid="ai-deep-result">{deepResult}</p>
+            )}
+
 
             {tests.length > 0 && (
               <ul className="space-y-1 text-xs" data-testid="ai-selftest-results">
