@@ -8,6 +8,17 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/driver/profile")({
+  head: () => ({
+    meta: [
+      { title: "Chauffeur Profile | HarborLine" },
+      { name: "description", content: "Manage your HarborLine chauffeur availability and personal details." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Chauffeur Profile | HarborLine" },
+      { property: "og:description", content: "Manage your HarborLine chauffeur availability and personal details." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: DriverProfile,
 });
 

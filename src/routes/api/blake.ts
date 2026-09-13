@@ -101,9 +101,6 @@ export const Route = createFileRoute("/api/blake")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
-
         let body: { messages?: Array<{ role: string; content: string }> };
         try { body = await request.json(); } catch { return new Response("Bad JSON", { status: 400 }); }
         const msgs = Array.isArray(body.messages) ? body.messages : [];
@@ -127,7 +124,13 @@ export const Route = createFileRoute("/api/blake")({
             return new Response("Message too long", { status: 413 });
           }
         }
-        const trimmed = msgs.slice(-MAX_HISTORY);
+        // Guests may only contribute conversation turns. Any client-supplied
+        // role other than assistant is coerced to `user`, so a crafted request
+        // cannot inject a system turn and rewrite the concierge's instructions.
+        const trimmed = msgs.slice(-MAX_HISTORY).map((m) => ({
+          role: (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user",
+          content: m.content,
+        }));
         const totalChars = trimmed.reduce((n, m) => n + (m.content?.length ?? 0), 0);
         if (totalChars > MAX_TOTAL_CHARS) {
           return new Response("Conversation too long", { status: 413 });
@@ -160,7 +163,7 @@ export const Route = createFileRoute("/api/blake")({
         const { agent, busy } = await assignAgent(userId);
 
         if (busy || !agent) {
-          // All 5 concierges are with other guests. Return an empty stream +
+          // All 5 concierges are with other guests. Return an empty body +
           // a header the client uses to render a localized "busy" notice.
           return new Response("", {
             status: 200,
@@ -172,77 +175,33 @@ export const Route = createFileRoute("/api/blake")({
           });
         }
 
-        const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${key}`,
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-5.5",
-            stream: true,
-            service_tier: "priority",
-            messages: [
-              { role: "system", content: buildSystem(agent) },
-              ...trimmed.map((m) => ({ role: m.role, content: m.content })),
-            ],
-          }),
-        });
-
-        if (!upstream.ok || !upstream.body) {
-          const txt = await upstream.text().catch(() => "");
-          if (upstream.status === 429) return new Response("Rate limited. Please wait a moment.", { status: 429 });
-          if (upstream.status === 402) return new Response("AI credits exhausted. Please add credits.", { status: 402 });
-          return new Response(txt || "AI upstream error", { status: 502 });
+        // Single AI path: the server-side adaptive router (NVIDIA NIM). The
+        // provider key stays server-side, the system prompt is composed here,
+        // and internal reasoning is discarded inside the router.
+        try {
+          const { routeChat } = await import("@/lib/ai/router.server");
+          const { recordAiEvent, telemetryFromResult } = await import("@/lib/ai/telemetry.server");
+          const result = await routeChat({
+            messages: [{ role: "system", content: buildSystem(agent) }, ...trimmed],
+            tier: "fast",
+            taskKind: "assistant",
+            purpose: "blake_concierge",
+          });
+          await recordAiEvent(
+            telemetryFromResult(result, { purpose: "blake_concierge", taskKind: "assistant", userId }),
+          );
+          return new Response(result.content, {
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "no-store",
+              "X-Concierge-Agent": agent,
+            },
+          });
+        } catch (e) {
+          // Never leak provider, model or key details to the guest.
+          console.error("[blake] router failure", e);
+          return new Response("The concierge is briefly unavailable. Please try again.", { status: 503 });
         }
-
-        const encoder = new TextEncoder();
-        const decoder = new TextDecoder();
-        const reader = upstream.body.getReader();
-        let buffer = "";
-        const stream = new ReadableStream<Uint8Array>({
-          async pull(controller) {
-            const { done, value } = await reader.read();
-            if (done) {
-              // flush any trailing line
-              if (buffer.trim().startsWith("data:")) {
-                const data = buffer.trim().slice(5).trim();
-                if (data && data !== "[DONE]") {
-                  try {
-                    const j = JSON.parse(data);
-                    const delta = j.choices?.[0]?.delta?.content;
-                    if (delta) controller.enqueue(encoder.encode(delta));
-                  } catch { /* ignore */ }
-                }
-              }
-              controller.close();
-              return;
-            }
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? ""; // keep incomplete last line
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("data:")) continue;
-              const data = trimmed.slice(5).trim();
-              if (!data || data === "[DONE]") continue;
-              try {
-                const j = JSON.parse(data);
-                const delta = j.choices?.[0]?.delta?.content;
-                if (delta) controller.enqueue(encoder.encode(delta));
-              } catch { /* ignore malformed */ }
-            }
-          },
-        });
-
-
-        return new Response(stream, {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "no-cache, no-transform",
-            "X-Concierge-Agent": agent,
-          },
-        });
       },
     },
   },

@@ -7,6 +7,17 @@ import { StatusPill } from "@/components/ops/StatusPill";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/driver/trips")({
+  head: () => ({
+    meta: [
+      { title: "Trip History | HarborLine Chauffeur" },
+      { name: "description", content: "Review completed and upcoming HarborLine chauffeur trips." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Trip History | HarborLine Chauffeur" },
+      { property: "og:description", content: "Review completed and upcoming HarborLine chauffeur trips." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: TripsList,
 });
 

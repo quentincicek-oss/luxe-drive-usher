@@ -9,6 +9,17 @@ import { ArrowUpRight, Car } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/driver/")({
+  head: () => ({
+    meta: [
+      { title: "Today's Assignments | HarborLine Chauffeur" },
+      { name: "description", content: "Your current HarborLine chauffeur assignment, guest details and trip actions." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Today's Assignments | HarborLine Chauffeur" },
+      { property: "og:description", content: "Your current HarborLine chauffeur assignment, guest details and trip actions." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: DriverHome,
 });
 

@@ -8,6 +8,13 @@
       "when": 1789288010721,
       "tag": "0000_create_ai_router_events",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789293756318,
+      "tag": "0001_referral_uniqueness_and_grant_hardening",
+      "breakpoints": true
     }
   ]
 }

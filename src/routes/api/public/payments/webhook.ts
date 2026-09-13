@@ -10,19 +10,23 @@ function admin(): SupabaseClient {
   return _admin;
 }
 
-// C5 — idempotency. Returns true if this Stripe event has NOT been seen
-// before (and reserves it). Retried webhooks return false and are skipped.
-async function reserveEventOnce(eventId: string, eventType: string, env: StripeEnv): Promise<boolean> {
+// C5 — idempotency. Returns "first" when this Stripe event has not been seen
+// before (and reserves it), "duplicate" for a Stripe retry, and "unavailable"
+// when the reservation itself failed — in that last case we must NOT process
+// the event and must let Stripe retry, otherwise a transient database error
+// silently drops a real payment.
+type Reservation = "first" | "duplicate" | "unavailable";
+
+async function reserveEventOnce(eventId: string, eventType: string, env: StripeEnv): Promise<Reservation> {
   const { error } = await admin()
     .from("stripe_events")
     .insert({ event_id: eventId, event_type: eventType, environment: env });
-  if (!error) return true;
+  if (!error) return "first";
   // Postgres unique_violation = 23505
   const code = (error as { code?: string }).code;
-  if (code === "23505") return false;
-  // Any other error: treat as processed to avoid infinite retries; log for ops.
+  if (code === "23505") return "duplicate";
   console.error("stripe_events insert failed:", error.message);
-  return false;
+  return "unavailable";
 }
 
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
@@ -128,10 +132,14 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             console.error("Webhook missing event id");
             return new Response("Missing event id", { status: 400 });
           }
-          const first = await reserveEventOnce(eventId, event.type, env);
-          if (!first) {
+          const reservation = await reserveEventOnce(eventId, event.type, env);
+          if (reservation === "duplicate") {
             // Already processed (Stripe retry). Return 200 so Stripe stops retrying.
             return Response.json({ received: true, duplicate: true });
+          }
+          if (reservation === "unavailable") {
+            // Ask Stripe to retry rather than losing the event.
+            return new Response("Event store unavailable", { status: 503 });
           }
           if (event.type === "checkout.session.completed") {
             await handleCheckoutCompleted(event.data.object);

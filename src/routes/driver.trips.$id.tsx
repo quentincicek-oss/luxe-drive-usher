@@ -21,6 +21,17 @@ import { toast } from "sonner";
 import { PhoneCall, Radio, AlertTriangle, XCircle, UserX } from "lucide-react";
 
 export const Route = createFileRoute("/driver/trips/$id")({
+  head: () => ({
+    meta: [
+      { title: "Trip Detail | HarborLine Chauffeur" },
+      { name: "description", content: "Live trip detail, guest verification and status updates for HarborLine chauffeurs." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Trip Detail | HarborLine Chauffeur" },
+      { property: "og:description", content: "Live trip detail, guest verification and status updates for HarborLine chauffeurs." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: TripDetail,
 });
 
