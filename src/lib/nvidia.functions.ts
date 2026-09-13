@@ -36,6 +36,8 @@ export const nvidiaChat = createServerFn({ method: "POST" })
         temperature: 0.4,
         max_tokens: 1024,
         stream: false,
+        // Nemotron models emit chain-of-thought into `content` unless disabled.
+        chat_template_kwargs: { thinking: false },
       }),
     });
 
