@@ -32,3 +32,9 @@ retry_after}`. The underlying table `public.rate_limits` is service-role only.
 - Windows reset lazily on next call; nothing runs on a schedule.
 - The bucket table grows unboundedly by (action,key). Add a periodic prune job
   once the pilot moves to full production.
+
+## `ai_router_request`
+
+- Limit: 60 requests / 10 minutes per user
+- Enforced in `src/lib/ai.functions.ts` (`aiChat`, `aiAnalyze`) via `check_and_bump_rate_limit`
+- Escalation to the DEEP tier consumes an extra bucket slot, so a low-confidence answer costs 2 requests
