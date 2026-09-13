@@ -49,19 +49,21 @@ const AnalyzeInput = z.object({
   purpose: z.string().max(60).optional(),
 });
 
+type RpcCaller = { rpc: (fn: never, args: never) => Promise<{ data: unknown }> };
+
 async function rateLimit(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> },
+  supabase: unknown,
   userId: string,
   action: string,
   limit: number,
 ) {
   try {
-    const { data } = await supabase.rpc("check_and_bump_rate_limit", {
+    const { data } = await (supabase as RpcCaller).rpc("check_and_bump_rate_limit" as never, {
       _action: action,
       _key: `user:${userId}`,
       _limit: limit,
       _window_seconds: 600,
-    });
+    } as never);
     const row = Array.isArray(data)
       ? (data[0] as { allowed?: boolean; retry_after?: number } | undefined)
       : (data as { allowed?: boolean; retry_after?: number } | null);

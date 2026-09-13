@@ -165,7 +165,7 @@ async function callModel(
   spec: ModelSpec,
   messages: Msg[],
   opts: { maxTokens: number; temperature: number; top_p: number; json: boolean },
-): Promise<{ content: string; reasoning: string | null; usage: NimResponse["usage"] }> {
+): Promise<{ content: string; reasoning: string | null; usage: NonNullable<NimResponse["usage"]> | null }> {
   const body: Record<string, unknown> = {
     model: spec.id,
     messages,
