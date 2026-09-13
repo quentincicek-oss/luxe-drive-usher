@@ -5,7 +5,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { ModelHealthRow } from "./ai/health.server";
 import type { DeterministicRule, GuardrailConflict } from "./ai/guardrails.server";
+export type { ModelHealthRow };
 import type { ReliabilityAssessment } from "./ai/reliability.server";
 
 const MessageSchema = z.object({
@@ -382,41 +384,8 @@ export const aiModelHealth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ checked_at: string; models: ModelHealthRow[] }> => {
     await requireAdmin({ supabase: context.supabase, userId: context.userId });
-    const { ALL_MODELS } = await import("./ai/registry.server");
-    const key = process.env["NVIDIA_API_KEY"];
-    if (!key) throw new Error("AI provider is not configured");
-
-    const rows: ModelHealthRow[] = [];
-    for (const spec of ALL_MODELS) {
-      const t0 = Date.now();
-      try {
-        const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: spec.id, messages: [{ role: "user", content: "ping" }], max_tokens: 1 }),
-        });
-        const text = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 160);
-        rows.push({
-          model: spec.id,
-          pin: spec.pin,
-          available: res.ok,
-          status: res.status,
-          latency_ms: Date.now() - t0,
-          note: res.ok
-            ? "reachable"
-            : res.status === 404
-              ? "not available to this key (retired or renamed)"
-              : text || `HTTP ${res.status}`,
-        });
-      } catch (e) {
-        rows.push({
-          model: spec.id, pin: spec.pin, available: false, status: null,
-          latency_ms: Date.now() - t0,
-          note: e instanceof Error ? e.message.slice(0, 160) : "probe failed",
-        });
-      }
-    }
-    return { checked_at: new Date().toISOString(), models: rows };
+    const { probeModels } = await import("./ai/health.server");
+    return probeModels();
   });
 
 /**
