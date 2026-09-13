@@ -41,6 +41,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_router_events: {
+        Row: {
+          attempts: Json
+          completion_tokens: number | null
+          context_trimmed: boolean
+          created_at: string
+          error_type: string | null
+          fallback_used: boolean
+          id: string
+          latency_ms: number | null
+          model_used: string | null
+          prompt_tokens: number | null
+          purpose: string
+          requested_tier: string | null
+          success: boolean
+          summarized: boolean
+          task_kind: string
+          tier_used: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: Json
+          completion_tokens?: number | null
+          context_trimmed?: boolean
+          created_at?: string
+          error_type?: string | null
+          fallback_used?: boolean
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          prompt_tokens?: number | null
+          purpose?: string
+          requested_tier?: string | null
+          success: boolean
+          summarized?: boolean
+          task_kind?: string
+          tier_used: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: Json
+          completion_tokens?: number | null
+          context_trimmed?: boolean
+          created_at?: string
+          error_type?: string | null
+          fallback_used?: boolean
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          prompt_tokens?: number | null
+          purpose?: string
+          requested_tier?: string | null
+          success?: boolean
+          summarized?: boolean
+          task_kind?: string
+          tier_used?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       amenity_categories: {
         Row: {
           code: string
@@ -2895,6 +2955,7 @@ export type Database = {
         Args: { _id: string; _reason?: string }
         Returns: Json
       }
+      admin_ai_router_report: { Args: { _hours?: number }; Returns: Json }
       admin_assign_driver: {
         Args: {
           _booking_id: string
