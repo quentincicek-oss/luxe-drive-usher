@@ -17,7 +17,6 @@ export function NoShowModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [attempts, setAttempts] = useState(0);
   const [reason, setReason] = useState("");
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
@@ -31,9 +30,10 @@ export function NoShowModal({
   const arrived = arrivedAt ?? new Date();
   const waited = Math.floor((now - arrived.getTime()) / 1000);
   const remaining = Math.max(0, minWaitSeconds - waited);
-  const canSubmit = remaining === 0 && attempts > 0 && !busy;
+  const canSubmit = remaining === 0 && !busy;
 
   async function go() {
+    if (busy) return;
     setBusy(true);
     try {
       // Best-effort arrival GPS
@@ -46,9 +46,12 @@ export function NoShowModal({
           );
         });
       }
+      // Waiting time and contact attempts are recalculated on the server from
+      // the recorded arrival and logged calls; nothing here is authoritative.
       await submit({ data: {
-        bookingId, arrivalAt: arrived.toISOString(),
-        waitedSeconds: waited, attempts, arrivalLat: lat, arrivalLng: lng,
+        bookingId,
+        waitedSeconds: waited,
+        arrivalLat: lat, arrivalLng: lng,
         reason: reason || undefined,
       }});
       toast.success("No-show reported");
@@ -63,7 +66,7 @@ export function NoShowModal({
       <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border/60 bg-surface p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><UserX className="h-5 w-5 text-amber-400" /><h2 className="font-display text-lg">Report No-Show</h2></div>
-          <button onClick={onClose} className="p-2 -m-2"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-2 -m-2" aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="rounded-xl border border-border/60 p-4 space-y-2">
@@ -78,19 +81,15 @@ export function NoShowModal({
           )}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Communication attempts</label>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setAttempts(Math.max(0, attempts - 1))} className="h-10 w-10 rounded-full border border-border/60">-</button>
-            <div className="w-12 text-center font-mono text-lg">{attempts}</div>
-            <button onClick={() => setAttempts(attempts + 1)} className="h-10 w-10 rounded-full border border-border/60">+</button>
-            <div className="text-xs text-muted-foreground">calls / messages sent</div>
-          </div>
+        <div className="rounded-xl border border-border/60 p-4 text-xs text-muted-foreground">
+          Your calls and messages to the guest are counted automatically from the
+          trip log and attached to this report.
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Reason (optional)</label>
+          <label htmlFor="no-show-reason" className="block text-[10px] uppercase tracking-widest text-muted-foreground">Reason (optional)</label>
           <textarea
+            id="no-show-reason"
             value={reason} onChange={(e) => setReason(e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-border/60 bg-white/[0.02] p-3 text-sm"
