@@ -125,6 +125,44 @@ export function AiRouterPanel() {
     }
   }
 
+  /** Exercises the long-request working state against a real maximum-depth analysis. */
+  async function runDeepProbe() {
+    if (deep.running) return; // duplicate-submission guard
+    setDeepResult(null);
+    setError(null);
+    try {
+      const r = await deep.run((signal) =>
+        analyze({
+          signal,
+          data: {
+            question:
+              "A guest requests an immediate airport pickup for 6 passengers while the only nearby chauffeur is 55 minutes away and their medical certificate expires tomorrow. Weigh the operational trade-offs and recommend an action.",
+            facts: {
+              passengers: 6,
+              nearest_driver_eta_minutes: 55,
+              requested_pickup: "immediate",
+              vehicle_capacity: 7,
+              driver_certificate_expires: "tomorrow",
+            },
+            requiredFacts: ["passengers", "nearest_driver_eta_minutes", "requested_pickup", "vehicle_capacity"],
+            maxDepth: true,
+            purpose: "ui_progress_probe",
+          } as never,
+        }),
+      );
+      if (r === null) {
+        setDeepResult(deep.timedOut ? "Timed out — no recommendation produced." : "Canceled by operator.");
+      } else {
+        setDeepResult(`Completed in ${(r.latency_ms / 1000).toFixed(1)}s · reliability ${r.reliability.band}`);
+      }
+    } catch (e) {
+      setDeepResult(e instanceof Error ? e.message : "Deep analysis failed");
+    }
+    await reload();
+  }
+
+
+
   useEffect(() => {
     let alive = true;
     setBusy(true);
