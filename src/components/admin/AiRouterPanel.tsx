@@ -28,6 +28,9 @@ export function AiRouterPanel() {
   const [tests, setTests] = useState<TestRow[]>([]);
   const [running, setRunning] = useState(false);
   const [health, setHealth] = useState<ModelHealthRow[] | null>(null);
+  const deep = useAiProgress();
+  const [deepResult, setDeepResult] = useState<string | null>(null);
+
 
   async function reload() {
     setBusy(true);
