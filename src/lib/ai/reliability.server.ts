@@ -89,6 +89,11 @@ export function assessReliability(s: ReliabilitySignals): ReliabilityAssessment 
   if (!s.schemaValid) score = Math.min(score, 0.2);
   if (s.contradictions > 0) score = Math.min(score, 0.45);
   if (!s.deterministicRulesPassed) score = Math.min(score, 0.5);
+  // A model that reports very low confidence in its own answer cannot yield a
+  // high reliability band, however complete the deterministic inputs were.
+  if (s.modelConfidence < 0.35) score = Math.min(score, 0.55);
+  else if (s.modelConfidence < 0.5) score = Math.min(score, 0.7);
+  if (s.missingFacts.length > 0) score = Math.min(score, 0.75);
 
   const band: ReliabilityBand =
     score >= 0.8 ? "high" : score >= 0.6 ? "moderate" : score >= 0.35 ? "low" : "unusable";
