@@ -132,10 +132,14 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             console.error("Webhook missing event id");
             return new Response("Missing event id", { status: 400 });
           }
-          const first = await reserveEventOnce(eventId, event.type, env);
-          if (!first) {
+          const reservation = await reserveEventOnce(eventId, event.type, env);
+          if (reservation === "duplicate") {
             // Already processed (Stripe retry). Return 200 so Stripe stops retrying.
             return Response.json({ received: true, duplicate: true });
+          }
+          if (reservation === "unavailable") {
+            // Ask Stripe to retry rather than losing the event.
+            return new Response("Event store unavailable", { status: 503 });
           }
           if (event.type === "checkout.session.completed") {
             await handleCheckoutCompleted(event.data.object);
