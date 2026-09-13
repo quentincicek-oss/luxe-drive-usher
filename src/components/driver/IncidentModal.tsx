@@ -43,15 +43,16 @@ export function IncidentModal({
       <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-border/60 bg-surface p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-400" /><h2 className="font-display text-lg">Report Incident</h2></div>
-          <button onClick={onClose} className="p-2 -m-2"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-2 -m-2" aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-border/60 bg-white/[0.02] px-3 py-3 text-sm">
+          <label htmlFor="incident-category" className="block text-[10px] uppercase tracking-widest text-muted-foreground">Category</label>
+          <select id="incident-category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-border/60 bg-white/[0.02] px-3 py-3 text-sm">
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
+
 
         <div className="space-y-2">
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Severity</label>
