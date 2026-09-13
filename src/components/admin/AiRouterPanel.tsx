@@ -301,6 +301,14 @@ export function AiRouterPanel() {
               >
                 Check model availability
               </button>
+              <button
+                onClick={runDeepProbe}
+                disabled={running || deep.running}
+                className="rounded-lg border border-border/60 px-3 py-1.5 text-sm hover:border-gold/60 disabled:opacity-50"
+                data-testid="ai-deep-probe"
+              >
+                {deep.running ? "Deep analysis running…" : "Run deep analysis (progress UI)"}
+              </button>
               {tests.length > 0 && (
                 <span className="text-xs text-muted-foreground">
                   {tests.filter((t) => t.status === "pass").length} passed ·{" "}
@@ -308,6 +316,20 @@ export function AiRouterPanel() {
                 </span>
               )}
             </div>
+
+            {deep.running && (
+              <AiWorkingState
+                className="mb-3"
+                stage={deep.stage}
+                elapsedMs={deep.elapsedMs}
+                slow={deep.slow}
+                onCancel={deep.cancel}
+              />
+            )}
+            {!deep.running && deepResult && (
+              <p className="mb-3 text-xs text-muted-foreground" data-testid="ai-deep-result">{deepResult}</p>
+            )}
+
 
             {tests.length > 0 && (
               <ul className="space-y-1 text-xs" data-testid="ai-selftest-results">
