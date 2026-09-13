@@ -367,15 +367,6 @@ export const aiRouterReport = createServerFn({ method: "POST" })
     };
   });
 
-export type ModelHealthRow = {
-  model: string;
-  pin: "dated" | "alias";
-  available: boolean;
-  status: number | null;
-  latency_ms: number | null;
-  note: string;
-};
-
 /**
  * Model-drift / retirement detector. NVIDIA exposes no versioned ids for most
  * of these models, so availability is probed instead of pinned.
