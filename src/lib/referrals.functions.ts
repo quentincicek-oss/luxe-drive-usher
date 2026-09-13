@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // Ensures the signed-in user owns exactly one active referral code and returns it.
 export const getOrCreateMyReferralCode = createServerFn({ method: "POST" })
@@ -37,7 +38,10 @@ export const claimReferral = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(4).max(20), source: z.enum(["nfc","qr","link"]) }).parse(input)
   )
   .handler(async ({ data, context }) => {
-    const { userId } = context as any;
+    const { userId, supabase } = context as any;
+    // Referral codes are guessable by design (8 chars), so claiming is metered
+    // per user to stop enumeration and replay attempts.
+    await enforceRateLimit(supabase, userId, "referral_claim", 10);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const codeRow = await (supabaseAdmin as any).from("referral_codes")

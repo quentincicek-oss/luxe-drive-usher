@@ -215,6 +215,7 @@ export const reportIncident = createServerFn({ method: "POST" })
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    await enforceRateLimit(supabase, userId, "incident_report", 20);
     const { data: drv } = await (supabase as any).from("driver_profiles").select("id").eq("user_id", userId).maybeSingle();
     if (!drv) throw new Error("driver profile not found");
     const { data: row, error } = await (supabase as any).from("incidents").insert({
