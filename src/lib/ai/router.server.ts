@@ -37,6 +37,11 @@ export interface RouteOptions {
   protectedContext?: string;
   /** Label used only for diagnostics (no user content). */
   purpose?: string;
+  /**
+   * Server-only override of the model chain for this call. Used by the admin
+   * fallback probe; never derived from client input.
+   */
+  chainOverride?: ModelSpec[];
 }
 
 export interface AttemptRecord {
@@ -389,7 +394,7 @@ export async function routeChat(opts: RouteOptions): Promise<RouteResult> {
   const structured = opts.json === true || taskKind === "operational";
 
   // Models proven unreliable for structured/operational work are excluded outright.
-  const eligible = TIER_CHAINS[tier].filter((s) => !(structured && s.plainTextOnly));
+  const eligible = (opts.chainOverride ?? TIER_CHAINS[tier]).filter((s) => !(structured && s.plainTextOnly));
   const open = eligible.filter((s) => !isOpen(s.id));
   // Each model appears at most once: no fallback loops.
   const candidates = (open.length > 0 ? open : eligible).filter(

@@ -418,3 +418,37 @@ export const aiModelHealth = createServerFn({ method: "POST" })
     }
     return { checked_at: new Date().toISOString(), models: rows };
   });
+
+/**
+ * Admin-only fallback probe: routes through a chain whose primary model is
+ * known to be unavailable to this key, proving failover works end to end.
+ * The chain is built server-side; clients cannot choose models.
+ */
+export const aiFallbackProbe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAdmin({ supabase: context.supabase, userId: context.userId });
+    const { routeChat } = await import("./ai/router.server");
+    const { TIER_CHAINS } = await import("./ai/registry.server");
+    const { recordAiEvent, telemetryFromResult } = await import("./ai/telemetry.server");
+
+    const primary = TIER_CHAINS.fast[0]!;
+    const missing = { ...primary, id: "nvidia/nemotron-nano-3-30b-a3b", notes: "probe: known 404" };
+    const result = await routeChat({
+      messages: [{ role: "user", content: "Reply with exactly: FALLBACK OK" }],
+      tier: "fast",
+      taskKind: "assistant",
+      purpose: "selftest_E_fallback",
+      chainOverride: [missing, primary],
+    });
+    await recordAiEvent(
+      telemetryFromResult(result, { purpose: "selftest_E_fallback", taskKind: "assistant", userId: context.userId }),
+    );
+    return {
+      content: result.content,
+      model_used: result.modelUsed,
+      fallback_used: result.fallbackUsed,
+      attempts: result.attempts,
+      latency_ms: result.latencyMs,
+    };
+  });
