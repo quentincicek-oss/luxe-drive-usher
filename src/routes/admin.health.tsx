@@ -142,7 +142,10 @@ function SystemHealth() {
           ))}
         </div>
 
-        {/* Integrations */}
+        {/* AI router diagnostics */}
+        {role === "admin" && <AiRouterPanel />}
+
+
         <section className="mb-8">
           <h2 className="font-display text-xl text-gold mb-3">Integrations</h2>
           <div className="rounded-xl border border-border/60 bg-card/30 overflow-hidden">
