@@ -31,11 +31,13 @@ export const nvidiaChat = createServerFn({ method: "POST" })
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: data.model ?? "meta/llama-3.3-70b-instruct",
+        model: data.model ?? "nvidia/nemotron-3.5-lightning-30b-a3b",
         messages: data.messages,
         temperature: 0.4,
         max_tokens: 1024,
         stream: false,
+        // Nemotron models emit chain-of-thought into `content` unless disabled.
+        chat_template_kwargs: { thinking: false },
       }),
     });
 
