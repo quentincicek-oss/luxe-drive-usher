@@ -306,6 +306,16 @@ textarea:focus-visible {
 }
 .btn-ghost-luxe:hover { background: var(--color-accent); }
 
+/* Indeterminate AI progress rail */
+@keyframes ai-progress-slide {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+.ai-progress-rail {
+  animation: ai-progress-slide 1.8s cubic-bezier(.4,.1,.3,1) infinite;
+  border-radius: 9999px;
+}
+
 @keyframes skeleton-shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
