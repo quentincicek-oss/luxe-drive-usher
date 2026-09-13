@@ -8,6 +8,7 @@ import {
   opsListRestoreDrills, opsRecordRestoreDrill,
   type HealthSnapshot, type MonitoringRow, type IntegrationRow, type RestoreDrillRow,
 } from "@/lib/ops.functions";
+import { AiRouterPanel } from "@/components/admin/AiRouterPanel";
 
 export const Route = createFileRoute("/admin/health")({
   head: () => ({ meta: [
@@ -145,6 +146,7 @@ function SystemHealth() {
         {/* AI router diagnostics */}
         {role === "admin" && <AiRouterPanel />}
 
+        {/* Integrations */}
 
         <section className="mb-8">
           <h2 className="font-display text-xl text-gold mb-3">Integrations</h2>
