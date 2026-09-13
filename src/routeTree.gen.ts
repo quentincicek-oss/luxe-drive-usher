@@ -14,7 +14,6 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AiprobeTempRouteImport } from './routes/aiprobe-temp'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverIndexRouteImport } from './routes/driver.index'
@@ -71,11 +70,6 @@ const BookRoute = BookRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiprobeTempRoute = AiprobeTempRouteImport.update({
-  id: '/aiprobe-temp',
-  path: '/aiprobe-temp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -243,7 +237,6 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/aiprobe-temp': typeof AiprobeTempRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
@@ -282,7 +275,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/aiprobe-temp': typeof AiprobeTempRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/history': typeof HistoryRoute
@@ -322,7 +314,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/aiprobe-temp': typeof AiprobeTempRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/driver': typeof DriverRouteWithChildren
@@ -364,7 +355,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/aiprobe-temp'
     | '/auth'
     | '/book'
     | '/driver'
@@ -403,7 +393,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/aiprobe-temp'
     | '/auth'
     | '/book'
     | '/history'
@@ -442,7 +431,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
-    | '/aiprobe-temp'
     | '/auth'
     | '/book'
     | '/driver'
@@ -483,7 +471,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  AiprobeTempRoute: typeof AiprobeTempRoute
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   DriverRoute: typeof DriverRouteWithChildren
@@ -534,13 +521,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/aiprobe-temp': {
-      id: '/aiprobe-temp'
-      path: '/aiprobe-temp'
-      fullPath: '/aiprobe-temp'
-      preLoaderRoute: typeof AiprobeTempRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -884,7 +864,6 @@ const DriverRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  AiprobeTempRoute: AiprobeTempRoute,
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   DriverRoute: DriverRouteWithChildren,
