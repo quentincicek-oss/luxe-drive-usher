@@ -32,6 +32,18 @@ export interface ModelSpec {
   timeoutMs: number;
   /** Measured latency on the benchmark reasoning prompt, ms. */
   observedMs: number;
+  /**
+   * Model is only trustworthy for non-critical plain text. Never routed for
+   * structured JSON output or operational/RIE workloads.
+   */
+  plainTextOnly?: boolean;
+  /**
+   * Provider-side version pin state.
+   *  - "dated": the id itself carries a provider version/date suffix.
+   *  - "alias": NVIDIA exposes no versioned id; drift is detected by
+   *    aiModelHealth() instead of pinning.
+   */
+  pin: "dated" | "alias";
   notes: string;
 }
 
@@ -45,6 +57,7 @@ const SUPER_THINK: ModelSpec = {
   thinking: true,
   timeoutMs: 120_000,
   observedMs: 5_217,
+  pin: "alias",
   notes: "Verified: correct reasoning, clean content, reasoning in separate field, 180k prompt tokens accepted.",
 };
 
@@ -53,6 +66,7 @@ const SUPER_FAST: ModelSpec = {
   thinking: false,
   timeoutMs: 60_000,
   observedMs: 2_701,
+  pin: "alias",
   notes: "Verified: thinking disabled, 2.7s, accurate short answers.",
 };
 
@@ -65,6 +79,7 @@ const GPT_OSS: ModelSpec = {
   reasoning: "separate_field",
   timeoutMs: 60_000,
   observedMs: 7_137,
+  pin: "alias",
   notes: "Verified: 1.0s trivial call, correct reasoning, valid JSON, tool call emitted, 90k prompt tokens accepted.",
 };
 
@@ -77,6 +92,7 @@ const GLM_FLASH: ModelSpec = {
   reasoning: "separate_field",
   timeoutMs: 90_000,
   observedMs: 28_890,
+  pin: "alias",
   notes: "Verified: correct, clean, valid JSON, tools OK. Slower than Nemotron Super.",
 };
 
@@ -90,6 +106,7 @@ const NEMOTRON_ULTRA: ModelSpec = {
   thinking: true,
   timeoutMs: 240_000,
   observedMs: 88_644,
+  pin: "alias",
   notes: "Strongest verified NVIDIA model. Capacity-constrained: one probe returned 503 overloaded, so fallback is mandatory.",
 };
 
@@ -102,6 +119,7 @@ const KIMI_K3: ModelSpec = {
   reasoning: "separate_field",
   timeoutMs: 240_000,
   observedMs: 100_228,
+  pin: "alias",
   notes: "Verified: correct and concise, valid JSON, tools OK, 90k prompt tokens accepted. High latency.",
 };
 
@@ -114,6 +132,7 @@ const DEEPSEEK_V4_PRO: ModelSpec = {
   reasoning: "none",
   timeoutMs: 240_000,
   observedMs: 78_032,
+  pin: "dated",
   notes: "Verified: correct, valid JSON, tools OK. High latency, no exposed reasoning field.",
 };
 
@@ -127,12 +146,14 @@ const LIGHTNING: ModelSpec = {
   thinking: false,
   timeoutMs: 60_000,
   observedMs: 7_519,
-  notes: "Last resort only. Verified reachable but leaked chain-of-thought into content with thinking on and produced invalid JSON in json_object mode.",
+  pin: "alias",
+  plainTextOnly: true,
+  notes: "Plain-text last resort ONLY. 2026-09-13 re-test with thinking disabled: clean output, no reasoning leakage, correct summarization. Still produced invalid JSON in json_object mode, so it is barred from structured and operational routing by plainTextOnly.",
 };
 
 /** Ordered preference per tier: index 0 is primary, the rest are fallbacks. */
 export const TIER_CHAINS: Record<Tier, ModelSpec[]> = {
-  fast: [GPT_OSS, SUPER_FAST, LIGHTNING],
+  fast: [GPT_OSS, SUPER_FAST, LIGHTNING],  // LIGHTNING is plainTextOnly: skipped for JSON/operational
   balanced: [SUPER_THINK, GPT_OSS, GLM_FLASH],
   deep: [NEMOTRON_ULTRA, KIMI_K3, DEEPSEEK_V4_PRO, SUPER_THINK],
 };
@@ -159,3 +180,8 @@ export function outputBudget(spec: ModelSpec, tier: Tier, longForm: boolean): nu
   const base = tier === "deep" ? 16_384 : tier === "balanced" ? 6_144 : 2_048;
   return Math.min(spec.maxOutput, longForm ? spec.maxOutput : base);
 }
+
+/** Every routed model, de-duplicated by id — used by the health validator. */
+export const ALL_MODELS: ModelSpec[] = [
+  SUPER_THINK, GPT_OSS, GLM_FLASH, NEMOTRON_ULTRA, KIMI_K3, DEEPSEEK_V4_PRO, LIGHTNING,
+].filter((m, i, a) => a.findIndex((x) => x.id === m.id) === i);
