@@ -30,6 +30,8 @@ export function ConciergeWidget() {
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const progress = useAiProgress({ slowAfterMs: 12_000, timeoutMs: 120_000 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
