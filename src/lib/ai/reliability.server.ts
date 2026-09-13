@@ -93,7 +93,7 @@ export function assessReliability(s: ReliabilitySignals): ReliabilityAssessment 
   // high reliability band, however complete the deterministic inputs were.
   if (s.modelConfidence < 0.35) score = Math.min(score, 0.55);
   else if (s.modelConfidence < 0.5) score = Math.min(score, 0.7);
-  if (s.missingFacts.length > 0) score = Math.min(score, 0.75);
+  if (s.missingFacts > 0) score = Math.min(score, 0.75);
 
   const band: ReliabilityBand =
     score >= 0.8 ? "high" : score >= 0.6 ? "moderate" : score >= 0.35 ? "low" : "unusable";
